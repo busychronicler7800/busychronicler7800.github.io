@@ -1,0 +1,929 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BUSYCHRONICLER7800</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
+  <style>
+    :root {
+      --bg: #000000;
+      --fg: #ffffff;
+      --muted: #888888;
+      --line: #333333;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      border-radius: 0 !important;
+    }
+    body {
+      background-color: var(--bg);
+      color: var(--fg);
+      font-family: 'Helvetica Neue', Helvetica, Arial, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+      -webkit-font-smoothing: antialiased;
+      letter-spacing: -0.01em;
+      line-height: 1.6;
+    }
+    header {
+      border-bottom: 1px solid var(--fg);
+      padding: 20px 32px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+      position: sticky;
+      top: 0;
+      background: var(--bg);
+      z-index: 50;
+    }
+    .brand {
+      font-weight: 700;
+      font-size: 1.05rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    nav {
+      display: flex;
+      gap: 0;
+      border: 1px solid var(--fg);
+    }
+    nav button {
+      background: var(--bg);
+      border: none;
+      border-right: 1px solid var(--fg);
+      color: var(--fg);
+      padding: 8px 16px;
+      font-family: inherit;
+      font-size: 0.8rem;
+      font-weight: 500;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+    }
+    nav button:last-child { border-right: none; }
+    nav button.active, nav button:hover {
+      background: var(--fg);
+      color: var(--bg);
+      font-weight: 700;
+    }
+
+    main {
+      max-width: 1140px;
+      margin: 40px auto;
+      padding: 0 24px 80px;
+    }
+    .section { display: none; }
+    .section.active { display: block; }
+
+    .box {
+      border: 1px solid var(--fg);
+      padding: 28px;
+      margin-bottom: 24px;
+      background: var(--bg);
+    }
+    .box h2 {
+      font-size: 0.85rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 12px;
+      margin-bottom: 20px;
+    }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); gap: 24px; }
+    @media (max-width: 820px) {
+      .grid-2 { grid-template-columns: 1fr; }
+      header { padding: 16px 20px; }
+      nav { flex-wrap: wrap; }
+    }
+
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+    .form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+    label {
+      font-size: 0.75rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    input, select, textarea {
+      background: var(--bg);
+      border: 1px solid var(--line);
+      color: var(--fg);
+      padding: 10px 12px;
+      font-size: 0.9rem;
+      font-family: inherit;
+    }
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: var(--fg);
+    }
+
+    .btn {
+      padding: 11px 20px;
+      background: var(--fg);
+      color: var(--bg);
+      border: 1px solid var(--fg);
+      font-family: inherit;
+      font-size: 0.82rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      cursor: pointer;
+    }
+    .btn:hover {
+      background: var(--bg);
+      color: var(--fg);
+    }
+    .btn-outline {
+      background: var(--bg);
+      border: 1px solid var(--line);
+      color: var(--fg);
+      padding: 8px 14px;
+      font-family: inherit;
+      font-size: 0.8rem;
+      cursor: pointer;
+    }
+    .btn-outline:hover, .btn-outline.active {
+      border-color: var(--fg);
+      background: var(--fg);
+      color: var(--bg);
+      font-weight: 700;
+    }
+    .btn-small {
+      background: var(--bg);
+      border: 1px solid var(--line);
+      color: var(--muted);
+      padding: 4px 10px;
+      font-size: 0.75rem;
+      cursor: pointer;
+    }
+    .btn-small:hover {
+      border-color: var(--fg);
+      color: var(--fg);
+    }
+
+    /* 3D ASCII */
+    .ascii-wrapper {
+      border: 1px solid var(--fg);
+      background: var(--bg);
+      height: 540px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .ascii-controls {
+      border: 1px solid var(--fg);
+      border-top: none;
+      padding: 14px 20px;
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
+      align-items: center;
+      font-size: 0.8rem;
+    }
+
+    /* Profile Tags */
+    .tag {
+      display: inline-block;
+      border: 1px solid var(--fg);
+      padding: 4px 10px;
+      font-size: 0.75rem;
+      letter-spacing: 0.03em;
+      margin: 0 6px 6px 0;
+    }
+
+    /* Archive Card */
+    .archive-card {
+      border: 1px solid var(--fg);
+      display: flex;
+      flex-direction: column;
+    }
+    .archive-card img {
+      width: 100%;
+      height: 220px;
+      object-fit: cover;
+      border-bottom: 1px solid var(--fg);
+      filter: grayscale(15%);
+    }
+    .archive-body {
+      padding: 18px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .archive-meta {
+      font-size: 0.75rem;
+      color: var(--muted);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .archive-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+    .archive-text {
+      font-size: 0.88rem;
+      color: #cccccc;
+      white-space: pre-line;
+      margin-bottom: 16px;
+    }
+
+    /* Guestbook */
+    .gb-item {
+      border-bottom: 1px solid var(--line);
+      padding: 16px 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+    }
+    .gb-item:last-child { border-bottom: none; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">BUSYCHRONICLER7800</div>
+    <nav>
+      <button id="tab-ascii" class="active" onclick="switchTab('ascii')">3D ASCII</button>
+      <button id="tab-flight" onclick="switchTab('flight')">FLIGHT</button>
+      <button id="tab-profile" onclick="switchTab('profile')">INFO</button>
+      <button id="tab-archive" onclick="switchTab('archive')">ARCHIVE</button>
+      <button id="tab-guestbook" onclick="switchTab('guestbook')">GUESTBOOK</button>
+    </nav>
+  </header>
+
+  <main>
+    <!-- 01. 3D ASCII -->
+    <section id="sec-ascii" class="section active">
+      <div id="ascii-container" class="ascii-wrapper"></div>
+      <div class="ascii-controls">
+        <label>CHARACTER SET :
+          <select id="ascii-chars">
+            <option value=" .:-=+*#%@">STANDARD ( .:-=+*#%@)</option>
+            <option value=" .'`^&quot;,:;Il!i&gt;&lt;~+_-?][}{1)(|\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&amp;8%B@$">HIGH DENSITY</option>
+            <option value=" 01">BINARY (0 / 1)</option>
+          </select>
+        </label>
+        <label>ROTATION :
+          <input type="range" id="rot-speed" min="0" max="0.03" step="0.002" value="0.008" />
+        </label>
+        <span style="color: var(--muted);">DRAG TO ROTATE / SCROLL TO ZOOM</span>
+      </div>
+    </section>
+
+    <!-- 02. FLIGHT RADAR -->
+    <section id="sec-flight" class="section">
+      <div class="grid-2">
+        <div class="box">
+          <h2>FLIGHT PARAMETERS</h2>
+          <div class="form-row">
+            <div class="form-group">
+              <label>STATUS</label>
+              <select id="cfg-active">
+                <option value="true">ACTIVE (4H INTERVAL)</option>
+                <option value="false">PAUSED</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>TRIP TYPE</label>
+              <select id="cfg-type" onchange="renderLegInputs()">
+                <option value="3">MULTI-CITY (다구간)</option>
+                <option value="1">ROUND-TRIP (왕복)</option>
+                <option value="2">ONE-WAY (편도)</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>STOPS</label>
+              <select id="cfg-stops">
+                <option value="1">NONSTOP ONLY (직항만)</option>
+                <option value="2">MAX 1 STOP (1회 경유 이하)</option>
+                <option value="0">ANY STOPS (상관없음)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>AIRLINES (OPTIONAL)</label>
+              <input type="text" id="cfg-airlines" placeholder="KE,OZ,TK" />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>TARGET PRICE (KRW)</label>
+              <input type="number" id="cfg-target" step="10000" value="1400000" />
+            </div>
+            <div class="form-group">
+              <label>DISCORD ALERT MODE</label>
+              <select id="cfg-drop-only">
+                <option value="false">EVERY CHECK (매번 리포트)</option>
+                <option value="true">PRICE DROP ONLY (최저가만)</option>
+              </select>
+            </div>
+          </div>
+          <div id="legs-container"></div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>REPOSITORY</label>
+              <input type="text" id="gh-repo" placeholder="busychronicler7800/busychronicler7800.github.io" />
+            </div>
+            <div class="form-group">
+              <label>GITHUB TOKEN</label>
+              <input type="password" id="gh-token" placeholder="github_pat_..." />
+            </div>
+          </div>
+          <button class="btn" style="width:100%" onclick="saveConfigToGitHub()">SAVE & SYNC</button>
+          <div id="sync-status" style="margin-top:12px; font-size:0.82rem;"></div>
+        </div>
+
+        <div class="box">
+          <h2>PRICE TELEMETRY</h2>
+          <canvas id="webPriceChart" height="240"></canvas>
+          <div id="chart-summary" style="margin-top:16px; font-size:0.82rem; color:var(--muted);">
+            LOADING DATA...
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 03. INFO (ABOUT ME) -->
+    <section id="sec-profile" class="section">
+      <div class="grid-2">
+        <div class="box">
+          <h2>IDENTITY</h2>
+          <p style="font-size:1.3rem; font-weight:700; margin-bottom:12px; letter-spacing:-0.02em;">BUSYCHRONICLER7800</p>
+          <p style="color:#cccccc; font-size:0.92rem; margin-bottom:20px;">
+            인체의 움직임과 생체역학(Biomechanics)을 탐구하며, 기술과 기록을 통해 일상의 데이터를 아카이빙하는 개인 공간입니다.
+            3D ASCII 타이포그래피와 실용적인 자동화 도구를 직접 설계하고 실험합니다.
+          </p>
+          <div>
+            <span class="tag">BIOMECHANICS</span>
+            <span class="tag">3D ASCII ART</span>
+            <span class="tag">DIGITAL ARCHIVE</span>
+            <span class="tag">AUTOMATION</span>
+          </div>
+        </div>
+        <div class="box">
+          <h2>INDEX OF WORKS</h2>
+          <ul style="list-style:none; font-size:0.9rem; display:flex; flex-direction:column; gap:16px;">
+            <li style="border-bottom:1px solid var(--line); padding-bottom:12px;">
+              <strong>01. 3D ANATOMY ASCII ENGINE</strong><br>
+              <span style="color:var(--muted); font-size:0.84rem;">Blender 해부학 메쉬 모델을 웹 브라우저에서 실시간 아스키 아트로 렌더링하는 프로젝트</span>
+            </li>
+            <li style="border-bottom:1px solid var(--line); padding-bottom:12px;">
+              <strong>02. MULTI-CITY FLIGHT RADAR</strong><br>
+              <span style="color:var(--muted); font-size:0.84rem;">SerpApi와 GitHub Actions를 결합한 무서버 항공권 최저가·백분위 추적 시스템</span>
+            </li>
+            <li>
+              <strong>03. CHRONOLOGICAL ARCHIVE</strong><br>
+              <span style="color:var(--muted); font-size:0.84rem;">시기별 주요 이벤트, 사진, 단상을 구조화하여 보존하는 개인 아카이빙</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- 04. ARCHIVE -->
+    <section id="sec-archive" class="section">
+      <div id="archive-admin-panel" class="box" style="display:none;">
+        <h2>NEW ARCHIVE ENTRY (ADMIN)</h2>
+        <div class="form-row">
+          <div class="form-group">
+            <label>PERIOD (기간 분류)</label>
+            <input type="text" id="arc-period" placeholder="예: 2026 하반기" />
+          </div>
+          <div class="form-group">
+            <label>EVENT TAG (이벤트 분류)</label>
+            <input type="text" id="arc-event" placeholder="예: 3D 프로젝트" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>TITLE</label>
+            <input type="text" id="arc-title" placeholder="제목을 입력하세요" />
+          </div>
+          <div class="form-group">
+            <label>IMAGE (OPTIONAL)</label>
+            <input type="file" id="arc-file" accept="image/*" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label>NOTE</label>
+          <textarea id="arc-content" rows="3" placeholder="기록할 문구를 입력하세요..."></textarea>
+        </div>
+        <button class="btn" onclick="uploadArchive()">PUBLISH ENTRY</button>
+        <span id="arc-status" style="margin-left:12px; font-size:0.82rem;"></span>
+      </div>
+
+      <div class="box" style="padding: 16px 24px;">
+        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+          <span style="font-size:0.75rem; color:var(--muted); margin-right:8px; letter-spacing:0.05em;">FILTER :</span>
+          <div id="archive-filters" style="display:flex; gap:6px; flex-wrap:wrap;"></div>
+        </div>
+      </div>
+
+      <div id="archive-grid" class="grid-3"></div>
+    </section>
+
+    <!-- 05. GUESTBOOK -->
+    <section id="sec-guestbook" class="section">
+      <div class="box">
+        <h2>AUTHENTICATION & GUESTBOOK</h2>
+
+        <div id="auth-logged-out">
+          <p style="font-size:0.86rem; color:var(--muted); margin-bottom:16px;">
+            방명록을 남기거나 관리자 기능을 사용하려면 이메일로 로그인해주세요.
+          </p>
+          <div class="form-row">
+            <div class="form-group">
+              <label>EMAIL</label>
+              <input type="email" id="auth-email" placeholder="visitor@example.com" />
+            </div>
+            <div class="form-group">
+              <label>PASSWORD (6+ CHARS)</label>
+              <input type="password" id="auth-password" placeholder="••••••" />
+            </div>
+          </div>
+          <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <button class="btn" onclick="handleLogin()">SIGN IN</button>
+            <button class="btn-outline" onclick="handleSignup()">CREATE ACCOUNT</button>
+          </div>
+          <div id="auth-msg" style="margin-top:12px; font-size:0.82rem;"></div>
+        </div>
+
+        <div id="auth-logged-in" style="display:none;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:8px;">
+            <span id="user-badge" style="font-size:0.84rem; font-weight:700;"></span>
+            <button class="btn-small" onclick="handleLogout()">SIGN OUT</button>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>NAME</label>
+              <input type="text" id="gb-nickname" placeholder="표시 이름" />
+            </div>
+            <div class="form-group">
+              <label>MESSAGE</label>
+              <input type="text" id="gb-message" placeholder="방명록 메시지를 입력하세요" />
+            </div>
+          </div>
+          <button class="btn" onclick="postGuestbook()">POST MESSAGE</button>
+        </div>
+      </div>
+
+      <div class="box">
+        <h2>VISITOR LOGS</h2>
+        <div id="guestbook-list" style="font-size:0.88rem; color:var(--muted);">LOADING...</div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Three.js 3D ASCII -->
+  <script type="module">
+    import * as THREE from 'three';
+    import { AsciiEffect } from 'three/addons/effects/AsciiEffect.js';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    // import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'; // 3단계에서 활성화
+
+    const container = document.getElementById('ascii-container');
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x000000);
+
+    const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
+    camera.position.set(0, 0, 5);
+
+    const light1 = new THREE.DirectionalLight(0xffffff, 2.6);
+    light1.position.set(5, 5, 5);
+    scene.add(light1);
+
+    const light2 = new THREE.DirectionalLight(0x777777, 1.0);
+    light2.position.set(-5, -3, -5);
+    scene.add(light2);
+
+    const geometry = new THREE.TorusKnotGeometry(1.2, 0.38, 128, 32);
+    const material = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.35 });
+    let targetMesh = new THREE.Mesh(geometry, material);
+    scene.add(targetMesh);
+
+    /* 3단계 Blender 모델 연결 시 주석 해제:
+    const loader = new GLTFLoader();
+    loader.load('./model.glb', (gltf) => {
+      scene.remove(targetMesh);
+      targetMesh = gltf.scene;
+      scene.add(targetMesh);
+    });
+    */
+
+    const renderer = new THREE.WebGLRenderer();
+    renderer.setSize(container.clientWidth, container.clientHeight);
+
+    let effect, controls;
+    function initAscii(charSet) {
+      container.innerHTML = '';
+      effect = new AsciiEffect(renderer, charSet, { invert: true });
+      effect.setSize(container.clientWidth, container.clientHeight);
+      effect.domElement.style.color = '#ffffff';
+      effect.domElement.style.backgroundColor = '#000000';
+      container.appendChild(effect.domElement);
+      controls = new OrbitControls(camera, effect.domElement);
+      controls.enableDamping = true;
+    }
+
+    initAscii(document.getElementById('ascii-chars').value);
+    document.getElementById('ascii-chars').addEventListener('change', (e) => initAscii(e.target.value));
+
+    window.addEventListener('resize', () => {
+      if (!container.clientWidth) return;
+      camera.aspect = container.clientWidth / container.clientHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(container.clientWidth, container.clientHeight);
+      effect.setSize(container.clientWidth, container.clientHeight);
+    });
+
+    function animate() {
+      requestAnimationFrame(animate);
+      if (targetMesh) targetMesh.rotation.y += parseFloat(document.getElementById('rot-speed').value);
+      controls.update();
+      effect.render(scene, camera);
+    }
+    animate();
+  </script>
+
+  <!-- Supabase & Flight Sync -->
+  <script>
+    // =================================================================
+    // [4단계에서 입력] Supabase 프로젝트 설정 값
+    // =================================================================
+    const SUPABASE_URL = "https://jxqezqwrzpfujktnouyz.supabase.co";
+    const SUPABASE_ANON_KEY = "sb_publishable_zpj7BTWw2-fb1QeNkU8jHQ_Frc569Bi";
+    const ADMIN_EMAIL = "kangsihoo0530@gmail.com";
+    // =================================================================
+
+    const isSupabaseReady = !SUPABASE_URL.includes("여기에_");
+    const sb = isSupabaseReady ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+    let currentUser = null;
+    let allArchives = [];
+    let activeFilter = "ALL";
+    let currentConfig = null;
+
+    function switchTab(tab) {
+      document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+      document.getElementById('tab-' + tab).classList.add('active');
+      document.getElementById('sec-' + tab).classList.add('active');
+      if (tab === 'ascii') window.dispatchEvent(new Event('resize'));
+    }
+
+    // --- AUTH ---
+    async function checkAuthState() {
+      if (!sb) return;
+      const { data: { session } } = await sb.auth.getSession();
+      updateAuthUI(session?.user || null);
+      sb.auth.onAuthStateChange((_e, session) => updateAuthUI(session?.user || null));
+    }
+
+    function updateAuthUI(user) {
+      currentUser = user;
+      const isAdmin = user && user.email === ADMIN_EMAIL;
+      document.getElementById('auth-logged-out').style.display = user ? 'none' : 'block';
+      document.getElementById('auth-logged-in').style.display = user ? 'block' : 'none';
+      document.getElementById('archive-admin-panel').style.display = isAdmin ? 'block' : 'none';
+      if (user) {
+        document.getElementById('user-badge').innerText = `SIGNED IN : ${user.email} ${isAdmin ? '[ADMIN]' : ''}`;
+        document.getElementById('gb-nickname').value = user.email.split('@')[0];
+      }
+      renderArchives();
+      loadGuestbook();
+    }
+
+    async function handleSignup() {
+      if (!sb) return alert('4단계 Supabase 설정을 먼저 완료해주세요.');
+      const email = document.getElementById('auth-email').value.trim();
+      const password = document.getElementById('auth-password').value;
+      const msg = document.getElementById('auth-msg');
+      const { error } = await sb.auth.signUp({ email, password });
+      msg.innerText = error ? 'ERROR : ' + error.message : 'ACCOUNT CREATED. PLEASE SIGN IN.';
+    }
+
+    async function handleLogin() {
+      if (!sb) return alert('4단계 Supabase 설정을 먼저 완료해주세요.');
+      const email = document.getElementById('auth-email').value.trim();
+      const password = document.getElementById('auth-password').value;
+      const msg = document.getElementById('auth-msg');
+      const { error } = await sb.auth.signInWithPassword({ email, password });
+      msg.innerText = error ? 'ERROR : ' + error.message : '';
+    }
+
+    async function handleLogout() {
+      if (sb) await sb.auth.signOut();
+    }
+
+    // --- ARCHIVE ---
+    async function loadArchives() {
+      if (!sb) {
+        document.getElementById('archive-grid').innerHTML =
+          `<p style="color:var(--muted); font-size:0.85rem;">4단계 Supabase 연결 후 아카이브가 표시됩니다.</p>`;
+        return;
+      }
+      const { data, error } = await sb.from('archives').select('*').order('created_at', { ascending: false });
+      if (!error && data) {
+        allArchives = data;
+        renderArchiveFilters();
+        renderArchives();
+      }
+    }
+
+    function renderArchiveFilters() {
+      const tags = new Set(['ALL']);
+      allArchives.forEach(item => {
+        if (item.period) tags.add(item.period);
+        if (item.event_tag) tags.add(item.event_tag);
+      });
+      document.getElementById('archive-filters').innerHTML = Array.from(tags).map(tag => `
+        <button class="btn-outline ${activeFilter === tag ? 'active' : ''}" onclick="setArchiveFilter('${tag}')">
+          ${tag === 'ALL' ? 'ALL' : tag}
+        </button>
+      `).join('');
+    }
+
+    function setArchiveFilter(tag) {
+      activeFilter = tag;
+      renderArchiveFilters();
+      renderArchives();
+    }
+
+    function renderArchives() {
+      const grid = document.getElementById('archive-grid');
+      if (!sb) return;
+      const isAdmin = currentUser && currentUser.email === ADMIN_EMAIL;
+      const filtered = activeFilter === 'ALL'
+        ? allArchives
+        : allArchives.filter(a => a.period === activeFilter || a.event_tag === activeFilter);
+
+      if (!filtered.length) {
+        grid.innerHTML = `<p style="color:var(--muted); font-size:0.85rem;">NO ENTRIES FOUND.</p>`;
+        return;
+      }
+
+      grid.innerHTML = filtered.map(item => `
+        <div class="archive-card">
+          ${item.image_url ? `<img src="${item.image_url}" alt="${item.title}" />` : ''}
+          <div class="archive-body">
+            <div>
+              <div class="archive-meta">${item.period} / ${item.event_tag}</div>
+              <div class="archive-title">${item.title}</div>
+              <div class="archive-text">${item.content || ''}</div>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.75rem; color:var(--muted);">
+              <span>${new Date(item.created_at).toLocaleDateString('ko-KR')}</span>
+              ${isAdmin ? `<button class="btn-small" onclick="deleteArchive(${item.id})">DELETE</button>` : ''}
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    async function uploadArchive() {
+      const period = document.getElementById('arc-period').value.trim() || 'GENERAL';
+      const eventTag = document.getElementById('arc-event').value.trim() || 'LOG';
+      const title = document.getElementById('arc-title').value.trim();
+      const content = document.getElementById('arc-content').value.trim();
+      const fileInput = document.getElementById('arc-file');
+      const status = document.getElementById('arc-status');
+
+      if (!title) return alert('제목을 입력해주세요.');
+      status.innerText = 'UPLOADING...';
+
+      let imageUrl = '';
+      if (fileInput.files.length > 0) {
+        const file = fileInput.files[0];
+        const ext = file.name.split('.').pop();
+        const safeName = `${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${ext}`;
+        const { error: upErr } = await sb.storage.from('archive-photos').upload(safeName, file);
+        if (upErr) {
+          status.innerText = 'UPLOAD FAILED : ' + upErr.message;
+          return;
+        }
+        const { data: pubData } = sb.storage.from('archive-photos').getPublicUrl(safeName);
+        imageUrl = pubData.publicUrl;
+      }
+
+      const { error } = await sb.from('archives').insert([{
+        period, event_tag: eventTag, title, content, image_url: imageUrl
+      }]);
+
+      if (error) {
+        status.innerText = 'ERROR : ' + error.message;
+      } else {
+        status.innerText = 'PUBLISHED.';
+        document.getElementById('arc-title').value = '';
+        document.getElementById('arc-content').value = '';
+        fileInput.value = '';
+        loadArchives();
+      }
+    }
+
+    async function deleteArchive(id) {
+      if (!confirm('삭제하시겠습니까?')) return;
+      await sb.from('archives').delete().eq('id', id);
+      loadArchives();
+    }
+
+    // --- GUESTBOOK ---
+    async function loadGuestbook() {
+      const listEl = document.getElementById('guestbook-list');
+      if (!sb) {
+        listEl.innerText = '4단계 Supabase 연결 후 방명록이 활성화됩니다.';
+        return;
+      }
+      const { data, error } = await sb.from('guestbook').select('*').order('created_at', { ascending: false });
+      if (error || !data) return;
+      if (!data.length) {
+        listEl.innerText = 'NO MESSAGES YET.';
+        return;
+      }
+      const isAdmin = currentUser && currentUser.email === ADMIN_EMAIL;
+      listEl.innerHTML = data.map(row => {
+        const canDelete = currentUser && (currentUser.id === row.user_id || isAdmin);
+        return `
+          <div class="gb-item">
+            <div>
+              <div style="font-size:0.78rem; color:var(--muted); text-transform:uppercase;">
+                <strong style="color:var(--fg);">${row.author_name}</strong> · ${new Date(row.created_at).toLocaleString('ko-KR')}
+              </div>
+              <div style="margin-top:6px; font-size:0.92rem; color:var(--fg);">${row.message}</div>
+            </div>
+            ${canDelete ? `<button class="btn-small" onclick="deleteGuestbook(${row.id})">DELETE</button>` : ''}
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function postGuestbook() {
+      if (!currentUser) return alert('로그인이 필요합니다.');
+      const authorName = document.getElementById('gb-nickname').value.trim() || 'VISITOR';
+      const message = document.getElementById('gb-message').value.trim();
+      if (!message) return alert('메시지를 입력해주세요.');
+      const { error } = await sb.from('guestbook').insert([{
+        user_id: currentUser.id, author_name: authorName, message
+      }]);
+      if (!error) {
+        document.getElementById('gb-message').value = '';
+        loadGuestbook();
+      }
+    }
+
+    async function deleteGuestbook(id) {
+      await sb.from('guestbook').delete().eq('id', id);
+      loadGuestbook();
+    }
+
+    // --- FLIGHT SYNC & CHART ---
+    function renderLegInputs() {
+      const type = document.getElementById('cfg-type').value;
+      const container = document.getElementById('legs-container');
+      const legCount = type === '2' ? 1 : (type === '1' ? 2 : 3);
+      const existingLegs = currentConfig?.legs || [];
+      let html = '';
+      for (let i = 0; i < legCount; i++) {
+        const leg = existingLegs[i] || { departure_id: '', arrival_id: '', date: '', times: '' };
+        html += `
+          <div style="border:1px solid var(--line); padding:12px; margin-bottom:12px;">
+            <div style="font-size:0.75rem; color:var(--muted); margin-bottom:8px;">SEGMENT 0${i + 1}</div>
+            <div class="form-row">
+              <input type="text" id="leg-dep-${i}" value="${leg.departure_id}" placeholder="FROM (ICN)" />
+              <input type="text" id="leg-arr-${i}" value="${leg.arrival_id}" placeholder="TO (PVG)" />
+            </div>
+            <div class="form-row" style="margin-bottom:0;">
+              <input type="date" id="leg-date-${i}" value="${leg.date}" />
+              <input type="text" id="leg-time-${i}" value="${leg.times || ''}" placeholder="HOURS (6,11)" />
+            </div>
+          </div>
+        `;
+      }
+      container.innerHTML = html;
+    }
+
+    async function initFlightSection() {
+      document.getElementById('gh-repo').value = localStorage.getItem('gh_repo') || 'busychronicler7800/busychronicler7800.github.io';
+      document.getElementById('gh-token').value = localStorage.getItem('gh_token') || '';
+      try {
+        const cfgRes = await fetch('./config.json?t=' + Date.now());
+        if (cfgRes.ok) {
+          currentConfig = await cfgRes.json();
+          document.getElementById('cfg-active').value = String(currentConfig.active);
+          document.getElementById('cfg-type').value = currentConfig.trip_type;
+          document.getElementById('cfg-stops').value = currentConfig.stops;
+          document.getElementById('cfg-airlines').value = currentConfig.include_airlines || '';
+          document.getElementById('cfg-target').value = currentConfig.target_price_krw;
+          document.getElementById('cfg-drop-only').value = String(currentConfig.notify_only_on_drop);
+        }
+      } catch (e) {}
+      renderLegInputs();
+
+      try {
+        const histRes = await fetch('./price_history.json?t=' + Date.now());
+        if (histRes.ok) {
+          const histData = await histRes.json();
+          const records = histData.records || [];
+          if (records.length) {
+            const latest = records[records.length - 1];
+            const minVal = Math.min(...records.map(r => r.price));
+            document.getElementById('chart-summary').innerHTML =
+              `LATEST : <strong style="color:#fff">${latest.price.toLocaleString()} KRW</strong> · LOWEST : <strong style="color:#fff">${minVal.toLocaleString()} KRW</strong> (${records.length} CHECKS)`;
+            new Chart(document.getElementById('webPriceChart'), {
+              type: 'line',
+              data: {
+                labels: records.map(r => r.timestamp.slice(5)),
+                datasets: [{
+                  label: 'PRICE (10K KRW)',
+                  data: records.map(r => Math.round(r.price / 10000)),
+                  borderColor: '#ffffff',
+                  backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                  borderWidth: 1.5,
+                  pointBackgroundColor: '#ffffff',
+                  fill: true
+                }]
+              },
+              options: {
+                plugins: { legend: { labels: { color: '#ffffff' } } },
+                scales: {
+                  x: { ticks: { color: '#888888' }, grid: { color: '#222222' } },
+                  y: { ticks: { color: '#888888' }, grid: { color: '#222222' } }
+                }
+              }
+            });
+          } else {
+            document.getElementById('chart-summary').innerText = 'NO PRICE RECORDS YET.';
+          }
+        }
+      } catch (e) {
+        document.getElementById('chart-summary').innerText = 'NO PRICE RECORDS YET.';
+      }
+    }
+
+    async function saveConfigToGitHub() {
+      const repo = document.getElementById('gh-repo').value.trim();
+      const token = document.getElementById('gh-token').value.trim();
+      const statusEl = document.getElementById('sync-status');
+      if (!repo || !token) return alert('REPOSITORY와 GITHUB TOKEN을 입력해주세요.');
+      localStorage.setItem('gh_repo', repo);
+      localStorage.setItem('gh_token', token);
+
+      const type = document.getElementById('cfg-type').value;
+      const legCount = type === '2' ? 1 : (type === '1' ? 2 : 3);
+      const legs = [];
+      for (let i = 0; i < legCount; i++) {
+        legs.push({
+          departure_id: document.getElementById(`leg-dep-${i}`).value.trim().toUpperCase(),
+          arrival_id: document.getElementById(`leg-arr-${i}`).value.trim().toUpperCase(),
+          date: document.getElementById(`leg-date-${i}`).value,
+          times: document.getElementById(`leg-time-${i}`).value.trim()
+        });
+      }
+
+      const newConfig = {
+        active: document.getElementById('cfg-active').value === 'true',
+        trip_type: type,
+        target_price_krw: parseInt(document.getElementById('cfg-target').value, 10),
+        notify_only_on_drop: document.getElementById('cfg-drop-only').value === 'true',
+        stops: document.getElementById('cfg-stops').value,
+        include_airlines: document.getElementById('cfg-airlines').value.trim().toUpperCase(),
+        legs
+      };
+
+      statusEl.innerText = 'SYNCING...';
+      const apiUrl = `https://api.github.com/repos/${repo}/contents/config.json`;
+      const getRes = await fetch(apiUrl, { headers: { Authorization: `Bearer ${token}` } });
+      const fileData = getRes.ok ? await getRes.json() : null;
+      const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(newConfig, null, 2))));
+      const putRes = await fetch(apiUrl, {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: 'chore: update flight config', content: encoded, sha: fileData?.sha })
+      });
+      statusEl.innerText = putRes.ok ? 'SYNCED TO GITHUB.' : 'SYNC FAILED.';
+    }
+
+    checkAuthState();
+    loadArchives();
+    initFlightSection();
+  </script>
+</body>
+</html>
