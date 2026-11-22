@@ -12,7 +12,7 @@ export default async function handler(req, res) {
     return res.status(200).send("VERCEL_ALIVE");
   }
 
-  const targetUrl = "https://jxqezqwrzpfujktnouyz.supabase.co" + path;
+  const targetUrl = "https://riapxjwtalqvaevsnpnb.supabase.co" + path;
 
   const headers = {
     "apikey": req.headers["apikey"] || "",
