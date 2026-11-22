@@ -13,8 +13,8 @@ import matplotlib.pyplot as plt
 # GitHub Actions에서는 Secrets 값을 자동으로 불러오며,
 # 내 PC에서 직접 실행할 때는 아래 따옴표("") 안의 값을 사용합니다.
 # =====================================================================
-SERPAPI_KEY = os.getenv("SERPAPI_KEY") or "9233ecb07f50f47b5522a7c9c0ba6e27b19021cf91cf77284afd318cc375a52f"
-DISCORD_WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK_URL") or "https://discord.com/api/webhooks/1573958568116224060/50sVkchuHwz9u5AgKW5CM3PcP_oSBJNrGjopk5b9GhN4YM2m27YqYxKQyV-Zyh63LUpc"
+SERPAPI_KEY = os.getenv("SERPAPI_KEY") or ""
+DISCORD_WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK_URL") or ""
 
 # 목표 가격 (단위: 원)
 TARGET_PRICE_KRW = 2000000
