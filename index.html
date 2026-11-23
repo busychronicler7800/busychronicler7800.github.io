@@ -261,7 +261,7 @@
 
     #anatomy-stage {
       width: 100%;
-      height: 700px;
+      height: 720px;
       border: 1px solid var(--line);
       background: #000000;
       position: relative;
@@ -274,7 +274,7 @@
       cursor: grabbing;
     }
 
-    #ascii-output-canvas {
+    #anatomy-stage canvas {
       width: 100%;
       height: 100%;
       display: block;
@@ -289,12 +289,17 @@
       justify-content: space-between;
       flex-wrap: wrap;
       gap: 8px;
-      font-size: 0.7rem;
+      font-size: 0.71rem;
       letter-spacing: 0.08em;
       color: var(--muted);
       pointer-events: none;
-      background: rgba(0, 0, 0, 0.75);
-      padding: 4px 8px;
+      background: rgba(0, 0, 0, 0.78);
+      padding: 5px 10px;
+      border: 1px solid #181818;
+    }
+
+    .anatomy-hud strong {
+      color: var(--fg);
     }
 
     /* 02. ARCHIVE GRID */
@@ -433,7 +438,7 @@
     @media (max-width: 768px) {
       header, main, footer { padding-left: 18px; padding-right: 18px; }
       .form-row, .form-row-3, .bio-grid { grid-template-columns: 1fr; }
-      #anatomy-stage { height: 520px; }
+      #anatomy-stage { height: 540px; }
     }
   </style>
 </head>
@@ -451,11 +456,11 @@
   </header>
 
   <main>
-    <!-- 01. 3D ANATOMY & SPATIAL TYPOGRAPHY VIEWER -->
+    <!-- 01. 3D ANATOMY & WORLD-SPACE MICRO-TYPOGRAPHY VIEWER -->
     <section id="sec-anatomy" class="section active">
       <div class="box">
         <div class="anatomy-toolbar">
-          <!-- 모델 선택: 에코르셰 / 3D 예시 모델 2종 -->
+          <!-- 모델 선택 -->
           <div class="toolbar-group">
             <label>MODEL</label>
             <div class="toolbar-buttons">
@@ -464,33 +469,32 @@
             </div>
           </div>
 
-          <!-- 문자/언어 모드 선택 -->
+          <!-- 의학용어 체계 선택 (ASCII / 한글 우리말 / 한자어 의학용어 / ENGLISH) -->
           <div class="toolbar-group">
-            <label>TYPOGRAPHY</label>
+            <label>TERMINOLOGY</label>
             <div class="toolbar-buttons">
               <button class="btn-outline active" id="mode-ascii" onclick="setGlyphMode('ascii')">ASCII</button>
-              <button class="btn-outline" id="mode-ko" onclick="setGlyphMode('ko')">한글 (KO)</button>
-              <button class="btn-outline" id="mode-hj" onclick="setGlyphMode('hj')">漢字 (HANJA)</button>
-              <button class="btn-outline" id="mode-en" onclick="setGlyphMode('en')">ENGLISH (EN)</button>
+              <button class="btn-outline" id="mode-ko" onclick="setGlyphMode('ko')">한글 (우리말)</button>
+              <button class="btn-outline" id="mode-hj" onclick="setGlyphMode('hj')">한자어 (의학)</button>
+              <button class="btn-outline" id="mode-en" onclick="setGlyphMode('en')">ENGLISH</button>
             </div>
           </div>
 
-          <!-- 시뮬레이션 제어 -->
+          <!-- 시점 및 흐름 제어 -->
           <div class="toolbar-group">
-            <label>CONTROL</label>
+            <label>VIEW & CONTROL</label>
             <div class="toolbar-buttons">
               <button class="btn-outline active" id="btn-autorotate" onclick="toggleAutoRotate()">ROTATE : ON</button>
               <button class="btn-outline active" id="btn-flow" onclick="toggleFlow()">FLOW : ON</button>
-              <button class="btn-outline" id="btn-density" onclick="cycleDensity()">GRID : DENSE</button>
+              <button class="btn-outline" onclick="resetAnatomyView()">RESET VIEW</button>
             </div>
           </div>
         </div>
 
-        <div id="anatomy-stage">
-          <canvas id="ascii-output-canvas"></canvas>
+        <div id="anatomy-stage" oncontextmenu="return false;">
           <div class="anatomy-hud">
-            <span id="hud-left">MODEL : ÉCORCHÉ · DRAG TO ROTATE · SCROLL TO ZOOM</span>
-            <span id="hud-right">MODE : ASCII SHADING MATRIX</span>
+            <span id="hud-left">LEFT DRAG : ROTATE · RIGHT/SHIFT DRAG : PAN · WHEEL : ZOOM IN TO READ</span>
+            <span id="hud-right">TARGET : <strong>ÉCORCHÉ</strong></span>
           </div>
         </div>
       </div>
@@ -665,7 +669,7 @@
       document.getElementById("sec-" + tabName).classList.add("active");
       document.getElementById("nav-" + tabName).classList.add("active");
 
-      if (tabName === "anatomy") resizeAnatomyCanvas();
+      if (tabName === "anatomy") resizeAnatomyViewport();
       if (tabName === "archive") loadArchives();
       if (tabName === "guestbook") loadGuestbook();
     }
@@ -955,54 +959,105 @@
     }
 
     // =========================================================
-    // 6. HIGH-DENSITY SCULPTED ÉCORCHÉ & TYPOGRAPHY ENGINE
+    // 6. 3D WORLD-SPACE MICRO-TYPOGRAPHY & SEPARATED MUSCLE ENGINE
     // =========================================================
-    const ASCII_RAMP = " .:-=+*#%@";
+    const ASCII_CHARS = [".", ":", "-", "=", "+", "*", "#", "%", "@"];
 
-    const REGION_LABELS = {
-      1: { ko: "두개골안면근", hj: "頭蓋骨顔面筋", en: "CRANIUMFACE" },
-      2: { ko: "흉쇄유돌승모", hj: "胸鎖乳突僧帽", en: "STERNOCLEIDO" },
-      3: { ko: "삼각근견봉",   hj: "三角筋肩峰",   en: "DELTOID" },
-      4: { ko: "대흉근늑골",   hj: "大胸筋肋骨",   en: "PECTORALIS" },
-      5: { ko: "상완이두전완", hj: "上腕二頭前腕", en: "BICEPSRADIUS" },
-      6: { ko: "복직근외복사", hj: "腹直筋外腹斜", en: "ABDOMINIS" },
-      7: { ko: "대퇴사두슬개", hj: "大腿四頭膝蓋", en: "QUADRICEPS" },
-      8: { ko: "비복근경골",   hj: "腓腹筋脛骨",   en: "GASTROCNEMIUS" }
+    // 해부학 근육별 우리말(신용어) / 한자어(의학용어) / 영문 매핑
+    const MUSCLE_TERMS = {
+      1:  { ko: "머리뼈",       hj: "두개골",     en: "CRANIUM" },
+      2:  { ko: "목빗근",       hj: "흉쇄유돌근", en: "STERNOCLEIDOMASTOID" },
+      3:  { ko: "등세모근",     hj: "승모근",     en: "TRAPEZIUS" },
+      4:  { ko: "어깨세모근",   hj: "삼각근",     en: "DELTOID" },
+      5:  { ko: "큰가슴근",     hj: "대흉근",     en: "PECTORALISMAJOR" },
+      6:  { ko: "앞톱니근",     hj: "전거근",     en: "SERRATUSANTERIOR" },
+      7:  { ko: "위팔두갈래근", hj: "상완이두근", en: "BICEPSBRACHII" },
+      8:  { ko: "아래팔근육",   hj: "전완근",     en: "BRACHIORADIALIS" },
+      9:  { ko: "배곧은근",     hj: "복직근",     en: "RECTUSABDOMINIS" },
+      10: { ko: "배바깥빗근",   hj: "외복사근",   en: "EXTERNALOBLIQUE" },
+      11: { ko: "큰볼기근",     hj: "대둔근",     en: "GLUTEUSMAXIMUS" },
+      12: { ko: "넙다리네갈래근", hj: "대퇴사두근", en: "QUADRICEPS" },
+      13: { ko: "장딴지근",     hj: "비복근",     en: "GASTROCNEMIUS" },
+      14: { ko: "기하입체조형", hj: "기하학모형", en: "TORUSKNOT" }
     };
 
-    let glyphMode = "ascii";
+    let glyphMode = "ascii"; // 'ascii' | 'ko' | 'hj' | 'en'
     let currentModelType = "ecorche";
     let autoRotate = true;
     let flowEnabled = true;
-    let densityLevel = 0;
 
-    // 촘촘한 가독성을 위한 그리드 밀도 프리셋
-    const DENSITY_CONFIGS = [
-      { name: "DENSE",  cellW: 5.5, cellH: 7.5, fontSize: 8.5 },
-      { name: "FINE",   cellW: 7.5, cellH: 10.0, fontSize: 10.5 },
-      { name: "MEDIUM", cellW: 10.0, cellH: 13.0, fontSize: 13.0 }
-    ];
+    let scene, camera, renderer, modelPivot;
+    let glyphPointsMesh = null;
+    let occlusionGroup = null;
+    let raycaster = new THREE.Raycaster();
+    let pointerNDC = new THREE.Vector2(-99, -99);
 
-    let glScene, glCamera, glRenderer, modelPivot;
-    let outCanvas, outCtx, readCanvas, readCtx;
-    let isDragging = false;
+    // 회전 및 확대 후 시점 이동(Pan) 상태
+    let dragMode = "none"; // 'rotate' | 'pan'
     let prevMouse = { x: 0, y: 0 };
-    let flowTick = 0;
+    let targetCamZ = 6.9;
+    let targetPan = new THREE.Vector2(0, 0.02);
 
-    // 연속 단면 로프트(Loft) 기반 유기적 조각 메쉬 생성기
+    // ---------------------------------------------------------
+    // 6-A. 고해상도 문자 아틀라스 텍스처 생성 (우리말·한자어·영문·ASCII 통합)
+    // ---------------------------------------------------------
+    function buildGlyphAtlas() {
+      const charSet = new Set(ASCII_CHARS);
+      Object.values(MUSCLE_TERMS).forEach(entry => {
+        for (const ch of entry.ko) charSet.add(ch);
+        for (const ch of entry.hj) charSet.add(ch);
+        for (const ch of entry.en) charSet.add(ch);
+      });
+
+      const chars = Array.from(charSet);
+      const charToIndex = {};
+      chars.forEach((ch, idx) => { charToIndex[ch] = idx; });
+
+      const cols = 12;
+      const rows = Math.ceil(chars.length / cols);
+      const cellSize = 96;
+      const canvas = document.createElement("canvas");
+      canvas.width = cols * cellSize;
+      canvas.height = rows * cellSize;
+
+      const ctx = canvas.getContext("2d");
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "#ffffff";
+      ctx.font = `700 ${Math.floor(cellSize * 0.66)}px "Helvetica Neue", Helvetica, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+
+      chars.forEach((ch, idx) => {
+        const c = idx % cols;
+        const r = Math.floor(idx / cols);
+        ctx.fillText(ch, c * cellSize + cellSize / 2, r * cellSize + cellSize / 2 + 2);
+      });
+
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.minFilter = THREE.LinearFilter;
+      texture.magFilter = THREE.LinearFilter;
+      texture.generateMipmaps = false;
+      texture.needsUpdate = true;
+
+      return { texture, charToIndex, cols, rows };
+    }
+
+    const ATLAS = buildGlyphAtlas();
+
+    // ---------------------------------------------------------
+    // 6-B. 유기적 조각 메쉬 생성 유틸리티
+    // ---------------------------------------------------------
     function buildSculptedLoft(slices, radialSegs, displaceFn) {
       const positions = [];
-      const uvs = [];
       const ringCount = slices.length;
-
       const rings = [];
+
       for (let i = 0; i < ringCount; i++) {
         const s = slices[i];
         const vNorm = i / (ringCount - 1);
         const ring = [];
         for (let j = 0; j <= radialSegs; j++) {
-          const uNorm = j / radialSegs;
-          const theta = uNorm * Math.PI * 2; // 0: +Z(정면), PI/2: +X(좌측 에코르셰), PI: -Z(후면)
+          const theta = (j / radialSegs) * Math.PI * 2;
           const sinT = Math.sin(theta);
           const cosT = Math.cos(theta);
 
@@ -1018,38 +1073,23 @@
               z += d.dz || 0;
             }
           }
-          ring.push([x, y, z, uNorm, vNorm]);
+          ring.push([x, y, z]);
         }
         rings.push(ring);
       }
 
       for (let i = 0; i < ringCount - 1; i++) {
         for (let j = 0; j < radialSegs; j++) {
-          const a = rings[i][j];
-          const b = rings[i + 1][j];
-          const c = rings[i + 1][j + 1];
-          const d = rings[i][j + 1];
-
-          positions.push(a[0], a[1], a[2], b[0], b[1], b[2], d[0], d[1], d[2]);
-          uvs.push(a[3], a[4], b[3], b[4], d[3], d[4]);
-
-          positions.push(b[0], b[1], b[2], c[0], c[1], c[2], d[0], d[1], d[2]);
-          uvs.push(b[3], b[4], c[3], c[4], d[3], d[4]);
+          const a = rings[i][j], b = rings[i + 1][j];
+          const c = rings[i + 1][j + 1], d = rings[i][j + 1];
+          positions.push(...a, ...b, ...d, ...b, ...c, ...d);
         }
       }
 
-      // 상단/하단 캡
-      const bot = slices[0];
+      const bot = slices[0], top = slices[ringCount - 1];
       for (let j = 0; j < radialSegs; j++) {
-        const a = rings[0][j];
-        const b = rings[0][j + 1];
-        positions.push(bot.cx || 0, bot.y, bot.cz || 0, a[0], a[1], a[2], b[0], b[1], b[2]);
-      }
-      const top = slices[ringCount - 1];
-      for (let j = 0; j < radialSegs; j++) {
-        const a = rings[ringCount - 1][j];
-        const b = rings[ringCount - 1][j + 1];
-        positions.push(top.cx || 0, top.y, top.cz || 0, b[0], b[1], b[2], a[0], a[1], a[2]);
+        positions.push(bot.cx || 0, bot.y, bot.cz || 0, ...rings[0][j], ...rings[0][j + 1]);
+        positions.push(top.cx || 0, top.y, top.cz || 0, ...rings[ringCount - 1][j + 1], ...rings[ringCount - 1][j]);
       }
 
       const geom = new THREE.BufferGeometry();
@@ -1058,7 +1098,6 @@
       return geom;
     }
 
-    // 3D 경로(Spine)를 따라 근육 두께 변화를 주며 이어지는 팔·다리 조각 메쉬 생성기
     function buildLimbTube(points, radialSegs, sculptFn) {
       const positions = [];
       const count = points.length;
@@ -1078,45 +1117,32 @@
         const ring = [];
         for (let j = 0; j <= radialSegs; j++) {
           const theta = (j / radialSegs) * Math.PI * 2;
-          const cosT = Math.cos(theta);
-          const sinT = Math.sin(theta);
+          const cosT = Math.cos(theta), sinT = Math.sin(theta);
+          const off = sculptFn ? (sculptFn(t, theta, sinT, cosT) || 0) : 0;
 
-          let rx = p.rx;
-          let rz = p.rz;
-          let radialOffset = 0;
-          if (sculptFn) {
-            radialOffset = sculptFn(t, theta, sinT, cosT) || 0;
-          }
-
-          const localX = (rx + radialOffset) * sinT;
-          const localZ = (rz + radialOffset) * cosT;
-
-          const vx = p.x + normal.x * localX + binormal.x * localZ;
-          const vy = p.y + normal.y * localX + binormal.y * localZ;
-          const vz = p.z + normal.z * localX + binormal.z * localZ;
-          ring.push([vx, vy, vz]);
+          const lx = (p.rx + off) * sinT;
+          const lz = (p.rz + off) * cosT;
+          ring.push([
+            p.x + normal.x * lx + binormal.x * lz,
+            p.y + normal.y * lx + binormal.y * lz,
+            p.z + normal.z * lx + binormal.z * lz
+          ]);
         }
         rings.push(ring);
       }
 
       for (let i = 0; i < count - 1; i++) {
         for (let j = 0; j < radialSegs; j++) {
-          const a = rings[i][j];
-          const b = rings[i + 1][j];
-          const c = rings[i + 1][j + 1];
-          const d = rings[i][j + 1];
-          positions.push(a[0], a[1], a[2], b[0], b[1], b[2], d[0], d[1], d[2]);
-          positions.push(b[0], b[1], b[2], c[0], c[1], c[2], d[0], d[1], d[2]);
+          const a = rings[i][j], b = rings[i + 1][j];
+          const c = rings[i + 1][j + 1], d = rings[i][j + 1];
+          positions.push(...a, ...b, ...d, ...b, ...c, ...d);
         }
       }
 
-      const startP = points[0];
-      const endP = points[count - 1];
+      const startP = points[0], endP = points[count - 1];
       for (let j = 0; j < radialSegs; j++) {
-        const a = rings[0][j], b = rings[0][j + 1];
-        positions.push(startP.x, startP.y, startP.z, a[0], a[1], a[2], b[0], b[1], b[2]);
-        const c = rings[count - 1][j], d = rings[count - 1][j + 1];
-        positions.push(endP.x, endP.y, endP.z, d[0], d[1], d[2], c[0], c[1], c[2]);
+        positions.push(startP.x, startP.y, startP.z, ...rings[0][j], ...rings[0][j + 1]);
+        positions.push(endP.x, endP.y, endP.z, ...rings[count - 1][j + 1], ...rings[count - 1][j]);
       }
 
       const geom = new THREE.BufferGeometry();
@@ -1125,375 +1151,563 @@
       return geom;
     }
 
-    // 레퍼런스 기반 정밀 인체 에코르셰 조각 생성 (성기 없는 매끄러운 해부학 조각)
-    function createRefinedEcorche() {
+    // ---------------------------------------------------------
+    // 6-C. 근육별 메쉬가 분리된 에코르셰 조각 그룹 생성
+    // ---------------------------------------------------------
+    function createSeparatedMuscleEcorche() {
       const group = new THREE.Group();
+      const hiddenMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
 
-      function registerMesh(geom, regionId, pos = [0, 0, 0], rot = [0, 0, 0], scale = [1, 1, 1]) {
-        const litMat = new THREE.MeshStandardMaterial({
-          color: 0xffffff,
-          roughness: 0.42,
-          metalness: 0.06
-        });
-        const idMat = new THREE.MeshBasicMaterial({
-          color: new THREE.Color(regionId / 10, 0, 0)
-        });
-        const mesh = new THREE.Mesh(geom, litMat);
+      function addMuscleMesh(geom, regionId, pos = [0, 0, 0], rot = [0, 0, 0], scale = [1, 1, 1]) {
+        const mesh = new THREE.Mesh(geom, hiddenMat);
         mesh.position.set(...pos);
         mesh.rotation.set(...rot);
         mesh.scale.set(...scale);
-        mesh.userData.litMat = litMat;
-        mesh.userData.idMat = idMat;
+        mesh.userData.regionId = regionId;
         group.add(mesh);
         return mesh;
       }
 
-      // 0. 하단 원형 조각 받침대 (Pedestal)
-      registerMesh(new THREE.CylinderGeometry(0.92, 0.96, 0.09, 56), 8, [0, -2.28, 0.02]);
-      registerMesh(new THREE.CylinderGeometry(0.86, 0.92, 0.03, 56), 8, [0, -2.22, 0.02]);
+      // [13] 하단 원형 받침대
+      addMuscleMesh(new THREE.CylinderGeometry(0.92, 0.96, 0.08, 48), 13, [0, -2.28, 0.02]);
+      addMuscleMesh(new THREE.CylinderGeometry(0.86, 0.92, 0.03, 48), 13, [0, -2.22, 0.02]);
 
-      // 1. 두부 및 안면 조각 (Cranium & Sculpted Face)
-      const headGeom = new THREE.SphereGeometry(0.26, 48, 48);
+      // [1] 머리뼈 (Cranium & Face)
+      const headGeom = new THREE.SphereGeometry(0.26, 40, 40);
       const hPos = headGeom.attributes.position;
       for (let i = 0; i < hPos.count; i++) {
-        let x = hPos.getX(i);
-        let y = hPos.getY(i);
-        let z = hPos.getZ(i);
-
-        // 두개골 및 하악 비율 조정
-        x *= 0.84;
-        y *= 1.18;
-        z *= 0.98;
-
-        // 턱선(하악골) 테이퍼
+        let x = hPos.getX(i) * 0.84;
+        let y = hPos.getY(i) * 1.18;
+        let z = hPos.getZ(i) * 0.98;
         if (y < 0) {
           const jawT = Math.min(1, Math.abs(y) / 0.30);
           x *= (1 - jawT * 0.36);
           if (z < 0) z *= (1 - jawT * 0.48);
           else z += jawT * 0.02;
         }
-
-        // 안면부(+Z) 입체 조형: 눈썹뼈, 안와, 콧대, 광대뼈, 입술, 턱끝
         if (z > 0.05) {
-          // 눈썹뼈 융기
-          const brow = Math.exp(-Math.pow((y - 0.04) / 0.035, 2)) * Math.exp(-Math.pow(x / 0.14, 2));
-          z += brow * 0.028;
-          // 안와(눈) 함몰
-          const eye = Math.exp(-Math.pow((y - 0.00) / 0.028, 2)) * Math.exp(-Math.pow((Math.abs(x) - 0.072) / 0.035, 2));
-          z -= eye * 0.026;
-          // 콧대 및 코끝
-          const nose = Math.exp(-Math.pow((y + 0.04) / 0.065, 2)) * Math.exp(-Math.pow(x / 0.024, 2));
-          z += nose * 0.048;
-          // 광대뼈(관골)
-          const cheek = Math.exp(-Math.pow((y + 0.045) / 0.04, 2)) * Math.exp(-Math.pow((Math.abs(x) - 0.105) / 0.04, 2));
-          z += cheek * 0.022;
-          // 입술 및 턱끝
-          const mouth = Math.exp(-Math.pow((y + 0.13) / 0.025, 2)) * Math.exp(-Math.pow(x / 0.055, 2));
-          z += mouth * 0.022;
-          const chin = Math.exp(-Math.pow((y + 0.22) / 0.04, 2)) * Math.exp(-Math.pow(x / 0.045, 2));
-          z += chin * 0.028;
-
-          // 좌측(+X) 에코르셰 안면 근섬유 결
-          if (x > 0.01 && y < 0.02 && y > -0.18) {
-            z += Math.sin((x + y) * 90) * 0.004;
-          }
+          z += Math.exp(-Math.pow((y - 0.04) / 0.035, 2)) * Math.exp(-Math.pow(x / 0.14, 2)) * 0.028;
+          z -= Math.exp(-Math.pow((y - 0.00) / 0.028, 2)) * Math.exp(-Math.pow((Math.abs(x) - 0.072) / 0.035, 2)) * 0.026;
+          z += Math.exp(-Math.pow((y + 0.04) / 0.065, 2)) * Math.exp(-Math.pow(x / 0.024, 2)) * 0.048;
+          z += Math.exp(-Math.pow((y + 0.045) / 0.04, 2)) * Math.exp(-Math.pow((Math.abs(x) - 0.105) / 0.04, 2)) * 0.022;
+          z += Math.exp(-Math.pow((y + 0.22) / 0.04, 2)) * Math.exp(-Math.pow(x / 0.045, 2)) * 0.028;
         }
-
-        // 정중선 음각
-        if (Math.abs(x) < 0.006 && z > 0) z -= 0.006;
-
         hPos.setXYZ(i, x, y, z);
       }
       headGeom.computeVertexNormals();
-      registerMesh(headGeom, 1, [0, 2.08, 0.02], [0.04, 0, 0]);
-      // 귀
+      addMuscleMesh(headGeom, 1, [0, 2.08, 0.02], [0.04, 0, 0]);
       [-1, 1].forEach(s => {
-        registerMesh(new THREE.SphereGeometry(0.042, 14, 14), 1, [s * 0.215, 2.04, -0.01], [0, 0, s * -0.15], [0.45, 1.35, 0.85]);
+        addMuscleMesh(new THREE.SphereGeometry(0.042, 12, 12), 1, [s * 0.215, 2.04, -0.01], [0, 0, s * -0.15], [0.45, 1.35, 0.85]);
       });
 
-      // 2. 연속 체간 조각 (목 -> 승모근 -> 흉곽/대흉근 -> 복직근/외복사근 -> 골반/둔근, 성기 없는 매끄러운 하복부)
-      const torsoSlices = [
-        { y: -0.22, rx: 0.13, rz: 0.12, cz: -0.01 }, // 매끄러운 골반 하단 아치 (성기 생략)
-        { y: -0.14, rx: 0.30, rz: 0.21, cz: -0.02 },
-        { y: -0.04, rx: 0.40, rz: 0.26, cz: -0.03 }, // 둔부 및 대전자
-        { y:  0.08, rx: 0.43, rz: 0.27, cz: -0.02 }, // 골반 능선
-        { y:  0.22, rx: 0.40, rz: 0.25, cz: -0.01 }, // 하복부
-        { y:  0.38, rx: 0.36, rz: 0.23, cz:  0.01 }, // 배꼽 라인
-        { y:  0.56, rx: 0.35, rz: 0.23, cz:  0.01 }, // 허리 잘록한 부위
-        { y:  0.74, rx: 0.39, rz: 0.25, cz:  0.01 }, // 하부 늑골
-        { y:  0.94, rx: 0.46, rz: 0.28, cz:  0.00 }, // 광배근 & 하부 흉곽
-        { y:  1.14, rx: 0.52, rz: 0.30, cz: -0.01 }, // 대흉근 중앙 볼륨
-        { y:  1.32, rx: 0.55, rz: 0.28, cz: -0.01 }, // 상부 흉근 & 쇄골 라인
-        { y:  1.44, rx: 0.44, rz: 0.23, cz: -0.02 }, // 승모근 경사
-        { y:  1.54, rx: 0.25, rz: 0.19, cz: -0.02 }, // 목 하단
-        { y:  1.68, rx: 0.16, rz: 0.16, cz: -0.01 }, // 목 중앙
-        { y:  1.86, rx: 0.15, rz: 0.15, cz:  0.01 }  // 턱 아래 목 상단
-      ];
-
-      const torsoGeom = buildSculptedLoft(torsoSlices, 64, (x, y, z, theta, vNorm, sinT, cosT) => {
-        let dx = 0, dy = 0, dz = 0;
-
-        // 정면(+Z) 해부학 근육 부조
-        if (cosT > 0) {
-          // 정중선(백선, Linea alba) 음각 라인
-          const centerGroove = Math.exp(-Math.pow(x / 0.016, 2));
-          if (y > 0.02 && y < 1.38) {
-            dz -= centerGroove * 0.022;
-          }
-
-          // 대흉근 (Pectoralis Major) 볼륨 및 하단 경계
-          if (y > 0.98 && y < 1.36) {
-            const pecY = Math.sin(((y - 0.98) / 0.38) * Math.PI);
-            const pecX = Math.exp(-Math.pow((Math.abs(x) - 0.23) / 0.18, 2));
-            dz += pecY * pecX * 0.062;
-            // 좌측(+X) 에코르셰 대흉근 근섬유 결
-            if (x > 0.02) {
-              dz += Math.sin(y * 110 + x * 25) * 0.005 * pecY;
-            }
-          }
-
-          // 쇄골 (Clavicle) 융기
-          if (y > 1.35 && y < 1.44 && Math.abs(x) > 0.05 && Math.abs(x) < 0.45) {
-            const clav = Math.exp(-Math.pow((y - 1.39) / 0.02, 2));
-            dz += clav * 0.022;
-          }
-
-          // 복직근 6구획 (Rectus Abdominis)
-          if (y > 0.18 && y < 0.96 && Math.abs(x) < 0.17) {
-            const abX = Math.sin((Math.abs(x) / 0.17) * Math.PI);
-            const abSeg = Math.max(0, Math.sin(((y - 0.18) / 0.78) * Math.PI * 3));
-            dz += abX * abSeg * 0.030;
-          }
-
-          // 서혜부 V라인 (Inguinal crease) - 하복부에서 골반 중앙으로 매끄럽게 모이는 선
-          const vLineY = 0.24 - Math.abs(x) * 0.55;
-          if (y > -0.10 && y < 0.28 && Math.abs(x) < 0.36) {
-            const crease = Math.exp(-Math.pow((y - vLineY) / 0.025, 2));
-            dz -= crease * 0.018;
-          }
-
-          // 흉쇄유돌근 (SCM) V자 목 근육
-          if (y > 1.44 && y < 1.82) {
-            const scmX = 0.03 + ((y - 1.44) / 0.38) * 0.09;
-            const scm = Math.exp(-Math.pow((Math.abs(x) - scmX) / 0.022, 2));
-            dz += scm * 0.018;
-          }
-        }
-
-        // 측면 외복사근 & 전거근 (Serratus Anterior)
-        if (Math.abs(sinT) > 0.55 && y > 0.55 && y < 1.05 && x > 0) {
-          dx += Math.sin(y * 75) * 0.008;
-        }
-
-        // 후면(-Z) 척추기립근 & 둔근 볼륨
-        if (cosT < 0) {
-          // 척추 골 (Spinal furrow)
-          const spineGroove = Math.exp(-Math.pow(x / 0.022, 2));
-          if (y > 0.10 && y < 1.48) {
-            dz += spineGroove * 0.026;
-          }
-          // 둔근 (Gluteus Maximus)
-          if (y > -0.16 && y < 0.18) {
-            const gluteY = Math.sin(((y + 0.16) / 0.34) * Math.PI);
-            const gluteX = Math.exp(-Math.pow((Math.abs(x) - 0.19) / 0.14, 2));
-            dz -= gluteY * gluteX * 0.068;
-          }
-        }
-
-        return { dx, dy, dz };
-      });
-      registerMesh(torsoGeom, 4);
-
-      // 3. 좌우 상지 (어깨 삼각근 -> 상완 -> 주관절 -> 전완 -> 손바닥 정면 개방 포즈)
+      // [2] 목빗근 / 흉쇄유돌근 (Sternocleidomastoid - 좌우 분리)
+      addMuscleMesh(new THREE.CylinderGeometry(0.14, 0.16, 0.42, 20), 2, [0, 1.72, 0.0]);
       [-1, 1].forEach(side => {
-        const armPoints = [
-          { x: side * 0.50, y: 1.34, z: -0.02, rx: 0.15, rz: 0.15 }, // 견관절 시작
-          { x: side * 0.61, y: 1.24, z: -0.01, rx: 0.175, rz: 0.165 }, // 삼각근 최외곽 볼륨
-          { x: side * 0.69, y: 1.02, z: -0.02, rx: 0.138, rz: 0.142 }, // 상완이두·삼두 중앙
-          { x: side * 0.76, y: 0.78, z: -0.02, rx: 0.112, rz: 0.115 }, // 주관절(팔꿈치)
-          { x: side * 0.85, y: 0.56, z:  0.01, rx: 0.122, rz: 0.112 }, // 상부 전완(완요골근)
-          { x: side * 0.94, y: 0.34, z:  0.05, rx: 0.092, rz: 0.080 }, // 하부 전완
-          { x: side * 1.01, y: 0.18, z:  0.08, rx: 0.074, rz: 0.052 }  // 손목 (손바닥이 정면을 향함)
+        const scmPts = [
+          { x: side * 0.15, y: 1.92, z: -0.04, rx: 0.035, rz: 0.035 },
+          { x: side * 0.10, y: 1.72, z:  0.04, rx: 0.042, rz: 0.038 },
+          { x: side * 0.03, y: 1.48, z:  0.14, rx: 0.034, rz: 0.030 }
         ];
+        addMuscleMesh(buildLimbTube(scmPts, 14), 2);
+      });
 
-        const armGeom = buildLimbTube(armPoints, 32, (t, theta, sinT, cosT) => {
-          // 삼각근-상완 경계 음각
-          const deltoidGroove = -Math.exp(-Math.pow((t - 0.24) / 0.04, 2)) * 0.014;
-          // 에코르셰 좌측(+X) 근섬유 결
-          const striation = side === 1 ? Math.sin(t * 95) * 0.004 : 0;
-          return deltoidGroove + striation;
+      // [3] 등세모근 / 승모근 (Trapezius - 후면 및 어깨 경사 분리 메쉬)
+      const trapSlices = [
+        { y: 0.72, rx: 0.06, rz: 0.04, cz: -0.23 },
+        { y: 1.05, rx: 0.24, rz: 0.06, cz: -0.25 },
+        { y: 1.34, rx: 0.46, rz: 0.10, cz: -0.18 },
+        { y: 1.46, rx: 0.40, rz: 0.14, cz: -0.09 },
+        { y: 1.62, rx: 0.20, rz: 0.12, cz: -0.06 },
+        { y: 1.88, rx: 0.13, rz: 0.09, cz: -0.06 }
+      ];
+      addMuscleMesh(buildSculptedLoft(trapSlices, 28), 3);
+
+      // [5] 큰가슴근 / 대흉근 (Pectoralis Major - 좌우 분리된 부채꼴 흉근 메쉬)
+      [-1, 1].forEach(side => {
+        const pecGeom = new THREE.SphereGeometry(0.24, 28, 24);
+        const pAttr = pecGeom.attributes.position;
+        for (let i = 0; i < pAttr.count; i++) {
+          let x = pAttr.getX(i);
+          let y = pAttr.getY(i);
+          let z = pAttr.getZ(i);
+          // 흉골에서 겨드랑이/상완골로 뻗는 대흉근 형태 조각
+          x *= 1.08;
+          y *= 0.86;
+          z *= 0.48;
+          if (x * side > 0.12) {
+            y += (x * side - 0.12) * 0.35;
+            z -= (x * side - 0.12) * 0.25;
+          }
+          if (y < -0.10) z += 0.015; // 하부 흉근 볼륨 강조
+          pAttr.setXYZ(i, x, y, z);
+        }
+        pecGeom.computeVertexNormals();
+        addMuscleMesh(pecGeom, 5, [side * 0.24, 1.22, 0.17], [0.06, side * 0.22, side * 0.08]);
+      });
+
+      // [6] 앞톱니근·흉곽 / 전거근·늑골 (Ribcage & Serratus Anterior 코어)
+      const thoraxSlices = [
+        { y: 0.74, rx: 0.36, rz: 0.22, cz:  0.00 },
+        { y: 0.96, rx: 0.43, rz: 0.25, cz: -0.01 },
+        { y: 1.18, rx: 0.47, rz: 0.26, cz: -0.02 },
+        { y: 1.38, rx: 0.42, rz: 0.22, cz: -0.02 },
+        { y: 1.50, rx: 0.24, rz: 0.18, cz: -0.02 }
+      ];
+      addMuscleMesh(buildSculptedLoft(thoraxSlices, 36, (x, y, z, theta, vNorm, sinT) => {
+        if (Math.abs(sinT) > 0.65 && y < 1.08) {
+          return { dx: Math.sin(y * 70) * 0.009 };
+        }
+      }), 6);
+
+      // [9] 배곧은근 / 복직근 (Rectus Abdominis - 중앙 6구획 복근 분리 메쉬)
+      [-1, 1].forEach(side => {
+        [0.82, 0.64, 0.45, 0.25].forEach((yPos, idx) => {
+          const hScale = idx === 3 ? 1.35 : 0.88;
+          const wScale = idx === 3 ? 0.78 : 0.95;
+          addMuscleMesh(
+            new THREE.SphereGeometry(0.095, 16, 16),
+            9,
+            [side * 0.085, yPos, 0.20],
+            [0.05, side * 0.12, 0],
+            [wScale, hScale, 0.52]
+          );
         });
-        registerMesh(armGeom, 5);
+      });
 
-        // 손바닥 (Palm)
-        registerMesh(
-          new THREE.BoxGeometry(0.14, 0.17, 0.048),
-          5,
-          [side * 1.05, 0.08, 0.095],
-          [-0.14, side * -0.18, side * 0.28]
+      // [10] 배바깥빗근·골반 / 외복사근 (External Oblique & Pelvis - 성기 없는 매끄러운 조형)
+      const pelvisSlices = [
+        { y: -0.22, rx: 0.13, rz: 0.12, cz: -0.01 },
+        { y: -0.12, rx: 0.31, rz: 0.21, cz: -0.02 },
+        { y:  0.04, rx: 0.41, rz: 0.25, cz: -0.02 },
+        { y:  0.22, rx: 0.39, rz: 0.24, cz:  0.00 },
+        { y:  0.46, rx: 0.34, rz: 0.22, cz:  0.01 },
+        { y:  0.74, rx: 0.36, rz: 0.22, cz:  0.00 }
+      ];
+      addMuscleMesh(buildSculptedLoft(pelvisSlices, 40), 10);
+
+      // [11] 큰볼기근 / 대둔근 (Gluteus Maximus - 좌우 후면 분리 메쉬)
+      [-1, 1].forEach(side => {
+        addMuscleMesh(
+          new THREE.SphereGeometry(0.22, 20, 20),
+          11,
+          [side * 0.19, 0.02, -0.16],
+          [0.12, side * -0.15, 0],
+          [0.95, 1.08, 0.78]
         );
+      });
 
-        // 엄지손가락 (외측으로 자연스럽게 벌어진 해부학 자세)
-        registerMesh(
-          new THREE.CylinderGeometry(0.019, 0.014, 0.12, 10),
-          5,
-          [side * 1.13, 0.08, 0.105],
-          [-0.15, 0, side * 0.72]
-        );
+      // [4] 어깨세모근 / 삼각근 & [7] 위팔두갈래근 / 상완이두근 & [8] 아래팔근육 / 전완근
+      [-1, 1].forEach(side => {
+        // [4] 어깨세모근 (Deltoid)
+        const deltPts = [
+          { x: side * 0.46, y: 1.38, z: -0.02, rx: 0.13, rz: 0.14 },
+          { x: side * 0.59, y: 1.27, z: -0.01, rx: 0.185, rz: 0.175 },
+          { x: side * 0.66, y: 1.08, z: -0.02, rx: 0.11, rz: 0.11 }
+        ];
+        addMuscleMesh(buildLimbTube(deltPts, 24), 4);
 
-        // 4개 손가락 (검지·중지·약지·소지)
-        const fingerOffsets = [
+        // [7] 위팔두갈래근·세갈래근 (Biceps / Triceps)
+        const upperArmPts = [
+          { x: side * 0.62, y: 1.20, z: -0.02, rx: 0.13, rz: 0.13 },
+          { x: side * 0.69, y: 1.00, z: -0.01, rx: 0.148, rz: 0.152 },
+          { x: side * 0.76, y: 0.78, z: -0.02, rx: 0.110, rz: 0.112 }
+        ];
+        addMuscleMesh(buildLimbTube(upperArmPts, 24), 7);
+
+        // [8] 아래팔근육 및 손 (Forearm & Hand)
+        const forearmPts = [
+          { x: side * 0.76, y: 0.78, z: -0.02, rx: 0.112, rz: 0.112 },
+          { x: side * 0.85, y: 0.56, z:  0.01, rx: 0.124, rz: 0.112 },
+          { x: side * 0.94, y: 0.34, z:  0.05, rx: 0.090, rz: 0.078 },
+          { x: side * 1.01, y: 0.18, z:  0.08, rx: 0.072, rz: 0.050 }
+        ];
+        addMuscleMesh(buildLimbTube(forearmPts, 22), 8);
+
+        // 손바닥 & 손가락
+        addMuscleMesh(new THREE.BoxGeometry(0.14, 0.17, 0.046), 8, [side * 1.05, 0.08, 0.095], [-0.14, side * -0.18, side * 0.28]);
+        addMuscleMesh(new THREE.CylinderGeometry(0.019, 0.014, 0.12, 8), 8, [side * 1.13, 0.08, 0.105], [-0.15, 0, side * 0.72]);
+        [
           { off: 0.046, len: 0.145, splay: 0.34 },
           { off: 0.016, len: 0.160, splay: 0.28 },
           { off: -0.014, len: 0.150, splay: 0.22 },
           { off: -0.044, len: 0.125, splay: 0.16 }
-        ];
-        fingerOffsets.forEach(f => {
-          registerMesh(
-            new THREE.CylinderGeometry(0.015, 0.011, f.len, 10),
-            5,
+        ].forEach(f => {
+          addMuscleMesh(
+            new THREE.CylinderGeometry(0.015, 0.011, f.len, 8),
+            8,
             [side * (1.07 + f.off * 0.85), -0.06, 0.12],
             [-0.18, 0, side * f.splay]
           );
         });
       });
 
-      // 4. 좌우 하지 (대퇴사두근 -> 슬개골 -> 비복근 -> 발목 -> 받침대 위 발)
+      // [12] 넙다리네갈래근 / 대퇴사두근 & [13] 장딴지근 / 비복근
       [-1, 1].forEach(side => {
-        const legPoints = [
-          { x: side * 0.22, y:  0.02, z: -0.01, rx: 0.195, rz: 0.215 }, // 고관절
-          { x: side * 0.22, y: -0.28, z:  0.01, rx: 0.190, rz: 0.205 }, // 상부 대퇴
-          { x: side * 0.20, y: -0.62, z:  0.02, rx: 0.168, rz: 0.180 }, // 중앙 대퇴사두근
-          { x: side * 0.19, y: -0.90, z:  0.02, rx: 0.145, rz: 0.152 }, // 내측광근(무릎 위)
-          { x: side * 0.185, y: -1.06, z: 0.02, rx: 0.130, rz: 0.138 }, // 슬관절(무릎)
-          { x: side * 0.185, y: -1.26, z: -0.01, rx: 0.122, rz: 0.130 }, // 경골 조면
-          { x: side * 0.185, y: -1.50, z: -0.03, rx: 0.142, rz: 0.158 }, // 비복근(종아리 최외곽)
-          { x: side * 0.18, y: -1.80, z: -0.03, rx: 0.102, rz: 0.115 }, // 하부 가자미근
-          { x: side * 0.18, y: -2.08, z: -0.02, rx: 0.074, rz: 0.088 }, // 발목(과관절)
-          { x: side * 0.18, y: -2.18, z:  0.00, rx: 0.082, rz: 0.105 }  // 발뒤꿈치 접지
+        // [12] 넙다리네갈래근 (Quadriceps & Knee)
+        const thighPts = [
+          { x: side * 0.22, y:  0.02, z: -0.01, rx: 0.195, rz: 0.215 },
+          { x: side * 0.22, y: -0.32, z:  0.01, rx: 0.192, rz: 0.208 },
+          { x: side * 0.20, y: -0.68, z:  0.02, rx: 0.168, rz: 0.180 },
+          { x: side * 0.19, y: -0.94, z:  0.02, rx: 0.142, rz: 0.148 },
+          { x: side * 0.185, y: -1.10, z: 0.02, rx: 0.128, rz: 0.136 }
         ];
+        addMuscleMesh(buildLimbTube(thighPts, 28, (t, theta, sinT, cosT) => {
+          if (cosT > 0.4 && t > 0.85) return 0.020; // 슬개골 볼륨
+          return 0;
+        }), 12);
 
-        const legGeom = buildLimbTube(legPoints, 36, (t, theta, sinT, cosT) => {
-          let off = 0;
-          // 무릎 슬개골(Patella) 전방 돌출 (t ≈ 0.49)
-          if (cosT > 0.4) {
-            const patella = Math.exp(-Math.pow((t - 0.49) / 0.035, 2));
-            off += patella * 0.022;
-          }
-          // 비복근 후방 볼륨 강조 (t ≈ 0.68)
-          if (cosT < -0.3) {
-            const calf = Math.exp(-Math.pow((t - 0.68) / 0.08, 2));
-            off += calf * 0.026;
-          }
-          // 에코르셰 좌측(+X) 봉공근(Sartorius) 대각선 띠 및 근섬유
-          if (side === 1 && t < 0.48) {
-            off += Math.sin(t * 105 + theta * 2) * 0.004;
-          }
-          return off;
-        });
-        registerMesh(legGeom, 7);
-
-        // 받침대 위에 놓인 발 (Foot)
-        registerMesh(
-          new THREE.BoxGeometry(0.145, 0.075, 0.34),
-          8,
-          [side * 0.185, -2.185, 0.10],
-          [0, side * -0.06, 0]
-        );
+        // [13] 장딴지근·정강이·발 (Gastrocnemius & Lower Leg)
+        const calfPts = [
+          { x: side * 0.185, y: -1.10, z:  0.01, rx: 0.125, rz: 0.132 },
+          { x: side * 0.185, y: -1.32, z: -0.02, rx: 0.132, rz: 0.145 },
+          { x: side * 0.185, y: -1.52, z: -0.03, rx: 0.144, rz: 0.162 },
+          { x: side * 0.18,  y: -1.82, z: -0.03, rx: 0.100, rz: 0.112 },
+          { x: side * 0.18,  y: -2.14, z: -0.01, rx: 0.076, rz: 0.092 }
+        ];
+        addMuscleMesh(buildLimbTube(calfPts, 26), 13);
+        addMuscleMesh(new THREE.BoxGeometry(0.145, 0.075, 0.34), 13, [side * 0.185, -2.185, 0.10], [0, side * -0.06, 0]);
       });
 
       return group;
     }
 
-    // 3D 예시 모델 (기하학 조각 형태)
-    function createExampleModel() {
+    function createExampleGroup() {
       const group = new THREE.Group();
-      const geom = new THREE.TorusKnotGeometry(1.38, 0.44, 180, 32);
-      const litMat = new THREE.MeshStandardMaterial({
-        color: 0xffffff,
-        roughness: 0.32,
-        metalness: 0.08
-      });
-      const idMat = new THREE.MeshBasicMaterial({
-        color: new THREE.Color(0.4, 0, 0)
-      });
-      const mesh = new THREE.Mesh(geom, litMat);
-      mesh.userData.litMat = litMat;
-      mesh.userData.idMat = idMat;
+      const hiddenMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
+      const geom = new THREE.TorusKnotGeometry(1.35, 0.42, 160, 28);
+      const mesh = new THREE.Mesh(geom, hiddenMat);
+      mesh.userData.regionId = 14;
       group.add(mesh);
       return group;
     }
 
-    function initAnatomyEngine() {
-      const stage = document.getElementById("anatomy-stage");
-      outCanvas = document.getElementById("ascii-output-canvas");
-      outCtx = outCanvas.getContext("2d");
+    // ---------------------------------------------------------
+    // 6-D. 3D 표면 균일 간격 포인트 샘플링 & 순차 문자 매핑
+    // ---------------------------------------------------------
+    function sampleSurfacePointsFromGroup(group, minDist = 0.044) {
+      group.updateMatrixWorld(true);
+      const cellSize = minDist;
+      const spatialGrid = new Map();
 
-      readCanvas = document.createElement("canvas");
-      readCtx = readCanvas.getContext("2d", { willReadFrequently: true });
+      function isTooClose(x, y, z) {
+        const gx = Math.floor(x / cellSize);
+        const gy = Math.floor(y / cellSize);
+        const gz = Math.floor(z / cellSize);
+        for (let dx = -1; dx <= 1; dx++) {
+          for (let dy = -1; dy <= 1; dy++) {
+            for (let dz = -1; dz <= 1; dz++) {
+              const key = `${gx + dx},${gy + dy},${gz + dz}`;
+              const bucket = spatialGrid.get(key);
+              if (!bucket) continue;
+              for (let i = 0; i < bucket.length; i++) {
+                const p = bucket[i];
+                const ddx = p.x - x, ddy = p.y - y, ddz = p.z - z;
+                if (ddx * ddx + ddy * ddy + ddz * ddz < minDist * minDist) {
+                  return true;
+                }
+              }
+            }
+          }
+        }
+        return false;
+      }
 
-      glScene = new THREE.Scene();
-      glScene.background = new THREE.Color(0x000000);
+      function insertSpatial(pt) {
+        const key = `${Math.floor(pt.x / cellSize)},${Math.floor(pt.y / cellSize)},${Math.floor(pt.z / cellSize)}`;
+        if (!spatialGrid.has(key)) spatialGrid.set(key, []);
+        spatialGrid.get(key).push(pt);
+      }
 
-      // 모델이 화면에 크고 선명하게 차도록 카메라 거리 최적화
-      glCamera = new THREE.PerspectiveCamera(38, stage.clientWidth / stage.clientHeight, 0.1, 100);
-      glCamera.position.set(0, 0.04, 6.9);
+      const rawPoints = [];
+      const vA = new THREE.Vector3(), vB = new THREE.Vector3(), vC = new THREE.Vector3();
+      const e1 = new THREE.Vector3(), e2 = new THREE.Vector3(), faceNormal = new THREE.Vector3();
+      const normalMat = new THREE.Matrix3();
 
-      // 근육 굴곡 대비를 극대화하는 3점 조각 조명
-      const keyLight = new THREE.DirectionalLight(0xffffff, 1.45);
-      keyLight.position.set(3.2, 4.2, 4.8);
-      glScene.add(keyLight);
+      group.traverse(obj => {
+        if (!obj.isMesh) return;
+        const regionId = obj.userData.regionId || 5;
+        const geom = obj.geometry;
+        const posAttr = geom.attributes.position;
+        const indexAttr = geom.index;
+        normalMat.getNormalMatrix(obj.matrixWorld);
 
-      const fillLight = new THREE.DirectionalLight(0xffffff, 0.45);
-      fillLight.position.set(-3.5, 1.0, 3.0);
-      glScene.add(fillLight);
+        const triCount = indexAttr ? indexAttr.count / 3 : posAttr.count / 3;
+        for (let t = 0; t < triCount; t++) {
+          const i0 = indexAttr ? indexAttr.getX(t * 3) : t * 3;
+          const i1 = indexAttr ? indexAttr.getX(t * 3 + 1) : t * 3 + 1;
+          const i2 = indexAttr ? indexAttr.getX(t * 3 + 2) : t * 3 + 2;
 
-      const rimLight = new THREE.DirectionalLight(0xffffff, 0.65);
-      rimLight.position.set(-2.5, 3.0, -4.5);
-      glScene.add(rimLight);
+          vA.fromBufferAttribute(posAttr, i0).applyMatrix4(obj.matrixWorld);
+          vB.fromBufferAttribute(posAttr, i1).applyMatrix4(obj.matrixWorld);
+          vC.fromBufferAttribute(posAttr, i2).applyMatrix4(obj.matrixWorld);
 
-      const ambient = new THREE.AmbientLight(0x222222);
-      glScene.add(ambient);
+          e1.subVectors(vB, vA);
+          e2.subVectors(vC, vA);
+          faceNormal.crossVectors(e1, e2);
+          const area = faceNormal.length() * 0.5;
+          if (area < 1e-7) continue;
+          faceNormal.normalize();
 
-      glRenderer = new THREE.WebGLRenderer({ antialias: false, preserveDrawingBuffer: true });
-      glRenderer.setSize(stage.clientWidth, stage.clientHeight);
+          // 삼각형 면적에 비례해 후보 점 생성 후 최소 거리(minDist) 필터로 균일 간격 유지
+          const samples = Math.max(1, Math.ceil(area / (minDist * minDist * 0.45)));
+          for (let s = 0; s < samples; s++) {
+            let r1 = Math.random(), r2 = Math.random();
+            if (r1 + r2 > 1) { r1 = 1 - r1; r2 = 1 - r2; }
+            const r0 = 1 - r1 - r2;
 
-      modelPivot = new THREE.Group();
-      glScene.add(modelPivot);
-      change3DModel("ecorche");
+            const px = vA.x * r0 + vB.x * r1 + vC.x * r2;
+            const py = vA.y * r0 + vB.y * r1 + vC.y * r2;
+            const pz = vA.z * r0 + vB.z * r1 + vC.z * r2;
 
-      stage.addEventListener("mousedown", e => {
-        isDragging = true;
-        prevMouse = { x: e.clientX, y: e.clientY };
+            if (!isTooClose(px, py, pz)) {
+              const pt = {
+                x: px, y: py, z: pz,
+                nx: faceNormal.x, ny: faceNormal.y, nz: faceNormal.z,
+                regionId
+              };
+              insertSpatial(pt);
+              rawPoints.push(pt);
+            }
+          }
+        }
       });
-      window.addEventListener("mouseup", () => { isDragging = false; });
-      window.addEventListener("mousemove", e => {
-        if (!isDragging || !modelPivot) return;
-        const dx = e.clientX - prevMouse.x;
-        const dy = e.clientY - prevMouse.y;
-        modelPivot.rotation.y += dx * 0.009;
-        modelPivot.rotation.x = Math.max(-0.85, Math.min(0.85, modelPivot.rotation.x + dy * 0.006));
-        prevMouse = { x: e.clientX, y: e.clientY };
+
+      // 가로(좌->우) 및 세로(위->아래) 행 단위로 정렬해 근육명 글자가 순서대로 이어지도록 번호 부여
+      const rowHeight = minDist * 1.15;
+      rawPoints.sort((a, b) => {
+        const rowA = Math.round(a.y / rowHeight);
+        const rowB = Math.round(b.y / rowHeight);
+        if (rowA !== rowB) return rowB - rowA;
+        return a.x - b.x;
       });
 
-      stage.addEventListener("wheel", e => {
-        e.preventDefault();
-        glCamera.position.z = Math.min(10.5, Math.max(3.2, glCamera.position.z + e.deltaY * 0.005));
-      }, { passive: false });
+      const count = rawPoints.length;
+      const positions = new Float32Array(count * 3);
+      const normals = new Float32Array(count * 3);
+      const regionIds = new Float32Array(count);
+      const seqIndices = new Float32Array(count);
 
-      window.addEventListener("resize", resizeAnatomyCanvas);
-      resizeAnatomyCanvas();
-      requestAnimationFrame(renderAnatomyFrame);
+      let prevRow = null;
+      let prevReg = null;
+      let seq = 0;
+
+      for (let i = 0; i < count; i++) {
+        const p = rawPoints[i];
+        const curRow = Math.round(p.y / rowHeight);
+        if (curRow !== prevRow || p.regionId !== prevReg) {
+          seq = 0;
+          prevRow = curRow;
+          prevReg = p.regionId;
+        }
+        positions[i * 3] = p.x;
+        positions[i * 3 + 1] = p.y;
+        positions[i * 3 + 2] = p.z;
+
+        normals[i * 3] = p.nx;
+        normals[i * 3 + 1] = p.ny;
+        normals[i * 3 + 2] = p.nz;
+
+        regionIds[i] = p.regionId;
+        seqIndices[i] = seq++;
+      }
+
+      const ptGeom = new THREE.BufferGeometry();
+      ptGeom.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+      ptGeom.setAttribute("normal", new THREE.BufferAttribute(normals, 3));
+      ptGeom.setAttribute("aRegionId", new THREE.BufferAttribute(regionIds, 1));
+      ptGeom.setAttribute("aSeqIndex", new THREE.BufferAttribute(seqIndices, 1));
+      return ptGeom;
     }
 
-    function resizeAnatomyCanvas() {
+    function updateGlyphAttributes(ptGeom) {
+      const regionAttr = ptGeom.getAttribute("aRegionId");
+      const seqAttr = ptGeom.getAttribute("aSeqIndex");
+      const count = regionAttr.count;
+      const charIndices = new Float32Array(count);
+
+      if (glyphMode === "ascii") {
+        // ASCII 모드에서는 쉐이더 내부에서 밝기에 따라 ASCII_CHARS 인덱스 선택
+        for (let i = 0; i < count; i++) charIndices[i] = -1;
+      } else {
+        for (let i = 0; i < count; i++) {
+          const rId = Math.round(regionAttr.getX(i));
+          const seq = Math.round(seqAttr.getX(i));
+          const entry = MUSCLE_TERMS[rId] || MUSCLE_TERMS[5];
+          const word = entry[glyphMode];
+          const ch = word[seq % word.length];
+          charIndices[i] = ATLAS.charToIndex[ch] ?? 0;
+        }
+      }
+      ptGeom.setAttribute("aCharIndex", new THREE.BufferAttribute(charIndices, 1));
+    }
+
+    function createMicroGlyphMaterial() {
+      const asciiMapIndices = ASCII_CHARS.map(c => ATLAS.charToIndex[c] ?? 0);
+
+      return new THREE.ShaderMaterial({
+        uniforms: {
+          uAtlas: { value: ATLAS.texture },
+          uAtlasCols: { value: ATLAS.cols },
+          uAtlasRows: { value: ATLAS.rows },
+          uWorldSize: { value: 0.031 }, // 최소 간격(0.045)보다 작게 설정해 글자 사이 여백 확보
+          uProjectionScale: { value: 600.0 },
+          uTime: { value: 0.0 },
+          uAsciiMode: { value: 1.0 },
+          uAsciiIndices: { value: asciiMapIndices }
+        },
+        vertexShader: `
+          attribute float aCharIndex;
+          attribute float aSeqIndex;
+          uniform float uWorldSize;
+          uniform float uProjectionScale;
+          uniform float uTime;
+          uniform float uAsciiMode;
+          uniform float uAsciiIndices[9];
+
+          varying float vCharIdx;
+          varying float vLum;
+
+          void main() {
+            // 미세한 호흡/흐름 위상
+            vec3 pos = position;
+            vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
+            gl_Position = projectionMatrix * mvPosition;
+
+            // 카메라 거리(-mvPosition.z)에 반비례해 3D 공간 크기대로 자연스럽게 확대/축소
+            float dist = max(0.8, -mvPosition.z);
+            gl_PointSize = clamp((uWorldSize * uProjectionScale) / dist, 1.5, 42.0);
+
+            // 3점 조각 조명 밝기 계산
+            vec3 n = normalize(normalMatrix * normal);
+            vec3 keyDir = normalize(vec3(0.55, 0.72, 0.85));
+            vec3 rimDir = normalize(vec3(-0.6, 0.3, -0.7));
+            float diff = max(dot(n, keyDir), 0.0);
+            float rim = max(dot(n, rimDir), 0.0) * 0.38;
+            float lum = clamp(0.16 + diff * 0.78 + rim, 0.0, 1.0);
+            vLum = lum;
+
+            if (uAsciiMode > 0.5) {
+              int idx = int(clamp(floor(lum * 8.99), 0.0, 8.0));
+              vCharIdx = uAsciiIndices[idx];
+            } else {
+              vCharIdx = aCharIndex;
+            }
+          }
+        `,
+        fragmentShader: `
+          uniform sampler2D uAtlas;
+          uniform float uAtlasCols;
+          uniform float uAtlasRows;
+          varying float vCharIdx;
+          varying float vLum;
+
+          void main() {
+            float col = mod(vCharIdx, uAtlasCols);
+            float row = floor(vCharIdx / uAtlasCols);
+
+            // gl_PointCoord: y=0 상단 -> 캔버스 텍스처 좌표계 변환
+            vec2 uv = vec2(
+              (col + gl_PointCoord.x) / uAtlasCols,
+              1.0 - (row + gl_PointCoord.y) / uAtlasRows
+            );
+
+            vec4 texColor = texture2D(uAtlas, uv);
+            if (texColor.a < 0.18) discard;
+
+            float brightness = mix(0.32, 1.0, vLum);
+            gl_FragColor = vec4(vec3(brightness), texColor.a);
+          }
+        `,
+        transparent: true,
+        depthWrite: false,
+        depthTest: true
+      });
+    }
+
+    // ---------------------------------------------------------
+    // 6-E. Three.js 뷰포트 초기화 및 이벤트 바인딩
+    // ---------------------------------------------------------
+    function initAnatomyEngine() {
       const stage = document.getElementById("anatomy-stage");
-      if (!stage || !outCanvas || stage.clientWidth === 0) return;
-      outCanvas.width = stage.clientWidth;
-      outCanvas.height = stage.clientHeight;
-      glCamera.aspect = stage.clientWidth / stage.clientHeight;
-      glCamera.updateProjectionMatrix();
-      glRenderer.setSize(stage.clientWidth, stage.clientHeight);
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x000000);
+
+      camera = new THREE.PerspectiveCamera(38, stage.clientWidth / stage.clientHeight, 0.1, 100);
+      camera.position.set(0, 0.02, targetCamZ);
+
+      renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.setSize(stage.clientWidth, stage.clientHeight);
+      stage.appendChild(renderer.domElement);
+
+      modelPivot = new THREE.Group();
+      scene.add(modelPivot);
+
+      change3DModel("ecorche");
+
+      // 마우스 회전(좌클릭) & 이동(우클릭 또는 Shift+드래그)
+      stage.addEventListener("mousedown", e => {
+        if (e.button === 2 || e.shiftKey) {
+          dragMode = "pan";
+        } else if (e.button === 0) {
+          dragMode = "rotate";
+        }
+        prevMouse = { x: e.clientX, y: e.clientY };
+      });
+
+      window.addEventListener("mouseup", () => {
+        dragMode = "none";
+      });
+
+      window.addEventListener("mousemove", e => {
+        const rect = stage.getBoundingClientRect();
+        if (e.clientX >= rect.left && e.clientX <= rect.right && e.clientY >= rect.top && e.clientY <= rect.bottom) {
+          pointerNDC.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+          pointerNDC.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+        } else {
+          pointerNDC.set(-99, -99);
+        }
+
+        if (dragMode === "none" || !modelPivot) return;
+        const dx = e.clientX - prevMouse.x;
+        const dy = e.clientY - prevMouse.y;
+
+        if (dragMode === "rotate") {
+          modelPivot.rotation.y += dx * 0.009;
+          modelPivot.rotation.x = Math.max(-0.85, Math.min(0.85, modelPivot.rotation.x + dy * 0.006));
+        } else if (dragMode === "pan") {
+          const panSpeed = targetCamZ * 0.0014;
+          targetPan.x = Math.max(-1.6, Math.min(1.6, targetPan.x - dx * panSpeed));
+          targetPan.y = Math.max(-2.3, Math.min(2.3, targetPan.y + dy * panSpeed));
+        }
+        prevMouse = { x: e.clientX, y: e.clientY };
+      });
+
+      // 휠 확대/축소 (1.4까지 가까이 줌인 가능 -> 근육별 글자가 크게 확대되어 읽힘)
+      stage.addEventListener("wheel", e => {
+        e.preventDefault();
+        const zoomFactor = 1 + e.deltaY * 0.0012;
+        targetCamZ = Math.min(10.5, Math.max(1.35, targetCamZ * zoomFactor));
+      }, { passive: false });
+
+      window.addEventListener("resize", resizeAnatomyViewport);
+      resizeAnatomyViewport();
+      requestAnimationFrame(animateAnatomyScene);
+    }
+
+    function resizeAnatomyViewport() {
+      const stage = document.getElementById("anatomy-stage");
+      if (!stage || !renderer || stage.clientWidth === 0) return;
+      const w = stage.clientWidth;
+      const h = stage.clientHeight;
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+      renderer.setSize(w, h);
+
+      if (glyphPointsMesh && glyphPointsMesh.material.uniforms) {
+        const fovRad = (camera.fov * Math.PI) / 180;
+        glyphPointsMesh.material.uniforms.uProjectionScale.value = h / (2 * Math.tan(fovRad / 2));
+      }
     }
 
     function change3DModel(type) {
@@ -1505,13 +1719,37 @@
         modelPivot.remove(modelPivot.children[0]);
       }
 
-      if (type === "ecorche") {
-        modelPivot.add(createRefinedEcorche());
-        document.getElementById("hud-left").innerText = "MODEL : ÉCORCHÉ · DRAG TO ROTATE · SCROLL TO ZOOM";
-      } else {
-        modelPivot.add(createExampleModel());
-        document.getElementById("hud-left").innerText = "MODEL : 3D EXAMPLE · DRAG TO ROTATE · SCROLL TO ZOOM";
+      occlusionGroup = type === "ecorche" ? createSeparatedMuscleEcorche() : createExampleGroup();
+      // 뒷면 글자가 비치지 않도록 깊이 버퍼만 기록하는 오클루전 메쉬 설정
+      occlusionGroup.traverse(obj => {
+        if (obj.isMesh) {
+          obj.material = new THREE.MeshBasicMaterial({
+            colorWrite: false,
+            depthWrite: true,
+            polygonOffset: true,
+            polygonOffsetFactor: 1.5,
+            polygonOffsetUnits: 1.5
+          });
+        }
+      });
+      modelPivot.add(occlusionGroup);
+
+      const minSpacing = type === "ecorche" ? 0.045 : 0.062;
+      const ptGeom = sampleSurfacePointsFromGroup(occlusionGroup, minSpacing);
+      updateGlyphAttributes(ptGeom);
+
+      const mat = createMicroGlyphMaterial();
+      mat.uniforms.uWorldSize.value = type === "ecorche" ? 0.030 : 0.040;
+      mat.uniforms.uAsciiMode.value = glyphMode === "ascii" ? 1.0 : 0.0;
+
+      const stage = document.getElementById("anatomy-stage");
+      if (stage && stage.clientHeight > 0) {
+        const fovRad = (camera.fov * Math.PI) / 180;
+        mat.uniforms.uProjectionScale.value = stage.clientHeight / (2 * Math.tan(fovRad / 2));
       }
+
+      glyphPointsMesh = new THREE.Points(ptGeom, mat);
+      modelPivot.add(glyphPointsMesh);
     }
 
     function setGlyphMode(mode) {
@@ -1519,13 +1757,11 @@
       ["ascii", "ko", "hj", "en"].forEach(m => {
         document.getElementById("mode-" + m).classList.toggle("active", m === mode);
       });
-      const modeNames = {
-        ascii: "ASCII SHADING MATRIX",
-        ko: "한글 해부학 명칭 매핑 (KOREAN)",
-        hj: "漢字 解剖學 名稱 (HANJA)",
-        en: "ENGLISH ANATOMICAL NOMENCLATURE"
-      };
-      document.getElementById("hud-right").innerText = `MODE : ${modeNames[mode]}`;
+
+      if (glyphPointsMesh) {
+        updateGlyphAttributes(glyphPointsMesh.geometry);
+        glyphPointsMesh.material.uniforms.uAsciiMode.value = mode === "ascii" ? 1.0 : 0.0;
+      }
     }
 
     function toggleAutoRotate() {
@@ -1540,88 +1776,54 @@
       document.getElementById("btn-flow").innerText = `FLOW : ${flowEnabled ? "ON" : "OFF"}`;
     }
 
-    function cycleDensity() {
-      densityLevel = (densityLevel + 1) % DENSITY_CONFIGS.length;
-      document.getElementById("btn-density").innerText = `GRID : ${DENSITY_CONFIGS[densityLevel].name}`;
+    function resetAnatomyView() {
+      targetCamZ = 6.9;
+      targetPan.set(0, 0.02);
+      if (modelPivot) {
+        modelPivot.rotation.set(0, 0, 0);
+      }
     }
 
-    function setMaterialPass(useIdPass) {
-      modelPivot.traverse(obj => {
-        if (obj.isMesh && obj.userData.litMat && obj.userData.idMat) {
-          obj.material = useIdPass ? obj.userData.idMat : obj.userData.litMat;
-        }
-      });
-    }
-
-    function renderAnatomyFrame() {
-      requestAnimationFrame(renderAnatomyFrame);
+    let lastStepTime = 0;
+    function animateAnatomyScene(now) {
+      requestAnimationFrame(animateAnatomyScene);
       if (!document.getElementById("sec-anatomy").classList.contains("active")) return;
 
-      if (autoRotate && !isDragging && modelPivot) {
-        modelPivot.rotation.y += 0.010;
-      }
-      if (flowEnabled) {
-        flowTick += 0.14;
-      }
+      // 부드러운 줌 & 시점 이동 보간
+      camera.position.z += (targetCamZ - camera.position.z) * 0.14;
+      camera.position.x += (targetPan.x - camera.position.x) * 0.14;
+      camera.position.y += (targetPan.y - camera.position.y) * 0.14;
 
-      const cfg = DENSITY_CONFIGS[densityLevel];
-      const cols = Math.floor(outCanvas.width / cfg.cellW);
-      const rows = Math.floor(outCanvas.height / cfg.cellH);
-      if (cols <= 0 || rows <= 0) return;
-
-      if (readCanvas.width !== cols || readCanvas.height !== rows) {
-        readCanvas.width = cols;
-        readCanvas.height = rows;
+      if (autoRotate && dragMode === "none" && modelPivot) {
+        modelPivot.rotation.y += 0.008;
       }
 
-      setMaterialPass(false);
-      glRenderer.render(glScene, glCamera);
-      readCtx.drawImage(glRenderer.domElement, 0, 0, cols, rows);
-      const litPixels = readCtx.getImageData(0, 0, cols, rows).data;
-
-      let idPixels = null;
-      if (glyphMode !== "ascii") {
-        setMaterialPass(true);
-        glRenderer.render(glScene, glCamera);
-        readCtx.drawImage(glRenderer.domElement, 0, 0, cols, rows);
-        idPixels = readCtx.getImageData(0, 0, cols, rows).data;
-        setMaterialPass(false);
+      // FLOW : ON일 때 일정 주기로 문자가 한 칸씩 흐르듯 순환
+      if (flowEnabled && glyphMode !== "ascii" && glyphPointsMesh && now - lastStepTime > 260) {
+        lastStepTime = now;
+        const seqAttr = glyphPointsMesh.geometry.getAttribute("aSeqIndex");
+        for (let i = 0; i < seqAttr.count; i++) {
+          seqAttr.setX(i, seqAttr.getX(i) + 1);
+        }
+        seqAttr.needsUpdate = true;
+        updateGlyphAttributes(glyphPointsMesh.geometry);
       }
 
-      outCtx.fillStyle = "#000000";
-      outCtx.fillRect(0, 0, outCanvas.width, outCanvas.height);
-      outCtx.font = `bold ${cfg.fontSize}px "Helvetica Neue", Helvetica, "Apple SD Gothic Neo", monospace`;
-      outCtx.textAlign = "center";
-      outCtx.textBaseline = "middle";
-
-      const flowOffset = Math.floor(flowTick);
-
-      for (let r = 0; r < rows; r++) {
-        for (let c = 0; c < cols; c++) {
-          const idx = (r * cols + c) * 4;
-          const lum = litPixels[idx];
-          if (lum < 12) continue;
-
-          // 대비 강화 커브 적용으로 윤곽과 글자 가독성 극대화
-          const norm = Math.min(1, Math.pow(lum / 255, 0.82));
-          let ch = " ";
-
-          if (glyphMode === "ascii") {
-            const rampIdx = Math.min(ASCII_RAMP.length - 1, Math.floor(norm * ASCII_RAMP.length));
-            ch = ASCII_RAMP[rampIdx];
-          } else {
-            const regId = idPixels ? Math.round((idPixels[idx] / 255) * 10) : 4;
-            const entry = REGION_LABELS[regId] || REGION_LABELS[4];
-            const word = entry[glyphMode];
-            const charIdx = Math.abs(r - flowOffset + c) % word.length;
-            ch = word[charIdx];
-          }
-
-          const alpha = Math.min(1, 0.35 + norm * 0.72);
-          outCtx.fillStyle = `rgba(255, 255, 255, ${alpha.toFixed(2)})`;
-          outCtx.fillText(ch, c * cfg.cellW + cfg.cellW / 2, r * cfg.cellH + cfg.cellH / 2);
+      // 마우스 호버 시 해당 근육의 우리말/한자어/영문 명칭 HUD 표시
+      if (occlusionGroup && pointerNDC.x > -2) {
+        raycaster.setFromCamera(pointerNDC, camera);
+        const hits = raycaster.intersectObjects(occlusionGroup.children, false);
+        const hudRight = document.getElementById("hud-right");
+        if (hits.length > 0) {
+          const rId = hits[0].object.userData.regionId || 5;
+          const m = MUSCLE_TERMS[rId] || MUSCLE_TERMS[5];
+          hudRight.innerHTML = `MUSCLE : <strong>${m.ko} · ${m.hj} · ${m.en}</strong>`;
+        } else {
+          hudRight.innerHTML = `TARGET : <strong>${currentModelType === "ecorche" ? "ÉCORCHÉ" : "3D EXAMPLE"}</strong>`;
         }
       }
+
+      renderer.render(scene, camera);
     }
 
     // =========================================================
