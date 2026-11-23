@@ -418,7 +418,6 @@
     <section id="sec-anatomy" class="section active">
       <div class="box">
         <div class="anatomy-toolbar">
-          <!-- 모형 선택 칸 -->
           <div class="toolbar-group">
             <label>3D MODEL SELECTOR</label>
             <div class="toolbar-buttons">
@@ -433,7 +432,6 @@
             </div>
           </div>
 
-          <!-- 문자/언어 모드 선택 -->
           <div class="toolbar-group">
             <label>TYPOGRAPHY & GLYPH MODE</label>
             <div class="toolbar-buttons">
@@ -444,7 +442,6 @@
             </div>
           </div>
 
-          <!-- 회전 및 흐름 제어 -->
           <div class="toolbar-group">
             <label>SIMULATION</label>
             <div class="toolbar-buttons">
@@ -458,7 +455,7 @@
         <div id="anatomy-stage">
           <canvas id="ascii-output-canvas"></canvas>
           <div class="anatomy-hud">
-            <span id="hud-left">MODEL : HUMAN ÉCORCHÉ · DRAG TO ROTATE · SCROLL TO ZOOM</span>
+            <span id="hud-left">MODEL : HUMAN ÉCORCHÉ (인체 전신) · DRAG TO ROTATE · SCROLL TO ZOOM</span>
             <span id="hud-right">MODE : ASCII SHADING MATRIX</span>
           </div>
         </div>
@@ -590,7 +587,7 @@
 
   <script>
     // =========================================================
-    // 1. SUPABASE CONFIGURATION (새 프로젝트 ANON KEY 입력)
+    // 1. SUPABASE CONFIGURATION
     // =========================================================
     const SUPABASE_URL = "https://busychronicler7800-github-io-delta.vercel.app";
     const SUPABASE_ANON_KEY = "sb_publishable_A3BcYO4bYJZGBbKmFivEaw_vTQqYIae";
@@ -820,36 +817,34 @@
     // =========================================================
     const ASCII_RAMP = " .:-=+*#%@";
 
-    // 해부학 부위별 문자 매핑 (1~8번 부위 ID)
     const REGION_LABELS = {
-      1: { ko: "두개골하악골", hj: "頭蓋骨下顎骨", en: "CRANIUMJAW" },       // Cranium & Jaw
-      2: { ko: "흉쇄유돌승모", hj: "胸鎖乳突僧帽", en: "STERNOCLEIDO" },     // Neck & Trapezius
-      3: { ko: "삼각근견봉",   hj: "三角筋肩峰",   en: "DELTOID" },          // Shoulders / Deltoid
-      4: { ko: "대흉근늑골",   hj: "大胸筋肋骨",   en: "PECTORALIS" },       // Chest / Thorax
-      5: { ko: "상완이두전완", hj: "上腕二頭前腕", en: "BICEPSRADIUS" },     // Upper & Lower Arms
-      6: { ko: "복직근외복사", hj: "腹直筋外腹斜", en: "ABDOMINIS" },        // Abdomen & Pelvis
-      7: { ko: "대퇴사두슬개", hj: "大腿四頭膝蓋", en: "QUADRICEPS" },       // Thighs / Femur
-      8: { ko: "비복근경골",   hj: "腓腹筋脛骨",   en: "GASTROCNEMIUS" }     // Calves / Tibia
+      1: { ko: "두개골하악골", hj: "頭蓋骨下顎骨", en: "CRANIUMJAW" },
+      2: { ko: "흉쇄유돌승모", hj: "胸鎖乳突僧帽", en: "STERNOCLEIDO" },
+      3: { ko: "삼각근견봉",   hj: "三角筋肩峰",   en: "DELTOID" },
+      4: { ko: "대흉근늑골",   hj: "大胸筋肋骨",   en: "PECTORALIS" },
+      5: { ko: "상완이두전완", hj: "上腕二頭前腕", en: "BICEPSRADIUS" },
+      6: { ko: "복직근외복사", hj: "腹直筋外腹斜", en: "ABDOMINIS" },
+      7: { ko: "대퇴사두슬개", hj: "大腿四頭膝蓋", en: "QUADRICEPS" },
+      8: { ko: "비복근경골",   hj: "腓腹筋脛骨",   en: "GASTROCNEMIUS" }
     };
 
-    let glyphMode = "ascii"; // 'ascii' | 'ko' | 'hj' | 'en'
+    let glyphMode = "ascii";
     let currentModelType = "ecorche";
     let autoRotate = true;
     let flowEnabled = true;
-    let densityLevel = 0; // 0: FINE (9px), 1: MEDIUM (12px), 2: COARSE (15px)
+    let densityLevel = 0;
     const DENSITY_CONFIGS = [
       { name: "FINE", cellW: 8, cellH: 11, fontSize: 10 },
       { name: "MEDIUM", cellW: 11, cellH: 14, fontSize: 13 },
       { name: "COARSE", cellW: 14, cellH: 18, fontSize: 16 }
     ];
 
-    let glScene, idScene, glCamera, glRenderer, litTarget, idTarget, modelPivot;
+    let glScene, glCamera, glRenderer, modelPivot;
     let outCanvas, outCtx, readCanvas, readCtx;
     let isDragging = false;
     let prevMouse = { x: 0, y: 0 };
     let flowTick = 0;
 
-    // 3D 해부학 인체 에코르셰 메쉬 생성 (비율 및 근육 윤곽 구현)
     function createEcorcheGroup(bustOnly = false) {
       const group = new THREE.Group();
 
@@ -877,31 +872,27 @@
       addPart(new THREE.SphereGeometry(0.32, 24, 24), 1, [0, 2.22, 0.02], [0.1, 0, 0], [0.88, 1.12, 1.0]);
       addPart(new THREE.CylinderGeometry(0.22, 0.13, 0.24, 18), 1, [0, 1.98, 0.08], [0.15, 0, 0], [0.95, 1.0, 1.05]);
 
-      // 2. 목 & 흉쇄유돌근 & 승모근 (Neck & Trapezius)
+      // 2. 목 & 흉쇄유돌근 & 승모근
       addPart(new THREE.CylinderGeometry(0.15, 0.18, 0.34, 18), 2, [0, 1.78, -0.02]);
       addPart(new THREE.CylinderGeometry(0.18, 0.56, 0.28, 20), 2, [0, 1.62, -0.06], [0, 0, 0], [1.15, 1.0, 0.55]);
 
-      // 3. 쇄골 & 삼각근 (Clavicles & Deltoids)
+      // 3. 쇄골 & 삼각근
       [-1, 1].forEach(side => {
         addPart(new THREE.SphereGeometry(0.23, 20, 20), 3, [side * 0.58, 1.48, -0.01], [0, 0, side * -0.2], [1.05, 1.18, 0.95]);
         addPart(new THREE.CylinderGeometry(0.045, 0.045, 0.44, 12), 3, [side * 0.28, 1.56, 0.12], [0, 0, side * 1.42]);
       });
 
-      // 4. 흉곽 & 대흉근 & 광배근 (Thorax & Pectorals)
+      // 4. 흉곽 & 대흉근
       addPart(new THREE.CylinderGeometry(0.50, 0.36, 0.72, 24), 4, [0, 1.24, -0.02], [0, 0, 0], [1.12, 1.0, 0.66]);
       [-1, 1].forEach(side => {
         addPart(new THREE.SphereGeometry(0.26, 20, 18), 4, [side * 0.24, 1.34, 0.16], [0.1, side * 0.2, 0], [1.05, 0.85, 0.55]);
       });
 
-      // 5. 상완(이두·삼두) & 전완 & 손 (Upper & Lower Limbs)
+      // 5. 상완 & 전완 & 손
       [-1, 1].forEach(side => {
-        // 상완골/상완근 (약간 외전된 콘트라포스토 팔 각도)
         addPart(new THREE.CylinderGeometry(0.15, 0.12, 0.68, 18), 5, [side * 0.68, 1.08, 0.0], [0.06, 0, side * 0.14], [1.0, 1.0, 0.95]);
-        // 주관절(팔꿈치)
         addPart(new THREE.SphereGeometry(0.115, 14, 14), 5, [side * 0.74, 0.72, 0.02]);
-        // 전완근 (앞으로 살짝 굽힌 해부학 포즈)
         addPart(new THREE.CylinderGeometry(0.125, 0.08, 0.66, 18), 5, [side * 0.77, 0.38, 0.09], [-0.22, 0, side * 0.04]);
-        // 손
         addPart(new THREE.BoxGeometry(0.08, 0.24, 0.15), 5, [side * 0.78, -0.04, 0.16], [-0.2, 0, 0]);
       });
 
@@ -911,33 +902,28 @@
         return group;
       }
 
-      // 6. 복직근 & 외복사근 & 골반·둔근 (Abdomen & Pelvis)
+      // 6. 복직근 & 골반·둔근
       addPart(new THREE.CylinderGeometry(0.35, 0.38, 0.58, 22), 6, [0, 0.60, 0.0], [0, 0, 0], [1.05, 1.0, 0.68]);
-      // 복직근 6구획 볼륨
       [-1, 1].forEach(side => {
         [0.76, 0.58, 0.40].forEach(yPos => {
           addPart(new THREE.SphereGeometry(0.10, 12, 12), 6, [side * 0.09, yPos, 0.21], [0, 0, 0], [0.95, 0.85, 0.45]);
         });
       });
-      // 골반 & 둔근
       addPart(new THREE.CylinderGeometry(0.40, 0.43, 0.38, 22), 6, [0, 0.14, -0.02], [0, 0, 0], [1.10, 1.0, 0.74]);
       [-1, 1].forEach(side => {
         addPart(new THREE.SphereGeometry(0.24, 18, 18), 6, [side * 0.21, 0.06, -0.14], [0, 0, 0], [0.95, 1.05, 0.85]);
       });
 
-      // 7. 대퇴사두근 & 슬개골 (Thighs & Knees)
+      // 7. 대퇴사두근 & 슬개골
       [-1, 1].forEach(side => {
         addPart(new THREE.CylinderGeometry(0.22, 0.145, 1.06, 20), 7, [side * 0.24, -0.54, 0.01], [0.02, 0, side * -0.03], [1.0, 1.0, 1.05]);
         addPart(new THREE.SphereGeometry(0.14, 16, 16), 7, [side * 0.22, -1.10, 0.03]);
       });
 
-      // 8. 비복근 & 경골 & 발 (Calves & Feet)
+      // 8. 비복근 & 경골 & 발
       [-1, 1].forEach(side => {
-        // 비복근 상부 볼륨
         addPart(new THREE.SphereGeometry(0.155, 18, 18), 8, [side * 0.22, -1.44, -0.03], [0, 0, 0], [0.92, 1.65, 1.05]);
-        // 하퇴(경골/비골)
         addPart(new THREE.CylinderGeometry(0.135, 0.085, 0.98, 18), 8, [side * 0.22, -1.64, 0.0], [0, 0, 0]);
-        // 발
         addPart(new THREE.BoxGeometry(0.16, 0.11, 0.38), 8, [side * 0.22, -2.18, 0.10]);
       });
 
@@ -968,7 +954,6 @@
       return group;
     }
 
-    // 간단한 내장 .OBJ 파서 (Blender 에코르셰 파일 직접 로드용)
     function parseObjToGroup(objText) {
       const verts = [];
       const positions = [];
@@ -1037,7 +1022,6 @@
       glCamera = new THREE.PerspectiveCamera(40, stage.clientWidth / stage.clientHeight, 0.1, 100);
       glCamera.position.set(0, 0, 7.2);
 
-      // 입체 근육 음영을 살리는 3점 조명
       const keyLight = new THREE.DirectionalLight(0xffffff, 1.35);
       keyLight.position.set(3.5, 4.5, 5.0);
       glScene.add(keyLight);
@@ -1056,7 +1040,6 @@
       glScene.add(modelPivot);
       change3DModel("ecorche");
 
-      // 마우스 회전 & 휠 줌
       stage.addEventListener("mousedown", e => {
         isDragging = true;
         prevMouse = { x: e.clientX, y: e.clientY };
@@ -1192,13 +1175,11 @@
         readCanvas.height = rows;
       }
 
-      // 1패스: 조명 음영 렌더링
       setMaterialPass(false);
       glRenderer.render(glScene, glCamera);
       readCtx.drawImage(glRenderer.domElement, 0, 0, cols, rows);
       const litPixels = readCtx.getImageData(0, 0, cols, rows).data;
 
-      // 2패스: 해부학 부위 ID 렌더링 (한글/한자/영어 모드일 때만)
       let idPixels = null;
       if (glyphMode !== "ascii") {
         setMaterialPass(true);
@@ -1208,7 +1189,6 @@
         setMaterialPass(false);
       }
 
-      // 3패스: 2D 캔버스에 공간 그리드 문자 출력
       outCtx.fillStyle = "#000000";
       outCtx.fillRect(0, 0, outCanvas.width, outCanvas.height);
       outCtx.font = `bold ${cfg.fontSize}px "Helvetica Neue", Helvetica, "Apple SD Gothic Neo", monospace`;
@@ -1220,7 +1200,7 @@
       for (let r = 0; r < rows; r++) {
         for (let c = 0; c < cols; c++) {
           const idx = (r * cols + c) * 4;
-          const lum = litPixels[idx]; // 0 ~ 255
+          const lum = litPixels[idx];
           if (lum < 14) continue;
 
           const norm = lum / 255;
