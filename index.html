@@ -105,7 +105,7 @@
       width: 100%;
       max-width: 1200px;
       margin: 0 auto;
-      padding: 36px 32px 80px;
+      padding: 32px 32px 80px;
       flex: 1;
     }
 
@@ -163,7 +163,7 @@
       text-transform: uppercase;
     }
 
-    input, textarea, select {
+    input, textarea {
       width: 100%;
       background: #000000;
       border: 1px solid var(--line);
@@ -174,7 +174,7 @@
       outline: none;
     }
 
-    input:focus, textarea:focus, select:focus {
+    input:focus, textarea:focus {
       border-color: var(--fg);
     }
 
@@ -205,8 +205,9 @@
       font-size: 0.72rem;
       letter-spacing: 0.08em;
       text-transform: uppercase;
-      padding: 7px 12px;
+      padding: 7px 14px;
       cursor: pointer;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
     }
 
     .btn-outline:hover,
@@ -214,6 +215,7 @@
       border-color: var(--fg);
       background: var(--fg);
       color: var(--bg);
+      font-weight: 700;
     }
 
     .btn-del {
@@ -257,19 +259,9 @@
       align-items: center;
     }
 
-    .model-select {
-      width: auto;
-      min-width: 220px;
-      padding: 7px 10px;
-      font-size: 0.74rem;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      cursor: pointer;
-    }
-
     #anatomy-stage {
       width: 100%;
-      height: 600px;
+      height: 700px;
       border: 1px solid var(--line);
       background: #000000;
       position: relative;
@@ -301,7 +293,7 @@
       letter-spacing: 0.08em;
       color: var(--muted);
       pointer-events: none;
-      background: rgba(0, 0, 0, 0.7);
+      background: rgba(0, 0, 0, 0.75);
       padding: 4px 8px;
     }
 
@@ -441,7 +433,7 @@
     @media (max-width: 768px) {
       header, main, footer { padding-left: 18px; padding-right: 18px; }
       .form-row, .form-row-3, .bio-grid { grid-template-columns: 1fr; }
-      #anatomy-stage { height: 460px; }
+      #anatomy-stage { height: 520px; }
     }
   </style>
 </head>
@@ -463,22 +455,18 @@
     <section id="sec-anatomy" class="section active">
       <div class="box">
         <div class="anatomy-toolbar">
+          <!-- 모델 선택: 에코르셰 / 3D 예시 모델 2종 -->
           <div class="toolbar-group">
-            <label>3D MODEL SELECTOR</label>
+            <label>MODEL</label>
             <div class="toolbar-buttons">
-              <select id="model-select" class="model-select" onchange="change3DModel(this.value)">
-                <option value="ecorche">01. HUMAN ÉCORCHÉ (인체 전신 모형)</option>
-                <option value="bust">02. ÉCORCHÉ BUST (두부·흉부 상반신)</option>
-                <option value="torus">03. TORUS KNOT (3D 예시 기하 모형)</option>
-                <option value="sphere">04. GEODESIC FORM (3D 예시 구형)</option>
-              </select>
-              <button class="btn-outline" onclick="document.getElementById('obj-upload').click()">IMPORT .OBJ</button>
-              <input type="file" id="obj-upload" accept=".obj" style="display:none;" onchange="handleObjUpload(event)" />
+              <button class="btn-outline active" id="model-ecorche" onclick="change3DModel('ecorche')">ÉCORCHÉ (에코르셰)</button>
+              <button class="btn-outline" id="model-example" onclick="change3DModel('example')">3D EXAMPLE (예시 모델)</button>
             </div>
           </div>
 
+          <!-- 문자/언어 모드 선택 -->
           <div class="toolbar-group">
-            <label>TYPOGRAPHY & GLYPH MODE</label>
+            <label>TYPOGRAPHY</label>
             <div class="toolbar-buttons">
               <button class="btn-outline active" id="mode-ascii" onclick="setGlyphMode('ascii')">ASCII</button>
               <button class="btn-outline" id="mode-ko" onclick="setGlyphMode('ko')">한글 (KO)</button>
@@ -487,12 +475,13 @@
             </div>
           </div>
 
+          <!-- 시뮬레이션 제어 -->
           <div class="toolbar-group">
-            <label>SIMULATION</label>
+            <label>CONTROL</label>
             <div class="toolbar-buttons">
               <button class="btn-outline active" id="btn-autorotate" onclick="toggleAutoRotate()">ROTATE : ON</button>
               <button class="btn-outline active" id="btn-flow" onclick="toggleFlow()">FLOW : ON</button>
-              <button class="btn-outline" id="btn-density" onclick="cycleDensity()">GRID : FINE</button>
+              <button class="btn-outline" id="btn-density" onclick="cycleDensity()">GRID : DENSE</button>
             </div>
           </div>
         </div>
@@ -500,7 +489,7 @@
         <div id="anatomy-stage">
           <canvas id="ascii-output-canvas"></canvas>
           <div class="anatomy-hud">
-            <span id="hud-left">MODEL : HUMAN ÉCORCHÉ (인체 전신) · DRAG TO ROTATE · SCROLL TO ZOOM</span>
+            <span id="hud-left">MODEL : ÉCORCHÉ · DRAG TO ROTATE · SCROLL TO ZOOM</span>
             <span id="hud-right">MODE : ASCII SHADING MATRIX</span>
           </div>
         </div>
@@ -589,7 +578,6 @@
             <button class="btn-outline" id="tab-auth-signup" onclick="setAuthMode('signup')">CREATE ACCOUNT</button>
           </div>
 
-          <!-- 로그인 폼 -->
           <div id="form-signin">
             <div class="form-row">
               <div class="form-group" style="margin:0;">
@@ -604,7 +592,6 @@
             <button class="btn" onclick="handleSignIn()">SIGN IN</button>
           </div>
 
-          <!-- 회원가입 폼 (비밀번호 재확인 포함) -->
           <div id="form-signup" style="display:none;">
             <div class="form-row-3">
               <div class="form-group" style="margin:0;">
@@ -684,7 +671,7 @@
     }
 
     // =========================================================
-    // 3. AUTHENTICATION (WITH PASSWORD CONFIRMATION)
+    // 3. AUTHENTICATION
     // =========================================================
     function setAuthMode(mode) {
       const isSignIn = mode === "signin";
@@ -856,7 +843,7 @@
     }
 
     // =========================================================
-    // 5. GUESTBOOK (CUSTOM DISPLAY NAME + OWNER/ADMIN DELETE)
+    // 5. GUESTBOOK
     // =========================================================
     async function loadGuestbook() {
       const listEl = document.getElementById("gb-list");
@@ -968,12 +955,12 @@
     }
 
     // =========================================================
-    // 6. 3D SCULPTED HUMAN ÉCORCHÉ & SPATIAL TYPOGRAPHY ENGINE
+    // 6. HIGH-DENSITY SCULPTED ÉCORCHÉ & TYPOGRAPHY ENGINE
     // =========================================================
     const ASCII_RAMP = " .:-=+*#%@";
 
     const REGION_LABELS = {
-      1: { ko: "두개골하악골", hj: "頭蓋骨下顎骨", en: "CRANIUMJAW" },
+      1: { ko: "두개골안면근", hj: "頭蓋骨顔面筋", en: "CRANIUMFACE" },
       2: { ko: "흉쇄유돌승모", hj: "胸鎖乳突僧帽", en: "STERNOCLEIDO" },
       3: { ko: "삼각근견봉",   hj: "三角筋肩峰",   en: "DELTOID" },
       4: { ko: "대흉근늑골",   hj: "大胸筋肋骨",   en: "PECTORALIS" },
@@ -988,10 +975,12 @@
     let autoRotate = true;
     let flowEnabled = true;
     let densityLevel = 0;
+
+    // 촘촘한 가독성을 위한 그리드 밀도 프리셋
     const DENSITY_CONFIGS = [
-      { name: "FINE", cellW: 8, cellH: 11, fontSize: 10 },
-      { name: "MEDIUM", cellW: 11, cellH: 14, fontSize: 13 },
-      { name: "COARSE", cellW: 14, cellH: 18, fontSize: 16 }
+      { name: "DENSE",  cellW: 5.5, cellH: 7.5, fontSize: 8.5 },
+      { name: "FINE",   cellW: 7.5, cellH: 10.0, fontSize: 10.5 },
+      { name: "MEDIUM", cellW: 10.0, cellH: 13.0, fontSize: 13.0 }
     ];
 
     let glScene, glCamera, glRenderer, modelPivot;
@@ -1000,19 +989,155 @@
     let prevMouse = { x: 0, y: 0 };
     let flowTick = 0;
 
-    function createEcorcheGroup(bustOnly = false) {
+    // 연속 단면 로프트(Loft) 기반 유기적 조각 메쉬 생성기
+    function buildSculptedLoft(slices, radialSegs, displaceFn) {
+      const positions = [];
+      const uvs = [];
+      const ringCount = slices.length;
+
+      const rings = [];
+      for (let i = 0; i < ringCount; i++) {
+        const s = slices[i];
+        const vNorm = i / (ringCount - 1);
+        const ring = [];
+        for (let j = 0; j <= radialSegs; j++) {
+          const uNorm = j / radialSegs;
+          const theta = uNorm * Math.PI * 2; // 0: +Z(정면), PI/2: +X(좌측 에코르셰), PI: -Z(후면)
+          const sinT = Math.sin(theta);
+          const cosT = Math.cos(theta);
+
+          let x = (s.cx || 0) + s.rx * sinT;
+          let y = s.y;
+          let z = (s.cz || 0) + s.rz * cosT;
+
+          if (displaceFn) {
+            const d = displaceFn(x, y, z, theta, vNorm, sinT, cosT);
+            if (d) {
+              x += d.dx || 0;
+              y += d.dy || 0;
+              z += d.dz || 0;
+            }
+          }
+          ring.push([x, y, z, uNorm, vNorm]);
+        }
+        rings.push(ring);
+      }
+
+      for (let i = 0; i < ringCount - 1; i++) {
+        for (let j = 0; j < radialSegs; j++) {
+          const a = rings[i][j];
+          const b = rings[i + 1][j];
+          const c = rings[i + 1][j + 1];
+          const d = rings[i][j + 1];
+
+          positions.push(a[0], a[1], a[2], b[0], b[1], b[2], d[0], d[1], d[2]);
+          uvs.push(a[3], a[4], b[3], b[4], d[3], d[4]);
+
+          positions.push(b[0], b[1], b[2], c[0], c[1], c[2], d[0], d[1], d[2]);
+          uvs.push(b[3], b[4], c[3], c[4], d[3], d[4]);
+        }
+      }
+
+      // 상단/하단 캡
+      const bot = slices[0];
+      for (let j = 0; j < radialSegs; j++) {
+        const a = rings[0][j];
+        const b = rings[0][j + 1];
+        positions.push(bot.cx || 0, bot.y, bot.cz || 0, a[0], a[1], a[2], b[0], b[1], b[2]);
+      }
+      const top = slices[ringCount - 1];
+      for (let j = 0; j < radialSegs; j++) {
+        const a = rings[ringCount - 1][j];
+        const b = rings[ringCount - 1][j + 1];
+        positions.push(top.cx || 0, top.y, top.cz || 0, b[0], b[1], b[2], a[0], a[1], a[2]);
+      }
+
+      const geom = new THREE.BufferGeometry();
+      geom.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+      geom.computeVertexNormals();
+      return geom;
+    }
+
+    // 3D 경로(Spine)를 따라 근육 두께 변화를 주며 이어지는 팔·다리 조각 메쉬 생성기
+    function buildLimbTube(points, radialSegs, sculptFn) {
+      const positions = [];
+      const count = points.length;
+      const rings = [];
+
+      for (let i = 0; i < count; i++) {
+        const p = points[i];
+        const t = i / (count - 1);
+        const prev = points[Math.max(0, i - 1)];
+        const next = points[Math.min(count - 1, i + 1)];
+
+        const tangent = new THREE.Vector3(next.x - prev.x, next.y - prev.y, next.z - prev.z).normalize();
+        const ref = Math.abs(tangent.z) < 0.9 ? new THREE.Vector3(0, 0, 1) : new THREE.Vector3(1, 0, 0);
+        const normal = new THREE.Vector3().crossVectors(ref, tangent).normalize();
+        const binormal = new THREE.Vector3().crossVectors(tangent, normal).normalize();
+
+        const ring = [];
+        for (let j = 0; j <= radialSegs; j++) {
+          const theta = (j / radialSegs) * Math.PI * 2;
+          const cosT = Math.cos(theta);
+          const sinT = Math.sin(theta);
+
+          let rx = p.rx;
+          let rz = p.rz;
+          let radialOffset = 0;
+          if (sculptFn) {
+            radialOffset = sculptFn(t, theta, sinT, cosT) || 0;
+          }
+
+          const localX = (rx + radialOffset) * sinT;
+          const localZ = (rz + radialOffset) * cosT;
+
+          const vx = p.x + normal.x * localX + binormal.x * localZ;
+          const vy = p.y + normal.y * localX + binormal.y * localZ;
+          const vz = p.z + normal.z * localX + binormal.z * localZ;
+          ring.push([vx, vy, vz]);
+        }
+        rings.push(ring);
+      }
+
+      for (let i = 0; i < count - 1; i++) {
+        for (let j = 0; j < radialSegs; j++) {
+          const a = rings[i][j];
+          const b = rings[i + 1][j];
+          const c = rings[i + 1][j + 1];
+          const d = rings[i][j + 1];
+          positions.push(a[0], a[1], a[2], b[0], b[1], b[2], d[0], d[1], d[2]);
+          positions.push(b[0], b[1], b[2], c[0], c[1], c[2], d[0], d[1], d[2]);
+        }
+      }
+
+      const startP = points[0];
+      const endP = points[count - 1];
+      for (let j = 0; j < radialSegs; j++) {
+        const a = rings[0][j], b = rings[0][j + 1];
+        positions.push(startP.x, startP.y, startP.z, a[0], a[1], a[2], b[0], b[1], b[2]);
+        const c = rings[count - 1][j], d = rings[count - 1][j + 1];
+        positions.push(endP.x, endP.y, endP.z, d[0], d[1], d[2], c[0], c[1], c[2]);
+      }
+
+      const geom = new THREE.BufferGeometry();
+      geom.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+      geom.computeVertexNormals();
+      return geom;
+    }
+
+    // 레퍼런스 기반 정밀 인체 에코르셰 조각 생성 (성기 없는 매끄러운 해부학 조각)
+    function createRefinedEcorche() {
       const group = new THREE.Group();
 
-      function addPart(geom, regionId, pos, rot = [0, 0, 0], scale = [1, 1, 1]) {
+      function registerMesh(geom, regionId, pos = [0, 0, 0], rot = [0, 0, 0], scale = [1, 1, 1]) {
         const litMat = new THREE.MeshStandardMaterial({
           color: 0xffffff,
           roughness: 0.42,
-          metalness: 0.08
+          metalness: 0.06
         });
         const idMat = new THREE.MeshBasicMaterial({
           color: new THREE.Color(regionId / 10, 0, 0)
         });
-
         const mesh = new THREE.Mesh(geom, litMat);
         mesh.position.set(...pos);
         mesh.rotation.set(...rot);
@@ -1023,142 +1148,278 @@
         return mesh;
       }
 
-      // 1. 두개골
-      addPart(new THREE.SphereGeometry(0.32, 24, 24), 1, [0, 2.22, 0.02], [0.1, 0, 0], [0.88, 1.12, 1.0]);
-      addPart(new THREE.CylinderGeometry(0.22, 0.13, 0.24, 18), 1, [0, 1.98, 0.08], [0.15, 0, 0], [0.95, 1.0, 1.05]);
+      // 0. 하단 원형 조각 받침대 (Pedestal)
+      registerMesh(new THREE.CylinderGeometry(0.92, 0.96, 0.09, 56), 8, [0, -2.28, 0.02]);
+      registerMesh(new THREE.CylinderGeometry(0.86, 0.92, 0.03, 56), 8, [0, -2.22, 0.02]);
 
-      // 2. 목 & 흉쇄유돌근 & 승모근
-      addPart(new THREE.CylinderGeometry(0.15, 0.18, 0.34, 18), 2, [0, 1.78, -0.02]);
-      addPart(new THREE.CylinderGeometry(0.18, 0.56, 0.28, 20), 2, [0, 1.62, -0.06], [0, 0, 0], [1.15, 1.0, 0.55]);
+      // 1. 두부 및 안면 조각 (Cranium & Sculpted Face)
+      const headGeom = new THREE.SphereGeometry(0.26, 48, 48);
+      const hPos = headGeom.attributes.position;
+      for (let i = 0; i < hPos.count; i++) {
+        let x = hPos.getX(i);
+        let y = hPos.getY(i);
+        let z = hPos.getZ(i);
 
-      // 3. 쇄골 & 삼각근
-      [-1, 1].forEach(side => {
-        addPart(new THREE.SphereGeometry(0.23, 20, 20), 3, [side * 0.58, 1.48, -0.01], [0, 0, side * -0.2], [1.05, 1.18, 0.95]);
-        addPart(new THREE.CylinderGeometry(0.045, 0.045, 0.44, 12), 3, [side * 0.28, 1.56, 0.12], [0, 0, side * 1.42]);
-      });
+        // 두개골 및 하악 비율 조정
+        x *= 0.84;
+        y *= 1.18;
+        z *= 0.98;
 
-      // 4. 흉곽 & 대흉근
-      addPart(new THREE.CylinderGeometry(0.50, 0.36, 0.72, 24), 4, [0, 1.24, -0.02], [0, 0, 0], [1.12, 1.0, 0.66]);
-      [-1, 1].forEach(side => {
-        addPart(new THREE.SphereGeometry(0.26, 20, 18), 4, [side * 0.24, 1.34, 0.16], [0.1, side * 0.2, 0], [1.05, 0.85, 0.55]);
-      });
+        // 턱선(하악골) 테이퍼
+        if (y < 0) {
+          const jawT = Math.min(1, Math.abs(y) / 0.30);
+          x *= (1 - jawT * 0.36);
+          if (z < 0) z *= (1 - jawT * 0.48);
+          else z += jawT * 0.02;
+        }
 
-      // 5. 상완 & 전완 & 손
-      [-1, 1].forEach(side => {
-        addPart(new THREE.CylinderGeometry(0.15, 0.12, 0.68, 18), 5, [side * 0.68, 1.08, 0.0], [0.06, 0, side * 0.14], [1.0, 1.0, 0.95]);
-        addPart(new THREE.SphereGeometry(0.115, 14, 14), 5, [side * 0.74, 0.72, 0.02]);
-        addPart(new THREE.CylinderGeometry(0.125, 0.08, 0.66, 18), 5, [side * 0.77, 0.38, 0.09], [-0.22, 0, side * 0.04]);
-        addPart(new THREE.BoxGeometry(0.08, 0.24, 0.15), 5, [side * 0.78, -0.04, 0.16], [-0.2, 0, 0]);
-      });
+        // 안면부(+Z) 입체 조형: 눈썹뼈, 안와, 콧대, 광대뼈, 입술, 턱끝
+        if (z > 0.05) {
+          // 눈썹뼈 융기
+          const brow = Math.exp(-Math.pow((y - 0.04) / 0.035, 2)) * Math.exp(-Math.pow(x / 0.14, 2));
+          z += brow * 0.028;
+          // 안와(눈) 함몰
+          const eye = Math.exp(-Math.pow((y - 0.00) / 0.028, 2)) * Math.exp(-Math.pow((Math.abs(x) - 0.072) / 0.035, 2));
+          z -= eye * 0.026;
+          // 콧대 및 코끝
+          const nose = Math.exp(-Math.pow((y + 0.04) / 0.065, 2)) * Math.exp(-Math.pow(x / 0.024, 2));
+          z += nose * 0.048;
+          // 광대뼈(관골)
+          const cheek = Math.exp(-Math.pow((y + 0.045) / 0.04, 2)) * Math.exp(-Math.pow((Math.abs(x) - 0.105) / 0.04, 2));
+          z += cheek * 0.022;
+          // 입술 및 턱끝
+          const mouth = Math.exp(-Math.pow((y + 0.13) / 0.025, 2)) * Math.exp(-Math.pow(x / 0.055, 2));
+          z += mouth * 0.022;
+          const chin = Math.exp(-Math.pow((y + 0.22) / 0.04, 2)) * Math.exp(-Math.pow(x / 0.045, 2));
+          z += chin * 0.028;
 
-      if (bustOnly) {
-        group.position.set(0, -1.55, 0);
-        group.scale.set(1.55, 1.55, 1.55);
-        return group;
+          // 좌측(+X) 에코르셰 안면 근섬유 결
+          if (x > 0.01 && y < 0.02 && y > -0.18) {
+            z += Math.sin((x + y) * 90) * 0.004;
+          }
+        }
+
+        // 정중선 음각
+        if (Math.abs(x) < 0.006 && z > 0) z -= 0.006;
+
+        hPos.setXYZ(i, x, y, z);
       }
+      headGeom.computeVertexNormals();
+      registerMesh(headGeom, 1, [0, 2.08, 0.02], [0.04, 0, 0]);
+      // 귀
+      [-1, 1].forEach(s => {
+        registerMesh(new THREE.SphereGeometry(0.042, 14, 14), 1, [s * 0.215, 2.04, -0.01], [0, 0, s * -0.15], [0.45, 1.35, 0.85]);
+      });
 
-      // 6. 복직근 & 골반·둔근
-      addPart(new THREE.CylinderGeometry(0.35, 0.38, 0.58, 22), 6, [0, 0.60, 0.0], [0, 0, 0], [1.05, 1.0, 0.68]);
+      // 2. 연속 체간 조각 (목 -> 승모근 -> 흉곽/대흉근 -> 복직근/외복사근 -> 골반/둔근, 성기 없는 매끄러운 하복부)
+      const torsoSlices = [
+        { y: -0.22, rx: 0.13, rz: 0.12, cz: -0.01 }, // 매끄러운 골반 하단 아치 (성기 생략)
+        { y: -0.14, rx: 0.30, rz: 0.21, cz: -0.02 },
+        { y: -0.04, rx: 0.40, rz: 0.26, cz: -0.03 }, // 둔부 및 대전자
+        { y:  0.08, rx: 0.43, rz: 0.27, cz: -0.02 }, // 골반 능선
+        { y:  0.22, rx: 0.40, rz: 0.25, cz: -0.01 }, // 하복부
+        { y:  0.38, rx: 0.36, rz: 0.23, cz:  0.01 }, // 배꼽 라인
+        { y:  0.56, rx: 0.35, rz: 0.23, cz:  0.01 }, // 허리 잘록한 부위
+        { y:  0.74, rx: 0.39, rz: 0.25, cz:  0.01 }, // 하부 늑골
+        { y:  0.94, rx: 0.46, rz: 0.28, cz:  0.00 }, // 광배근 & 하부 흉곽
+        { y:  1.14, rx: 0.52, rz: 0.30, cz: -0.01 }, // 대흉근 중앙 볼륨
+        { y:  1.32, rx: 0.55, rz: 0.28, cz: -0.01 }, // 상부 흉근 & 쇄골 라인
+        { y:  1.44, rx: 0.44, rz: 0.23, cz: -0.02 }, // 승모근 경사
+        { y:  1.54, rx: 0.25, rz: 0.19, cz: -0.02 }, // 목 하단
+        { y:  1.68, rx: 0.16, rz: 0.16, cz: -0.01 }, // 목 중앙
+        { y:  1.86, rx: 0.15, rz: 0.15, cz:  0.01 }  // 턱 아래 목 상단
+      ];
+
+      const torsoGeom = buildSculptedLoft(torsoSlices, 64, (x, y, z, theta, vNorm, sinT, cosT) => {
+        let dx = 0, dy = 0, dz = 0;
+
+        // 정면(+Z) 해부학 근육 부조
+        if (cosT > 0) {
+          // 정중선(백선, Linea alba) 음각 라인
+          const centerGroove = Math.exp(-Math.pow(x / 0.016, 2));
+          if (y > 0.02 && y < 1.38) {
+            dz -= centerGroove * 0.022;
+          }
+
+          // 대흉근 (Pectoralis Major) 볼륨 및 하단 경계
+          if (y > 0.98 && y < 1.36) {
+            const pecY = Math.sin(((y - 0.98) / 0.38) * Math.PI);
+            const pecX = Math.exp(-Math.pow((Math.abs(x) - 0.23) / 0.18, 2));
+            dz += pecY * pecX * 0.062;
+            // 좌측(+X) 에코르셰 대흉근 근섬유 결
+            if (x > 0.02) {
+              dz += Math.sin(y * 110 + x * 25) * 0.005 * pecY;
+            }
+          }
+
+          // 쇄골 (Clavicle) 융기
+          if (y > 1.35 && y < 1.44 && Math.abs(x) > 0.05 && Math.abs(x) < 0.45) {
+            const clav = Math.exp(-Math.pow((y - 1.39) / 0.02, 2));
+            dz += clav * 0.022;
+          }
+
+          // 복직근 6구획 (Rectus Abdominis)
+          if (y > 0.18 && y < 0.96 && Math.abs(x) < 0.17) {
+            const abX = Math.sin((Math.abs(x) / 0.17) * Math.PI);
+            const abSeg = Math.max(0, Math.sin(((y - 0.18) / 0.78) * Math.PI * 3));
+            dz += abX * abSeg * 0.030;
+          }
+
+          // 서혜부 V라인 (Inguinal crease) - 하복부에서 골반 중앙으로 매끄럽게 모이는 선
+          const vLineY = 0.24 - Math.abs(x) * 0.55;
+          if (y > -0.10 && y < 0.28 && Math.abs(x) < 0.36) {
+            const crease = Math.exp(-Math.pow((y - vLineY) / 0.025, 2));
+            dz -= crease * 0.018;
+          }
+
+          // 흉쇄유돌근 (SCM) V자 목 근육
+          if (y > 1.44 && y < 1.82) {
+            const scmX = 0.03 + ((y - 1.44) / 0.38) * 0.09;
+            const scm = Math.exp(-Math.pow((Math.abs(x) - scmX) / 0.022, 2));
+            dz += scm * 0.018;
+          }
+        }
+
+        // 측면 외복사근 & 전거근 (Serratus Anterior)
+        if (Math.abs(sinT) > 0.55 && y > 0.55 && y < 1.05 && x > 0) {
+          dx += Math.sin(y * 75) * 0.008;
+        }
+
+        // 후면(-Z) 척추기립근 & 둔근 볼륨
+        if (cosT < 0) {
+          // 척추 골 (Spinal furrow)
+          const spineGroove = Math.exp(-Math.pow(x / 0.022, 2));
+          if (y > 0.10 && y < 1.48) {
+            dz += spineGroove * 0.026;
+          }
+          // 둔근 (Gluteus Maximus)
+          if (y > -0.16 && y < 0.18) {
+            const gluteY = Math.sin(((y + 0.16) / 0.34) * Math.PI);
+            const gluteX = Math.exp(-Math.pow((Math.abs(x) - 0.19) / 0.14, 2));
+            dz -= gluteY * gluteX * 0.068;
+          }
+        }
+
+        return { dx, dy, dz };
+      });
+      registerMesh(torsoGeom, 4);
+
+      // 3. 좌우 상지 (어깨 삼각근 -> 상완 -> 주관절 -> 전완 -> 손바닥 정면 개방 포즈)
       [-1, 1].forEach(side => {
-        [0.76, 0.58, 0.40].forEach(yPos => {
-          addPart(new THREE.SphereGeometry(0.10, 12, 12), 6, [side * 0.09, yPos, 0.21], [0, 0, 0], [0.95, 0.85, 0.45]);
+        const armPoints = [
+          { x: side * 0.50, y: 1.34, z: -0.02, rx: 0.15, rz: 0.15 }, // 견관절 시작
+          { x: side * 0.61, y: 1.24, z: -0.01, rx: 0.175, rz: 0.165 }, // 삼각근 최외곽 볼륨
+          { x: side * 0.69, y: 1.02, z: -0.02, rx: 0.138, rz: 0.142 }, // 상완이두·삼두 중앙
+          { x: side * 0.76, y: 0.78, z: -0.02, rx: 0.112, rz: 0.115 }, // 주관절(팔꿈치)
+          { x: side * 0.85, y: 0.56, z:  0.01, rx: 0.122, rz: 0.112 }, // 상부 전완(완요골근)
+          { x: side * 0.94, y: 0.34, z:  0.05, rx: 0.092, rz: 0.080 }, // 하부 전완
+          { x: side * 1.01, y: 0.18, z:  0.08, rx: 0.074, rz: 0.052 }  // 손목 (손바닥이 정면을 향함)
+        ];
+
+        const armGeom = buildLimbTube(armPoints, 32, (t, theta, sinT, cosT) => {
+          // 삼각근-상완 경계 음각
+          const deltoidGroove = -Math.exp(-Math.pow((t - 0.24) / 0.04, 2)) * 0.014;
+          // 에코르셰 좌측(+X) 근섬유 결
+          const striation = side === 1 ? Math.sin(t * 95) * 0.004 : 0;
+          return deltoidGroove + striation;
+        });
+        registerMesh(armGeom, 5);
+
+        // 손바닥 (Palm)
+        registerMesh(
+          new THREE.BoxGeometry(0.14, 0.17, 0.048),
+          5,
+          [side * 1.05, 0.08, 0.095],
+          [-0.14, side * -0.18, side * 0.28]
+        );
+
+        // 엄지손가락 (외측으로 자연스럽게 벌어진 해부학 자세)
+        registerMesh(
+          new THREE.CylinderGeometry(0.019, 0.014, 0.12, 10),
+          5,
+          [side * 1.13, 0.08, 0.105],
+          [-0.15, 0, side * 0.72]
+        );
+
+        // 4개 손가락 (검지·중지·약지·소지)
+        const fingerOffsets = [
+          { off: 0.046, len: 0.145, splay: 0.34 },
+          { off: 0.016, len: 0.160, splay: 0.28 },
+          { off: -0.014, len: 0.150, splay: 0.22 },
+          { off: -0.044, len: 0.125, splay: 0.16 }
+        ];
+        fingerOffsets.forEach(f => {
+          registerMesh(
+            new THREE.CylinderGeometry(0.015, 0.011, f.len, 10),
+            5,
+            [side * (1.07 + f.off * 0.85), -0.06, 0.12],
+            [-0.18, 0, side * f.splay]
+          );
         });
       });
-      addPart(new THREE.CylinderGeometry(0.40, 0.43, 0.38, 22), 6, [0, 0.14, -0.02], [0, 0, 0], [1.10, 1.0, 0.74]);
+
+      // 4. 좌우 하지 (대퇴사두근 -> 슬개골 -> 비복근 -> 발목 -> 받침대 위 발)
       [-1, 1].forEach(side => {
-        addPart(new THREE.SphereGeometry(0.24, 18, 18), 6, [side * 0.21, 0.06, -0.14], [0, 0, 0], [0.95, 1.05, 0.85]);
+        const legPoints = [
+          { x: side * 0.22, y:  0.02, z: -0.01, rx: 0.195, rz: 0.215 }, // 고관절
+          { x: side * 0.22, y: -0.28, z:  0.01, rx: 0.190, rz: 0.205 }, // 상부 대퇴
+          { x: side * 0.20, y: -0.62, z:  0.02, rx: 0.168, rz: 0.180 }, // 중앙 대퇴사두근
+          { x: side * 0.19, y: -0.90, z:  0.02, rx: 0.145, rz: 0.152 }, // 내측광근(무릎 위)
+          { x: side * 0.185, y: -1.06, z: 0.02, rx: 0.130, rz: 0.138 }, // 슬관절(무릎)
+          { x: side * 0.185, y: -1.26, z: -0.01, rx: 0.122, rz: 0.130 }, // 경골 조면
+          { x: side * 0.185, y: -1.50, z: -0.03, rx: 0.142, rz: 0.158 }, // 비복근(종아리 최외곽)
+          { x: side * 0.18, y: -1.80, z: -0.03, rx: 0.102, rz: 0.115 }, // 하부 가자미근
+          { x: side * 0.18, y: -2.08, z: -0.02, rx: 0.074, rz: 0.088 }, // 발목(과관절)
+          { x: side * 0.18, y: -2.18, z:  0.00, rx: 0.082, rz: 0.105 }  // 발뒤꿈치 접지
+        ];
+
+        const legGeom = buildLimbTube(legPoints, 36, (t, theta, sinT, cosT) => {
+          let off = 0;
+          // 무릎 슬개골(Patella) 전방 돌출 (t ≈ 0.49)
+          if (cosT > 0.4) {
+            const patella = Math.exp(-Math.pow((t - 0.49) / 0.035, 2));
+            off += patella * 0.022;
+          }
+          // 비복근 후방 볼륨 강조 (t ≈ 0.68)
+          if (cosT < -0.3) {
+            const calf = Math.exp(-Math.pow((t - 0.68) / 0.08, 2));
+            off += calf * 0.026;
+          }
+          // 에코르셰 좌측(+X) 봉공근(Sartorius) 대각선 띠 및 근섬유
+          if (side === 1 && t < 0.48) {
+            off += Math.sin(t * 105 + theta * 2) * 0.004;
+          }
+          return off;
+        });
+        registerMesh(legGeom, 7);
+
+        // 받침대 위에 놓인 발 (Foot)
+        registerMesh(
+          new THREE.BoxGeometry(0.145, 0.075, 0.34),
+          8,
+          [side * 0.185, -2.185, 0.10],
+          [0, side * -0.06, 0]
+        );
       });
 
-      // 7. 대퇴사두근 & 슬개골
-      [-1, 1].forEach(side => {
-        addPart(new THREE.CylinderGeometry(0.22, 0.145, 1.06, 20), 7, [side * 0.24, -0.54, 0.01], [0.02, 0, side * -0.03], [1.0, 1.0, 1.05]);
-        addPart(new THREE.SphereGeometry(0.14, 16, 16), 7, [side * 0.22, -1.10, 0.03]);
-      });
-
-      // 8. 비복근 & 경골 & 발
-      [-1, 1].forEach(side => {
-        addPart(new THREE.SphereGeometry(0.155, 18, 18), 8, [side * 0.22, -1.44, -0.03], [0, 0, 0], [0.92, 1.65, 1.05]);
-        addPart(new THREE.CylinderGeometry(0.135, 0.085, 0.98, 18), 8, [side * 0.22, -1.64, 0.0], [0, 0, 0]);
-        addPart(new THREE.BoxGeometry(0.16, 0.11, 0.38), 8, [side * 0.22, -2.18, 0.10]);
-      });
-
-      group.position.set(0, -0.05, 0);
       return group;
     }
 
-    function createExamplePrimitive(type) {
+    // 3D 예시 모델 (기하학 조각 형태)
+    function createExampleModel() {
       const group = new THREE.Group();
-      const geom = type === "torus"
-        ? new THREE.TorusKnotGeometry(1.15, 0.38, 160, 28)
-        : new THREE.IcosahedronGeometry(1.65, 3);
-
+      const geom = new THREE.TorusKnotGeometry(1.38, 0.44, 180, 32);
       const litMat = new THREE.MeshStandardMaterial({
         color: 0xffffff,
-        roughness: 0.35,
-        metalness: 0.1,
-        flatShading: type === "sphere"
+        roughness: 0.32,
+        metalness: 0.08
       });
       const idMat = new THREE.MeshBasicMaterial({
         color: new THREE.Color(0.4, 0, 0)
       });
-
       const mesh = new THREE.Mesh(geom, litMat);
       mesh.userData.litMat = litMat;
       mesh.userData.idMat = idMat;
-      group.add(mesh);
-      return group;
-    }
-
-    function parseObjToGroup(objText) {
-      const verts = [];
-      const positions = [];
-      const lines = objText.split(/\r?\n/);
-
-      for (const line of lines) {
-        const trimmed = line.trim();
-        if (trimmed.startsWith("v ")) {
-          const parts = trimmed.split(/\s+/);
-          verts.push([parseFloat(parts[1]), parseFloat(parts[2]), parseFloat(parts[3])]);
-        } else if (trimmed.startsWith("f ")) {
-          const parts = trimmed.split(/\s+/).slice(1);
-          const faceIdx = parts.map(p => {
-            const idx = parseInt(p.split("/")[0], 10);
-            return idx < 0 ? verts.length + idx : idx - 1;
-          });
-          for (let i = 1; i < faceIdx.length - 1; i++) {
-            const a = verts[faceIdx[0]];
-            const b = verts[faceIdx[i]];
-            const c = verts[faceIdx[i + 1]];
-            if (a && b && c) {
-              positions.push(...a, ...b, ...c);
-            }
-          }
-        }
-      }
-
-      const geom = new THREE.BufferGeometry();
-      geom.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
-      geom.computeVertexNormals();
-      geom.computeBoundingBox();
-
-      const box = geom.boundingBox;
-      const center = new THREE.Vector3();
-      const size = new THREE.Vector3();
-      box.getCenter(center);
-      box.getSize(size);
-      const maxDim = Math.max(size.x, size.y, size.z) || 1;
-      const scaleFactor = 4.6 / maxDim;
-
-      geom.translate(-center.x, -center.y, -center.z);
-      geom.scale(scaleFactor, scaleFactor, scaleFactor);
-
-      const litMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.45 });
-      const idMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(0.4, 0, 0) });
-      const mesh = new THREE.Mesh(geom, litMat);
-      mesh.userData.litMat = litMat;
-      mesh.userData.idMat = idMat;
-
-      const group = new THREE.Group();
       group.add(mesh);
       return group;
     }
@@ -1174,18 +1435,24 @@
       glScene = new THREE.Scene();
       glScene.background = new THREE.Color(0x000000);
 
-      glCamera = new THREE.PerspectiveCamera(40, stage.clientWidth / stage.clientHeight, 0.1, 100);
-      glCamera.position.set(0, 0, 7.2);
+      // 모델이 화면에 크고 선명하게 차도록 카메라 거리 최적화
+      glCamera = new THREE.PerspectiveCamera(38, stage.clientWidth / stage.clientHeight, 0.1, 100);
+      glCamera.position.set(0, 0.04, 6.9);
 
-      const keyLight = new THREE.DirectionalLight(0xffffff, 1.35);
-      keyLight.position.set(3.5, 4.5, 5.0);
+      // 근육 굴곡 대비를 극대화하는 3점 조각 조명
+      const keyLight = new THREE.DirectionalLight(0xffffff, 1.45);
+      keyLight.position.set(3.2, 4.2, 4.8);
       glScene.add(keyLight);
 
-      const rimLight = new THREE.DirectionalLight(0xffffff, 0.55);
-      rimLight.position.set(-4.0, 2.0, -3.5);
+      const fillLight = new THREE.DirectionalLight(0xffffff, 0.45);
+      fillLight.position.set(-3.5, 1.0, 3.0);
+      glScene.add(fillLight);
+
+      const rimLight = new THREE.DirectionalLight(0xffffff, 0.65);
+      rimLight.position.set(-2.5, 3.0, -4.5);
       glScene.add(rimLight);
 
-      const ambient = new THREE.AmbientLight(0x282828);
+      const ambient = new THREE.AmbientLight(0x222222);
       glScene.add(ambient);
 
       glRenderer = new THREE.WebGLRenderer({ antialias: false, preserveDrawingBuffer: true });
@@ -1205,13 +1472,13 @@
         const dx = e.clientX - prevMouse.x;
         const dy = e.clientY - prevMouse.y;
         modelPivot.rotation.y += dx * 0.009;
-        modelPivot.rotation.x = Math.max(-0.9, Math.min(0.9, modelPivot.rotation.x + dy * 0.006));
+        modelPivot.rotation.x = Math.max(-0.85, Math.min(0.85, modelPivot.rotation.x + dy * 0.006));
         prevMouse = { x: e.clientX, y: e.clientY };
       });
 
       stage.addEventListener("wheel", e => {
         e.preventDefault();
-        glCamera.position.z = Math.min(11.5, Math.max(3.2, glCamera.position.z + e.deltaY * 0.005));
+        glCamera.position.z = Math.min(10.5, Math.max(3.2, glCamera.position.z + e.deltaY * 0.005));
       }, { passive: false });
 
       window.addEventListener("resize", resizeAnatomyCanvas);
@@ -1231,43 +1498,20 @@
 
     function change3DModel(type) {
       currentModelType = type;
+      document.getElementById("model-ecorche").classList.toggle("active", type === "ecorche");
+      document.getElementById("model-example").classList.toggle("active", type === "example");
+
       while (modelPivot.children.length > 0) {
         modelPivot.remove(modelPivot.children[0]);
       }
 
-      let built;
-      let labelText = "HUMAN ÉCORCHÉ";
       if (type === "ecorche") {
-        built = createEcorcheGroup(false);
-        labelText = "HUMAN ÉCORCHÉ (인체 전신)";
-      } else if (type === "bust") {
-        built = createEcorcheGroup(true);
-        labelText = "ÉCORCHÉ BUST (상반신)";
-      } else if (type === "torus") {
-        built = createExamplePrimitive("torus");
-        labelText = "TORUS KNOT (3D 예시 모형)";
-      } else if (type === "sphere") {
-        built = createExamplePrimitive("sphere");
-        labelText = "GEODESIC FORM (3D 예시 모형)";
+        modelPivot.add(createRefinedEcorche());
+        document.getElementById("hud-left").innerText = "MODEL : ÉCORCHÉ · DRAG TO ROTATE · SCROLL TO ZOOM";
+      } else {
+        modelPivot.add(createExampleModel());
+        document.getElementById("hud-left").innerText = "MODEL : 3D EXAMPLE · DRAG TO ROTATE · SCROLL TO ZOOM";
       }
-
-      if (built) modelPivot.add(built);
-      document.getElementById("hud-left").innerText = `MODEL : ${labelText} · DRAG TO ROTATE · SCROLL TO ZOOM`;
-    }
-
-    function handleObjUpload(event) {
-      const file = event.target.files?.[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = e => {
-        while (modelPivot.children.length > 0) {
-          modelPivot.remove(modelPivot.children[0]);
-        }
-        const customGroup = parseObjToGroup(e.target.result);
-        modelPivot.add(customGroup);
-        document.getElementById("hud-left").innerText = `MODEL : ${file.name.toUpperCase()} · DRAG TO ROTATE · SCROLL TO ZOOM`;
-      };
-      reader.readAsText(file);
     }
 
     function setGlyphMode(mode) {
@@ -1314,7 +1558,7 @@
       if (!document.getElementById("sec-anatomy").classList.contains("active")) return;
 
       if (autoRotate && !isDragging && modelPivot) {
-        modelPivot.rotation.y += 0.011;
+        modelPivot.rotation.y += 0.010;
       }
       if (flowEnabled) {
         flowTick += 0.14;
@@ -1356,9 +1600,10 @@
         for (let c = 0; c < cols; c++) {
           const idx = (r * cols + c) * 4;
           const lum = litPixels[idx];
-          if (lum < 14) continue;
+          if (lum < 12) continue;
 
-          const norm = lum / 255;
+          // 대비 강화 커브 적용으로 윤곽과 글자 가독성 극대화
+          const norm = Math.min(1, Math.pow(lum / 255, 0.82));
           let ch = " ";
 
           if (glyphMode === "ascii") {
@@ -1372,7 +1617,7 @@
             ch = word[charIdx];
           }
 
-          const alpha = Math.min(1, 0.25 + norm * 0.85);
+          const alpha = Math.min(1, 0.35 + norm * 0.72);
           outCtx.fillStyle = `rgba(255, 255, 255, ${alpha.toFixed(2)})`;
           outCtx.fillText(ch, c * cfg.cellW + cfg.cellW / 2, r * cfg.cellH + cfg.cellH / 2);
         }
