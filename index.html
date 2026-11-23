@@ -142,6 +142,13 @@
       margin-bottom: 16px;
     }
 
+    .form-row-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
     .form-group {
       display: flex;
       flex-direction: column;
@@ -207,6 +214,24 @@
       border-color: var(--fg);
       background: var(--fg);
       color: var(--bg);
+    }
+
+    .btn-del {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--line);
+      font-family: inherit;
+      font-size: 0.66rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 2px 8px;
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s;
+    }
+
+    .btn-del:hover {
+      color: #ffffff;
+      border-color: #ffffff;
     }
 
     /* 01. 3D ANATOMY CANVAS */
@@ -359,7 +384,13 @@
       min-width: 120px;
     }
 
-    /* 04. GUESTBOOK */
+    /* 04. GUESTBOOK & AUTH */
+    .auth-mode-tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 18px;
+    }
+
     .gb-item {
       border-bottom: 1px solid var(--line);
       padding: 16px 0;
@@ -372,9 +403,23 @@
     .gb-head {
       display: flex;
       justify-content: space-between;
-      font-size: 0.74rem;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      font-size: 0.76rem;
       color: var(--muted);
-      margin-bottom: 6px;
+      margin-bottom: 8px;
+    }
+
+    .gb-author strong {
+      color: var(--fg);
+      font-weight: 700;
+    }
+
+    .gb-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
     }
 
     .gb-msg {
@@ -395,7 +440,7 @@
 
     @media (max-width: 768px) {
       header, main, footer { padding-left: 18px; padding-right: 18px; }
-      .form-row, .bio-grid { grid-template-columns: 1fr; }
+      .form-row, .form-row-3, .bio-grid { grid-template-columns: 1fr; }
       #anatomy-stage { height: 460px; }
     }
   </style>
@@ -539,19 +584,43 @@
       <div class="box" id="auth-panel">
         <h2>AUTHENTICATION</h2>
         <div id="auth-logged-out">
-          <div class="form-row">
-            <div class="form-group" style="margin:0;">
-              <label>EMAIL</label>
-              <input type="email" id="auth-email" placeholder="you@example.com" />
-            </div>
-            <div class="form-group" style="margin:0;">
-              <label>PASSWORD (6+ CHARS)</label>
-              <input type="password" id="auth-password" placeholder="••••••" />
-            </div>
+          <div class="auth-mode-tabs">
+            <button class="btn-outline active" id="tab-auth-signin" onclick="setAuthMode('signin')">SIGN IN</button>
+            <button class="btn-outline" id="tab-auth-signup" onclick="setAuthMode('signup')">CREATE ACCOUNT</button>
           </div>
-          <div style="display:flex; gap:10px; flex-wrap:wrap;">
+
+          <!-- 로그인 폼 -->
+          <div id="form-signin">
+            <div class="form-row">
+              <div class="form-group" style="margin:0;">
+                <label>EMAIL</label>
+                <input type="email" id="signin-email" placeholder="you@example.com" />
+              </div>
+              <div class="form-group" style="margin:0;">
+                <label>PASSWORD</label>
+                <input type="password" id="signin-password" placeholder="••••••" />
+              </div>
+            </div>
             <button class="btn" onclick="handleSignIn()">SIGN IN</button>
-            <button class="btn-outline" onclick="handleSignUp()">CREATE ACCOUNT</button>
+          </div>
+
+          <!-- 회원가입 폼 (비밀번호 재확인 포함) -->
+          <div id="form-signup" style="display:none;">
+            <div class="form-row-3">
+              <div class="form-group" style="margin:0;">
+                <label>EMAIL</label>
+                <input type="email" id="signup-email" placeholder="you@example.com" />
+              </div>
+              <div class="form-group" style="margin:0;">
+                <label>PASSWORD (6+ CHARS)</label>
+                <input type="password" id="signup-password" placeholder="••••••" />
+              </div>
+              <div class="form-group" style="margin:0;">
+                <label>CONFIRM PASSWORD</label>
+                <input type="password" id="signup-password-confirm" placeholder="비밀번호 재입력" />
+              </div>
+            </div>
+            <button class="btn" onclick="handleSignUp()">CREATE ACCOUNT</button>
           </div>
         </div>
 
@@ -565,6 +634,10 @@
       <div class="box">
         <h2>GUESTBOOK</h2>
         <div id="gb-form-area" style="margin-bottom:24px; padding-bottom:20px; border-bottom:1px solid var(--line);">
+          <div class="form-group">
+            <label>DISPLAY NAME (방명록 표시 이름)</label>
+            <input type="text" id="gb-name" maxlength="30" placeholder="방명록에 표시할 이름을 입력하세요 (예: 누구누구)" />
+          </div>
           <div class="form-group">
             <label>LEAVE A MESSAGE</label>
             <textarea id="gb-input" rows="3" placeholder="로그인 후 방명록을 남길 수 있습니다."></textarea>
@@ -611,8 +684,17 @@
     }
 
     // =========================================================
-    // 3. AUTHENTICATION
+    // 3. AUTHENTICATION (WITH PASSWORD CONFIRMATION)
     // =========================================================
+    function setAuthMode(mode) {
+      const isSignIn = mode === "signin";
+      document.getElementById("tab-auth-signin").classList.toggle("active", isSignIn);
+      document.getElementById("tab-auth-signup").classList.toggle("active", !isSignIn);
+      document.getElementById("form-signin").style.display = isSignIn ? "block" : "none";
+      document.getElementById("form-signup").style.display = isSignIn ? "none" : "block";
+      document.getElementById("auth-msg").innerText = "";
+    }
+
     function updateAuthUI(user) {
       currentUser = user;
       const headerStatus = document.getElementById("header-auth-status");
@@ -628,6 +710,11 @@
         loggedInBox.style.display = "flex";
         userInfo.innerHTML = `SIGNED IN AS <strong>${user.email}</strong> ${isAdmin ? '<span class="badge-admin">ADMIN</span>' : ''}`;
         adminArchiveBox.style.display = isAdmin ? "block" : "none";
+
+        const savedName = localStorage.getItem("gb_display_name_" + user.id);
+        if (savedName && !document.getElementById("gb-name").value) {
+          document.getElementById("gb-name").value = savedName;
+        }
       } else {
         headerStatus.innerText = "GUEST MODE";
         loggedOutBox.style.display = "block";
@@ -637,22 +724,45 @@
     }
 
     async function handleSignUp() {
-      const email = document.getElementById("auth-email").value.trim();
-      const password = document.getElementById("auth-password").value;
+      const email = document.getElementById("signup-email").value.trim();
+      const password = document.getElementById("signup-password").value;
+      const confirmPw = document.getElementById("signup-password-confirm").value;
       const msgEl = document.getElementById("auth-msg");
-      if (!email || password.length < 6) {
-        msgEl.innerText = "이메일과 6자 이상의 비밀번호를 입력하세요.";
+
+      if (!email) {
+        msgEl.innerText = "이메일 주소를 입력하세요.";
         return;
       }
+      if (password.length < 6) {
+        msgEl.innerText = "비밀번호는 6자 이상이어야 합니다.";
+        return;
+      }
+      if (password !== confirmPw) {
+        msgEl.innerText = "비밀번호가 서로 일치하지 않습니다. 다시 확인해 주세요.";
+        return;
+      }
+
       msgEl.innerText = "CREATING ACCOUNT...";
       const { error } = await sb.auth.signUp({ email, password });
-      msgEl.innerText = error ? "ERROR : " + error.message : "ACCOUNT CREATED. NOW CLICK SIGN IN.";
+      if (error) {
+        msgEl.innerText = "ERROR : " + error.message;
+      } else {
+        document.getElementById("signin-email").value = email;
+        document.getElementById("signup-password").value = "";
+        document.getElementById("signup-password-confirm").value = "";
+        setAuthMode("signin");
+        msgEl.innerText = "계정이 생성되었습니다. 방금 입력한 이메일과 비밀번호로 로그인해 주세요.";
+      }
     }
 
     async function handleSignIn() {
-      const email = document.getElementById("auth-email").value.trim();
-      const password = document.getElementById("auth-password").value;
+      const email = document.getElementById("signin-email").value.trim();
+      const password = document.getElementById("signin-password").value;
       const msgEl = document.getElementById("auth-msg");
+      if (!email || !password) {
+        msgEl.innerText = "이메일과 비밀번호를 입력하세요.";
+        return;
+      }
       msgEl.innerText = "SIGNING IN...";
       const { data, error } = await sb.auth.signInWithPassword({ email, password });
       if (error) {
@@ -667,6 +777,7 @@
     async function handleSignOut() {
       await sb.auth.signOut();
       updateAuthUI(null);
+      loadGuestbook();
     }
 
     // =========================================================
@@ -745,7 +856,7 @@
     }
 
     // =========================================================
-    // 5. GUESTBOOK
+    // 5. GUESTBOOK (CUSTOM DISPLAY NAME + OWNER/ADMIN DELETE)
     // =========================================================
     async function loadGuestbook() {
       const listEl = document.getElementById("gb-list");
@@ -763,35 +874,61 @@
         return;
       }
 
-      listEl.innerHTML = data.map(row => `
-        <div class="gb-item">
-          <div class="gb-head">
-            <span>${escapeHtml(row.author_email)}</span>
-            <span>${new Date(row.created_at).toLocaleString("ko-KR")}</span>
+      const isAdmin = currentUser && currentUser.email === ADMIN_EMAIL;
+
+      listEl.innerHTML = data.map(row => {
+        const displayName = row.author_name && row.author_name.trim()
+          ? row.author_name.trim()
+          : row.author_email.split("@")[0];
+        const isOwner = currentUser && currentUser.id === row.user_id;
+        const canDelete = isAdmin || isOwner;
+
+        return `
+          <div class="gb-item">
+            <div class="gb-head">
+              <span class="gb-author">
+                <strong>${escapeHtml(displayName)}</strong> (${escapeHtml(row.author_email)})
+              </span>
+              <div class="gb-actions">
+                <span>${new Date(row.created_at).toLocaleString("ko-KR")}</span>
+                ${canDelete ? `<button class="btn-del" onclick="deleteGuestbook(${row.id})">DELETE</button>` : ""}
+              </div>
+            </div>
+            <div class="gb-msg">${escapeHtml(row.message)}</div>
           </div>
-          <div class="gb-msg">${escapeHtml(row.message)}</div>
-        </div>
-      `).join("");
+        `;
+      }).join("");
     }
 
     async function postGuestbook() {
       const statusEl = document.getElementById("gb-status");
+      const nameEl = document.getElementById("gb-name");
       const inputEl = document.getElementById("gb-input");
+      const authorName = nameEl.value.trim();
       const message = inputEl.value.trim();
 
       if (!currentUser) {
         statusEl.innerText = "먼저 상단에서 로그인해 주세요.";
         return;
       }
+      if (!authorName) {
+        statusEl.innerText = "방명록에 표시할 이름을 입력하세요.";
+        nameEl.focus();
+        return;
+      }
       if (!message) {
         statusEl.innerText = "메시지를 입력하세요.";
+        inputEl.focus();
         return;
       }
 
       statusEl.innerText = "POSTING...";
+      localStorage.setItem("gb_display_name_" + currentUser.id, authorName);
+
       const { error } = await sb.from("guestbook").insert({
         user_id: currentUser.id,
         author_email: currentUser.email,
+        author_name: authorName,
         message
       });
 
@@ -800,6 +937,24 @@
       } else {
         statusEl.innerText = "";
         inputEl.value = "";
+        loadGuestbook();
+      }
+    }
+
+    async function deleteGuestbook(id) {
+      if (!currentUser) return;
+      if (!confirm("이 방명록 댓글을 삭제하시겠습니까?")) return;
+
+      const statusEl = document.getElementById("gb-status");
+      const { error } = await sb
+        .from("guestbook")
+        .delete()
+        .eq("id", id);
+
+      if (error) {
+        statusEl.innerText = "DELETE ERROR : " + error.message;
+      } else {
+        statusEl.innerText = "";
         loadGuestbook();
       }
     }
@@ -868,7 +1023,7 @@
         return mesh;
       }
 
-      // 1. 두개골 (Cranium + Mandible)
+      // 1. 두개골
       addPart(new THREE.SphereGeometry(0.32, 24, 24), 1, [0, 2.22, 0.02], [0.1, 0, 0], [0.88, 1.12, 1.0]);
       addPart(new THREE.CylinderGeometry(0.22, 0.13, 0.24, 18), 1, [0, 1.98, 0.08], [0.15, 0, 0], [0.95, 1.0, 1.05]);
 
