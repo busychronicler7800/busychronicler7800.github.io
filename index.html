@@ -4,63 +4,62 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>BUSYCHRONICLER7800</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Noto+Sans+KR:wght@400;500;700&family=Noto+Serif+KR:wght@500;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <style>
     :root {
-      --bg: #050505;
-      --panel: #0a0a0a;
-      --border: #262626;
-      --border-strong: #404040;
-      --text: #ececec;
+      --bg: #000000;
+      --fg: #ffffff;
       --muted: #7a7a7a;
-      --accent: #ffffff;
+      --line: #2a2a2a;
+      --panel: #080808;
     }
 
     * {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
+      border-radius: 0 !important;
     }
 
-    html, body {
-      width: 100%;
-      height: 100%;
+    body {
       background-color: var(--bg);
-      color: var(--text);
-      font-family: 'JetBrains Mono', 'Noto Sans KR', monospace;
-      overflow-x: hidden;
+      color: var(--fg);
+      font-family: "Helvetica Neue", Helvetica, Arial, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+      line-height: 1.55;
       -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
     }
 
-    /* Header */
+    /* HEADER & NAVIGATION */
     header {
-      width: 100%;
-      height: 60px;
-      padding: 0 32px;
-      border-bottom: 1px solid var(--border);
+      border-bottom: 1px solid var(--line);
+      padding: 20px 32px;
       display: flex;
-      align-items: center;
       justify-content: space-between;
-      background: var(--bg);
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
       position: sticky;
       top: 0;
-      z-index: 20;
+      background: rgba(0, 0, 0, 0.94);
+      z-index: 100;
     }
 
     .brand {
-      font-size: 13px;
+      font-size: 0.95rem;
       font-weight: 700;
       letter-spacing: 0.14em;
-      color: var(--accent);
-      text-decoration: none;
+      text-transform: uppercase;
+      cursor: pointer;
     }
 
     nav {
       display: flex;
-      align-items: center;
-      gap: 28px;
+      gap: 24px;
+      flex-wrap: wrap;
     }
 
     .nav-btn {
@@ -68,639 +67,1567 @@
       border: none;
       color: var(--muted);
       font-family: inherit;
-      font-size: 11px;
+      font-size: 0.8rem;
       font-weight: 500;
       letter-spacing: 0.1em;
+      text-transform: uppercase;
       cursor: pointer;
-      padding: 6px 2px;
+      padding: 4px 0;
       border-bottom: 1px solid transparent;
-      transition: color 0.2s, border-color 0.2s;
+      transition: color 0.15s, border-color 0.15s;
     }
 
-    .nav-btn:hover {
-      color: var(--text);
-    }
-
+    .nav-btn:hover,
     .nav-btn.active {
-      color: var(--accent);
-      border-bottom-color: var(--accent);
+      color: var(--fg);
+      border-bottom-color: var(--fg);
     }
 
-    .status-badge {
+    .auth-indicator {
+      font-size: 0.74rem;
+      letter-spacing: 0.08em;
+      color: var(--muted);
       display: flex;
       align-items: center;
-      gap: 8px;
-      font-size: 10px;
-      letter-spacing: 0.1em;
-      color: var(--muted);
+      gap: 10px;
     }
 
-    .status-tag {
-      border: 1px solid var(--border-strong);
-      color: var(--text);
-      padding: 3px 7px;
-      font-size: 9px;
-      letter-spacing: 0.12em;
+    .badge-admin {
+      border: 1px solid var(--fg);
+      color: var(--fg);
+      padding: 1px 6px;
+      font-size: 0.68rem;
+      font-weight: 700;
     }
 
-    /* Main Container */
+    /* MAIN CONTAINER */
     main {
-      max-width: 1380px;
+      width: 100%;
+      max-width: 1240px;
       margin: 0 auto;
-      padding: 24px 32px 36px;
+      padding: 28px 32px 80px;
+      flex: 1;
     }
 
-    .view-section {
+    .section {
       display: none;
     }
 
-    .view-section.active {
+    .section.active {
       display: block;
     }
 
-    /* Control Strip */
-    .control-bar {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: flex-end;
-      gap: 32px;
-      padding-bottom: 18px;
+    .box {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      padding: 24px;
+      margin-bottom: 24px;
     }
 
-    .control-group {
+    h2 {
+      font-size: 0.82rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    /* FORMS & BUTTONS */
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .form-row-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .form-group {
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 6px;
+      margin-bottom: 16px;
     }
 
-    .control-label {
-      font-size: 10px;
-      letter-spacing: 0.14em;
+    label {
+      font-size: 0.72rem;
+      letter-spacing: 0.08em;
       color: var(--muted);
       text-transform: uppercase;
     }
 
-    .btn-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
+    input, textarea {
+      width: 100%;
+      background: #000000;
+      border: 1px solid var(--line);
+      color: var(--fg);
+      font-family: inherit;
+      font-size: 0.84rem;
+      padding: 9px 12px;
+      outline: none;
     }
 
-    .ctrl-btn {
-      background: transparent;
-      border: 1px solid var(--border);
-      color: var(--muted);
-      font-family: 'JetBrains Mono', 'Noto Sans KR', sans-serif;
-      font-size: 11px;
-      font-weight: 500;
-      letter-spacing: 0.04em;
-      padding: 8px 14px;
+    input:focus, textarea:focus {
+      border-color: var(--fg);
+    }
+
+    .btn {
+      background: var(--fg);
+      color: var(--bg);
+      border: 1px solid var(--fg);
+      font-family: inherit;
+      font-size: 0.76rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 10px 18px;
       cursor: pointer;
-      transition: all 0.18s ease;
+      transition: background 0.15s, color 0.15s;
     }
 
-    .ctrl-btn:hover {
-      border-color: var(--border-strong);
-      color: var(--text);
+    .btn:hover {
+      background: var(--bg);
+      color: var(--fg);
     }
 
-    .ctrl-btn.active {
-      background: var(--accent);
-      border-color: var(--accent);
-      color: #050505;
+    .btn-outline {
+      background: #050505;
+      color: #d0d0d0;
+      border: 1px solid #383838;
+      font-family: inherit;
+      font-size: 0.72rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 7px 14px;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+    }
+
+    .btn-outline:hover {
+      border-color: #ffffff;
+      color: #ffffff;
+    }
+
+    .btn-outline.active {
+      border-color: #ffffff;
+      background: #ffffff;
+      color: #000000;
       font-weight: 700;
     }
 
-    /* Canvas Frame */
-    .canvas-wrapper {
+    .btn-del {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--line);
+      font-family: inherit;
+      font-size: 0.66rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 2px 8px;
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s;
+    }
+
+    .btn-del:hover {
+      color: #ffffff;
+      border-color: #ffffff;
+    }
+
+    /* 01. 3D SCULPTURE VIEWER */
+    .anatomy-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .toolbar-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .toolbar-buttons {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    #anatomy-stage {
+      width: 100%;
+      height: 820px;
+      border: 1px solid var(--line);
+      background: #000000;
       position: relative;
-      width: 100%;
-      height: calc(100vh - 205px);
-      min-height: 520px;
-      border: 1px solid var(--border);
-      background: radial-gradient(circle at 50% 48%, #101010 0%, #050505 72%);
       overflow: hidden;
-    }
-
-    #sculpture-canvas {
-      width: 100%;
-      height: 100%;
-      display: block;
       cursor: grab;
+      user-select: none;
     }
 
-    #sculpture-canvas:active {
+    #anatomy-stage:active {
       cursor: grabbing;
     }
 
-    .canvas-meta-left,
-    .canvas-meta-right {
+    #anatomy-stage canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .anatomy-hud {
       position: absolute;
-      bottom: 16px;
-      font-size: 10px;
-      letter-spacing: 0.1em;
+      bottom: 12px;
+      left: 16px;
+      right: 16px;
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+      font-size: 0.72rem;
+      letter-spacing: 0.08em;
       color: var(--muted);
       pointer-events: none;
-      line-height: 1.6;
+      background: rgba(0, 0, 0, 0.88);
+      padding: 6px 12px;
+      border: 1px solid #1e1e1e;
     }
 
-    .canvas-meta-left {
-      left: 20px;
+    .anatomy-hud strong {
+      color: var(--fg);
     }
 
-    .canvas-meta-right {
-      right: 20px;
-      text-align: right;
-    }
-
-    /* Secondary Pages (Archive / Bio / Guestbook) */
-    .editorial-box {
-      border: 1px solid var(--border);
-      padding: 36px;
-      background: var(--panel);
-      min-height: 480px;
-    }
-
-    .editorial-title {
-      font-size: 14px;
-      letter-spacing: 0.14em;
-      color: var(--accent);
-      margin-bottom: 20px;
-      padding-bottom: 12px;
-      border-bottom: 1px solid var(--border);
-    }
-
+    /* 02. ARCHIVE GRID */
     .archive-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
       gap: 20px;
     }
 
     .archive-card {
-      border: 1px solid var(--border);
-      padding: 20px;
-      background: var(--bg);
-    }
-
-    .archive-card h3 {
-      font-size: 12px;
-      letter-spacing: 0.08em;
-      margin-bottom: 8px;
-      color: var(--accent);
-    }
-
-    .archive-card p {
-      font-size: 11px;
-      color: var(--muted);
-      line-height: 1.7;
-    }
-
-    .bio-text {
-      max-width: 680px;
-      font-size: 12px;
-      line-height: 1.9;
-      color: #cccccc;
-    }
-
-    .guestbook-form {
-      display: flex;
-      gap: 10px;
-      margin-bottom: 24px;
-      max-width: 680px;
-    }
-
-    .guestbook-input {
-      flex: 1;
-      background: var(--bg);
-      border: 1px solid var(--border);
-      color: var(--text);
-      font-family: inherit;
-      font-size: 12px;
-      padding: 10px 14px;
-      outline: none;
-    }
-
-    .guestbook-input:focus {
-      border-color: var(--accent);
-    }
-
-    .guestbook-list {
-      max-width: 680px;
+      border: 1px solid var(--line);
+      background: var(--panel);
       display: flex;
       flex-direction: column;
+    }
+
+    .archive-card img {
+      width: 100%;
+      height: 220px;
+      object-fit: cover;
+      border-bottom: 1px solid var(--line);
+      filter: grayscale(100%);
+      transition: filter 0.25s;
+    }
+
+    .archive-card:hover img {
+      filter: grayscale(0%);
+    }
+
+    .archive-body {
+      padding: 18px;
+      flex: 1;
+    }
+
+    .archive-meta {
+      font-size: 0.7rem;
+      color: var(--muted);
+      letter-spacing: 0.08em;
+      margin-bottom: 6px;
+    }
+
+    .archive-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .archive-desc {
+      font-size: 0.84rem;
+      color: #cccccc;
+      white-space: pre-line;
+    }
+
+    /* 03. BIO */
+    .bio-grid {
+      display: grid;
+      grid-template-columns: 1fr 2fr;
+      gap: 24px;
+    }
+
+    .bio-list {
+      list-style: none;
+    }
+
+    .bio-list li {
+      padding: 12px 0;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      font-size: 0.86rem;
+    }
+
+    .bio-key {
+      color: var(--muted);
+      font-size: 0.75rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      min-width: 120px;
+    }
+
+    /* 04. GUESTBOOK & AUTH */
+    .auth-mode-tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 18px;
+    }
+
+    .gb-item {
+      border-bottom: 1px solid var(--line);
+      padding: 16px 0;
+    }
+
+    .gb-item:last-child {
+      border-bottom: none;
+    }
+
+    .gb-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      font-size: 0.76rem;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    .gb-author strong {
+      color: var(--fg);
+      font-weight: 700;
+    }
+
+    .gb-actions {
+      display: flex;
+      align-items: center;
       gap: 10px;
     }
 
-    .guestbook-item {
-      border: 1px solid var(--border);
-      padding: 12px 16px;
-      font-size: 11px;
-      display: flex;
-      justify-content: space-between;
-      color: #d4d4d4;
+    .gb-msg {
+      font-size: 0.9rem;
+      white-space: pre-wrap;
+      word-break: break-word;
     }
 
-    .guestbook-date {
+    footer {
+      border-top: 1px solid var(--line);
+      padding: 20px 32px;
+      font-size: 0.74rem;
       color: var(--muted);
-      font-size: 10px;
+      display: flex;
+      justify-content: space-between;
+      letter-spacing: 0.06em;
     }
 
     @media (max-width: 768px) {
-      header {
-        padding: 0 16px;
-        height: auto;
-        py: 12px;
-        flex-direction: column;
-        gap: 10px;
-        padding-top: 12px;
-        padding-bottom: 12px;
-      }
-      nav {
-        gap: 14px;
-        flex-wrap: wrap;
-        justify-content: center;
-      }
-      .status-badge {
-        display: none;
-      }
-      main {
-        padding: 16px;
-      }
-      .canvas-wrapper {
-        height: 62vh;
-        min-height: 400px;
-      }
+      header, main, footer { padding-left: 18px; padding-right: 18px; }
+      .form-row, .form-row-3, .bio-grid { grid-template-columns: 1fr; }
+      #anatomy-stage { height: 580px; }
     }
   </style>
 </head>
 <body>
+
   <header>
-    <a href="#sculpture" class="brand">BUSYCHRONICLER7800</a>
+    <div class="brand" onclick="switchTab('anatomy')">BUSYCHRONICLER7800</div>
     <nav>
-      <button class="nav-btn active" data-target="sculpture">01. SCULPTURE</button>
-      <button class="nav-btn" data-target="archive">02. ARCHIVE</button>
-      <button class="nav-btn" data-target="bio">03. BIO</button>
-      <button class="nav-btn" data-target="guestbook">04. GUESTBOOK</button>
+      <button class="nav-btn active" id="nav-anatomy" onclick="switchTab('anatomy')">01. SCULPTURE</button>
+      <button class="nav-btn" id="nav-archive" onclick="switchTab('archive')">02. ARCHIVE</button>
+      <button class="nav-btn" id="nav-bio" onclick="switchTab('bio')">03. BIO</button>
+      <button class="nav-btn" id="nav-guestbook" onclick="switchTab('guestbook')">04. GUESTBOOK</button>
     </nav>
-    <div class="status-badge">
-      <span>EDITION 01 // WEBGL</span>
-      <span class="status-tag">ACTIVE</span>
-    </div>
+    <div class="auth-indicator" id="header-auth-status">GUEST MODE</div>
   </header>
 
   <main>
-    <!-- 01. SCULPTURE -->
-    <section id="sculpture" class="view-section active">
-      <div class="control-bar">
-        <div class="control-group">
-          <span class="control-label">MODEL</span>
-          <div class="btn-row">
-            <button class="ctrl-btn active" id="btn-model-knot">TORUS KNOT (매듭 조형)</button>
+    <!-- 01. 3D SCULPTURE VIEWER -->
+    <section id="sec-anatomy" class="section active">
+      <div class="box">
+        <div class="anatomy-toolbar">
+          <div class="toolbar-group">
+            <label>MODEL</label>
+            <div class="toolbar-buttons">
+              <button class="btn-outline active" id="model-knot" onclick="change3DModel('knot')">TORUS KNOT (매듭 조형)</button>
+            </div>
+          </div>
+
+          <div class="toolbar-group">
+            <label>TERMINOLOGY</label>
+            <div class="toolbar-buttons">
+              <button class="btn-outline active" id="mode-ascii" onclick="setGlyphMode('ascii')">ASCII</button>
+              <button class="btn-outline" id="mode-ko" onclick="setGlyphMode('ko')">한글 (우리말)</button>
+              <button class="btn-outline" id="mode-hj" onclick="setGlyphMode('hj')">한자어 (의학)</button>
+              <button class="btn-outline" id="mode-en" onclick="setGlyphMode('en')">ENGLISH</button>
+            </div>
+          </div>
+
+          <div class="toolbar-group">
+            <label>VIEW & CONTROL</label>
+            <div class="toolbar-buttons">
+              <button class="btn-outline active" id="btn-autorotate" onclick="toggleAutoRotate()">ROTATE : ON</button>
+              <button class="btn-outline" id="btn-flow" onclick="toggleFlow()">FLOW : OFF</button>
+              <button class="btn-outline" onclick="resetAnatomyView()">RESET VIEW</button>
+            </div>
           </div>
         </div>
 
-        <div class="control-group">
-          <span class="control-label">TERMINOLOGY</span>
-          <div class="btn-row" id="term-controls">
-            <button class="ctrl-btn active" data-mode="ascii">ASCII</button>
-            <button class="ctrl-btn" data-mode="korean">한글 (우리말)</button>
-            <button class="ctrl-btn" data-mode="hanja">한자어 (의학)</button>
-            <button class="ctrl-btn" data-mode="english">ENGLISH</button>
+        <div id="anatomy-stage" oncontextmenu="return false;">
+          <div class="anatomy-hud">
+            <span id="hud-left">LEFT DRAG : ROTATE · RIGHT/SHIFT DRAG : PAN · WHEEL : ZOOM IN / OUT</span>
+            <span id="hud-right">TARGET : <strong>TORUS KNOT</strong></span>
           </div>
-        </div>
-
-        <div class="control-group">
-          <span class="control-label">VIEW &amp; CONTROL</span>
-          <div class="btn-row">
-            <button class="ctrl-btn active" id="btn-rotate">ROTATE: ON</button>
-            <button class="ctrl-btn active" id="btn-flow">FLOW: ON</button>
-            <button class="ctrl-btn" id="btn-reset">RESET VIEW</button>
-          </div>
-        </div>
-      </div>
-
-      <div class="canvas-wrapper" id="canvas-container">
-        <canvas id="sculpture-canvas"></canvas>
-        <div class="canvas-meta-left">
-          FORM: TORUS KNOT (P=2, Q=3)<br />
-          SURFACE: KINETIC TYPOGRAPHY MESH
-        </div>
-        <div class="canvas-meta-right">
-          DRAG: ORBIT 360°<br />
-          SCROLL: ZOOM IN / OUT
         </div>
       </div>
     </section>
 
     <!-- 02. ARCHIVE -->
-    <section id="archive" class="view-section">
-      <div class="editorial-box">
-        <h2 class="editorial-title">02. ARCHIVE — DIGITAL SCULPTURE STUDIES</h2>
-        <div class="archive-grid">
-          <div class="archive-card">
-            <h3>STUDY 01 // TORUS KNOT (매듭 조형)</h3>
-            <p>연속된 매듭 곡면 위에 아스키 코드와 해부학·조형 언어를 맵핑한 초기 키네틱 타이포그래피 조각 연구.</p>
+    <section id="sec-archive" class="section">
+      <div id="admin-archive-box" class="box" style="display:none;">
+        <h2>NEW ARCHIVE ENTRY (ADMIN)</h2>
+        <div class="form-row">
+          <div class="form-group" style="margin:0;">
+            <label>TITLE</label>
+            <input type="text" id="arc-title" placeholder="EXHIBITION / EVENT / STUDY LOG" />
           </div>
-          <div class="archive-card">
-            <h3>STUDY 02 // ÉCORCHÉ (IN PREPARATION)</h3>
-            <p>고해상도 3D 인체 해부학 조형 데이터 정밀 보정 및 표면 노말 맵 리토폴로지 작업 진행 중.</p>
+          <div class="form-group" style="margin:0;">
+            <label>IMAGE FILE (OPTIONAL)</label>
+            <input type="file" id="arc-file" accept="image/*" />
           </div>
+        </div>
+        <div class="form-group">
+          <label>DESCRIPTION</label>
+          <textarea id="arc-desc" rows="3" placeholder="기록할 내용을 입력하세요..."></textarea>
+        </div>
+        <button class="btn" onclick="publishArchive()">PUBLISH ENTRY</button>
+        <div id="arc-status" style="margin-top:10px; font-size:0.8rem; color:var(--muted);"></div>
+      </div>
+
+      <div class="box">
+        <h2>CHRONICLE ARCHIVE</h2>
+        <div id="archive-list" class="archive-grid">
+          <p style="font-size:0.84rem; color:var(--muted);">LOADING ARCHIVES...</p>
         </div>
       </div>
     </section>
 
     <!-- 03. BIO -->
-    <section id="bio" class="view-section">
-      <div class="editorial-box">
-        <h2 class="editorial-title">03. BIO — BUSYCHRONICLER7800</h2>
-        <p class="bio-text">
-          BUSYCHRONICLER7800은 기하학적 위상 구조와 언어의 물성을 결합하여 웹 기반 3D 타이포그래피 조각을 탐구하는 디지털 아카이브입니다.<br /><br />
-          단순한 시각적 장식을 배제하고, 빛과 음영의 농도에 따라 배열되는 문자들의 리듬을 통해 입체 조형의 본질적인 구조를 기록합니다.
-        </p>
+    <section id="sec-bio" class="section">
+      <div class="bio-grid">
+        <div class="box">
+          <h2>IDENTITY</h2>
+          <p style="font-size:1.1rem; font-weight:700; margin-bottom:8px;">SIHOO KANG / 강시후</p>
+          <p style="font-size:0.84rem; color:var(--muted); margin-bottom:20px;">
+            PHYSICAL THERAPY UNDERGRADUATE · CREATIVE CODER · DIGITAL ARCHIVIST
+          </p>
+          <p style="font-size:0.84rem; color:#cccccc;">
+            인체 해부학 구조와 3D 웹 그래픽스, 미니멀리즘 타이포그래피를 결합한 인터랙티브 아트워크와 개인 아카이브를 구축합니다.
+          </p>
+        </div>
+
+        <div class="box">
+          <h2>INDEX & PRACTICE</h2>
+          <ul class="bio-list">
+            <li>
+              <span class="bio-key">DISCIPLINE</span>
+              <span>Department of Physical Therapy, Gachon University</span>
+            </li>
+            <li>
+              <span class="bio-key">3D & WEB</span>
+              <span>Blender (Écorché Sculpting), Three.js, WebGL Spatial Typography</span>
+            </li>
+            <li>
+              <span class="bio-key">SYSTEMS</span>
+              <span>Supabase, Vercel Serverless Proxy, GitHub Pages</span>
+            </li>
+            <li>
+              <span class="bio-key">ARCHIVE</span>
+              <span>Event Logs, Photography, Exhibition & Study Notes</span>
+            </li>
+            <li>
+              <span class="bio-key">DOMAIN</span>
+              <span>busychronicler7800.com</span>
+            </li>
+          </ul>
+        </div>
       </div>
     </section>
 
     <!-- 04. GUESTBOOK -->
-    <section id="guestbook" class="view-section">
-      <div class="editorial-box">
-        <h2 class="editorial-title">04. GUESTBOOK</h2>
-        <form class="guestbook-form" id="guestbook-form">
-          <input type="text" class="guestbook-input" id="guestbook-input" placeholder="기록을 남겨주세요..." maxlength="120" required />
-          <button type="submit" class="ctrl-btn active">POST</button>
-        </form>
-        <div class="guestbook-list" id="guestbook-list"></div>
+    <section id="sec-guestbook" class="section">
+      <div class="box" id="auth-panel">
+        <h2>AUTHENTICATION</h2>
+        <div id="auth-logged-out">
+          <div class="auth-mode-tabs">
+            <button class="btn-outline active" id="tab-auth-signin" onclick="setAuthMode('signin')">SIGN IN</button>
+            <button class="btn-outline" id="tab-auth-signup" onclick="setAuthMode('signup')">CREATE ACCOUNT</button>
+          </div>
+
+          <div id="form-signin">
+            <div class="form-row">
+              <div class="form-group" style="margin:0;">
+                <label>EMAIL</label>
+                <input type="email" id="signin-email" placeholder="you@example.com" />
+              </div>
+              <div class="form-group" style="margin:0;">
+                <label>PASSWORD</label>
+                <input type="password" id="signin-password" placeholder="••••••" />
+              </div>
+            </div>
+            <button class="btn" onclick="handleSignIn()">SIGN IN</button>
+          </div>
+
+          <div id="form-signup" style="display:none;">
+            <div class="form-row-3">
+              <div class="form-group" style="margin:0;">
+                <label>EMAIL</label>
+                <input type="email" id="signup-email" placeholder="you@example.com" />
+              </div>
+              <div class="form-group" style="margin:0;">
+                <label>PASSWORD (6+ CHARS)</label>
+                <input type="password" id="signup-password" placeholder="••••••" />
+              </div>
+              <div class="form-group" style="margin:0;">
+                <label>CONFIRM PASSWORD</label>
+                <input type="password" id="signup-password-confirm" placeholder="비밀번호 재입력" />
+              </div>
+            </div>
+            <button class="btn" onclick="handleSignUp()">CREATE ACCOUNT</button>
+          </div>
+        </div>
+
+        <div id="auth-logged-in" style="display:none; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+          <div id="auth-user-info" style="font-size:0.85rem;"></div>
+          <button class="btn-outline" onclick="handleSignOut()">SIGN OUT</button>
+        </div>
+        <div id="auth-msg" style="margin-top:12px; font-size:0.8rem; color:var(--muted);"></div>
+      </div>
+
+      <div class="box">
+        <h2>GUESTBOOK</h2>
+        <div id="gb-form-area" style="margin-bottom:24px; padding-bottom:20px; border-bottom:1px solid var(--line);">
+          <div class="form-group">
+            <label>DISPLAY NAME (방명록 표시 이름)</label>
+            <input type="text" id="gb-name" maxlength="30" placeholder="방명록에 표시할 이름을 입력하세요 (예: 강시후)" />
+          </div>
+          <div class="form-group">
+            <label>LEAVE A MESSAGE</label>
+            <textarea id="gb-input" rows="3" placeholder="로그인 후 방명록을 남길 수 있습니다."></textarea>
+          </div>
+          <button class="btn" onclick="postGuestbook()">POST MESSAGE</button>
+          <div id="gb-status" style="margin-top:8px; font-size:0.8rem; color:var(--muted);"></div>
+        </div>
+
+        <div id="gb-list">
+          <p style="font-size:0.84rem; color:var(--muted);">LOADING MESSAGES...</p>
+        </div>
       </div>
     </section>
   </main>
 
-  <script type="importmap">
-    {
-      "imports": {
-        "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-        "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  <footer>
+    <span>© 2026 BUSYCHRONICLER7800</span>
+    <span>MINIMAL MONOCHROME ARCHIVE</span>
+  </footer>
+
+  <script>
+    // =========================================================
+    // 1. SUPABASE CONFIGURATION
+    // =========================================================
+    const SUPABASE_URL = "https://busychronicler7800-github-io-delta.vercel.app";
+    const SUPABASE_ANON_KEY = "sb_publishable_A3BcYO4bYJZGBbKmFivEaw_vTQqYIae";
+    const ADMIN_EMAIL = "kangsihoo0530@gmail.com";
+
+    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    let currentUser = null;
+
+    // =========================================================
+    // 2. NAVIGATION
+    // =========================================================
+    function switchTab(tabName) {
+      document.querySelectorAll(".section").forEach(sec => sec.classList.remove("active"));
+      document.querySelectorAll(".nav-btn").forEach(btn => btn.classList.remove("active"));
+      document.getElementById("sec-" + tabName).classList.add("active");
+      document.getElementById("nav-" + tabName).classList.add("active");
+
+      if (tabName === "anatomy") resizeAnatomyViewport();
+      if (tabName === "archive") loadArchives();
+      if (tabName === "guestbook") loadGuestbook();
+    }
+
+    // =========================================================
+    // 3. AUTHENTICATION
+    // =========================================================
+    function setAuthMode(mode) {
+      const isSignIn = mode === "signin";
+      document.getElementById("tab-auth-signin").classList.toggle("active", isSignIn);
+      document.getElementById("tab-auth-signup").classList.toggle("active", !isSignIn);
+      document.getElementById("form-signin").style.display = isSignIn ? "block" : "none";
+      document.getElementById("form-signup").style.display = isSignIn ? "none" : "block";
+      document.getElementById("auth-msg").innerText = "";
+    }
+
+    function updateAuthUI(user) {
+      currentUser = user;
+      const headerStatus = document.getElementById("header-auth-status");
+      const loggedOutBox = document.getElementById("auth-logged-out");
+      const loggedInBox = document.getElementById("auth-logged-in");
+      const userInfo = document.getElementById("auth-user-info");
+      const adminArchiveBox = document.getElementById("admin-archive-box");
+
+      if (user) {
+        const isAdmin = user.email === ADMIN_EMAIL;
+        headerStatus.innerHTML = `SIGNED IN : ${user.email} ${isAdmin ? '<span class="badge-admin">ADMIN</span>' : ''}`;
+        loggedOutBox.style.display = "none";
+        loggedInBox.style.display = "flex";
+        userInfo.innerHTML = `SIGNED IN AS <strong>${user.email}</strong> ${isAdmin ? '<span class="badge-admin">ADMIN</span>' : ''}`;
+        adminArchiveBox.style.display = isAdmin ? "block" : "none";
+
+        const savedName = localStorage.getItem("gb_display_name_" + user.id);
+        if (savedName && !document.getElementById("gb-name").value) {
+          document.getElementById("gb-name").value = savedName;
+        }
+      } else {
+        headerStatus.innerText = "GUEST MODE";
+        loggedOutBox.style.display = "block";
+        loggedInBox.style.display = "none";
+        adminArchiveBox.style.display = "none";
       }
     }
-  </script>
 
-  <script type="module">
-    import * as THREE from 'three';
-    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    async function handleSignUp() {
+      const email = document.getElementById("signup-email").value.trim();
+      const password = document.getElementById("signup-password").value;
+      const confirmPw = document.getElementById("signup-password-confirm").value;
+      const msgEl = document.getElementById("auth-msg");
 
-    // --- Navigation Tabs ---
-    const navBtns = document.querySelectorAll('.nav-btn');
-    const sections = document.querySelectorAll('.view-section');
+      if (!email) {
+        msgEl.innerText = "이메일 주소를 입력하세요.";
+        return;
+      }
+      if (password.length < 6) {
+        msgEl.innerText = "비밀번호는 6자 이상이어야 합니다.";
+        return;
+      }
+      if (password !== confirmPw) {
+        msgEl.innerText = "비밀번호가 서로 일치하지 않습니다. 다시 확인해 주세요.";
+        return;
+      }
 
-    navBtns.forEach((btn) => {
-      btn.addEventListener('click', () => {
-        navBtns.forEach((b) => b.classList.remove('active'));
-        sections.forEach((s) => s.classList.remove('active'));
-        btn.classList.add('active');
-        const target = document.getElementById(btn.dataset.target);
-        if (target) target.classList.add('active');
-        if (btn.dataset.target === 'sculpture') {
-          onResize();
-        }
-      });
-    });
-
-    // --- Guestbook (Local Persistence) ---
-    const gbForm = document.getElementById('guestbook-form');
-    const gbInput = document.getElementById('guestbook-input');
-    const gbList = document.getElementById('guestbook-list');
-    const GB_KEY = 'bc7800_guestbook_v1';
-
-    function renderGuestbook() {
-      const saved = JSON.parse(localStorage.getItem(GB_KEY) || '[]');
-      const items = saved.length
-        ? saved
-        : [{ text: 'TORUS KNOT INITIAL EDITION ARCHIVED.', date: '2026.11' }];
-      gbList.innerHTML = items
-        .map(
-          (item) => `
-          <div class="guestbook-item">
-            <span>${item.text.replace(/</g, '&lt;')}</span>
-            <span class="guestbook-date">${item.date}</span>
-          </div>`
-        )
-        .join('');
+      msgEl.innerText = "CREATING ACCOUNT...";
+      const { error } = await sb.auth.signUp({ email, password });
+      if (error) {
+        msgEl.innerText = "ERROR : " + error.message;
+      } else {
+        document.getElementById("signin-email").value = email;
+        document.getElementById("signup-password").value = "";
+        document.getElementById("signup-password-confirm").value = "";
+        setAuthMode("signin");
+        msgEl.innerText = "계정이 생성되었습니다. 방금 입력한 이메일과 비밀번호로 로그인해 주세요.";
+      }
     }
 
-    gbForm.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const val = gbInput.value.trim();
-      if (!val) return;
-      const saved = JSON.parse(localStorage.getItem(GB_KEY) || '[]');
-      const now = new Date();
-      const dateStr = `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, '0')}.${String(now.getDate()).padStart(2, '0')}`;
-      saved.unshift({ text: val, date: dateStr });
-      localStorage.setItem(GB_KEY, JSON.stringify(saved.slice(0, 30)));
-      gbInput.value = '';
-      renderGuestbook();
-    });
-    renderGuestbook();
+    async function handleSignIn() {
+      const email = document.getElementById("signin-email").value.trim();
+      const password = document.getElementById("signin-password").value;
+      const msgEl = document.getElementById("auth-msg");
+      if (!email || !password) {
+        msgEl.innerText = "이메일과 비밀번호를 입력하세요.";
+        return;
+      }
+      msgEl.innerText = "SIGNING IN...";
+      const { data, error } = await sb.auth.signInWithPassword({ email, password });
+      if (error) {
+        msgEl.innerText = "ERROR : " + error.message;
+      } else {
+        msgEl.innerText = "";
+        updateAuthUI(data.user);
+        loadGuestbook();
+      }
+    }
 
-    // --- Three.js Torus Knot (Initial Balanced Scale & Airy Typography) ---
-    const container = document.getElementById('canvas-container');
-    const canvas = document.getElementById('sculpture-canvas');
+    async function handleSignOut() {
+      await sb.auth.signOut();
+      updateAuthUI(null);
+      loadGuestbook();
+    }
 
-    const scene = new THREE.Scene();
+    // =========================================================
+    // 4. ARCHIVE
+    // =========================================================
+    async function loadArchives() {
+      const listEl = document.getElementById("archive-list");
+      const { data, error } = await sb
+        .from("archives")
+        .select("*")
+        .order("created_at", { ascending: false });
 
-    const INITIAL_CAM_POS = new THREE.Vector3(0, 0, 5.4);
-    const camera = new THREE.PerspectiveCamera(
-      42,
-      container.clientWidth / container.clientHeight,
-      0.1,
-      100
-    );
-    camera.position.copy(INITIAL_CAM_POS);
+      if (error) {
+        listEl.innerHTML = `<p style="font-size:0.84rem; color:var(--muted);">ARCHIVE LOAD ERROR : ${error.message}</p>`;
+        return;
+      }
+      if (!data || data.length === 0) {
+        listEl.innerHTML = `<p style="font-size:0.84rem; color:var(--muted);">등록된 아카이브 게시물이 없습니다.</p>`;
+        return;
+      }
 
-    const renderer = new THREE.WebGLRenderer({
-      canvas,
-      antialias: true,
-      alpha: true,
-      powerPreference: 'high-performance',
-    });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.setSize(container.clientWidth, container.clientHeight);
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.15;
+      listEl.innerHTML = data.map(item => `
+        <article class="archive-card">
+          ${item.image_url ? `<img src="${item.image_url}" alt="${escapeHtml(item.title)}" />` : ""}
+          <div class="archive-body">
+            <div class="archive-meta">${new Date(item.created_at).toLocaleDateString("ko-KR")}</div>
+            <div class="archive-title">${escapeHtml(item.title)}</div>
+            <div class="archive-desc">${escapeHtml(item.description || "")}</div>
+          </div>
+        </article>
+      `).join("");
+    }
 
-    const controls = new OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true;
-    controls.dampingFactor = 0.06;
-    controls.minDistance = 2.4;
-    controls.maxDistance = 9.5;
-    controls.enablePan = false;
+    async function publishArchive() {
+      if (!currentUser || currentUser.email !== ADMIN_EMAIL) return;
+      const title = document.getElementById("arc-title").value.trim();
+      const description = document.getElementById("arc-desc").value.trim();
+      const fileInput = document.getElementById("arc-file");
+      const statusEl = document.getElementById("arc-status");
 
-    // Studio Lighting (Sculptural Monochrome Contrast)
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.32);
-    scene.add(ambientLight);
+      if (!title) {
+        statusEl.innerText = "제목을 입력하세요.";
+        return;
+      }
 
-    const keyLight = new THREE.DirectionalLight(0xffffff, 2.2);
-    keyLight.position.set(4.5, 5.5, 5.0);
-    scene.add(keyLight);
+      statusEl.innerText = "PUBLISHING...";
+      let imageUrl = "";
 
-    const rimLight = new THREE.DirectionalLight(0xd8e2ff, 1.1);
-    rimLight.position.set(-5.0, -2.5, -4.0);
-    scene.add(rimLight);
+      if (fileInput.files && fileInput.files[0]) {
+        const file = fileInput.files[0];
+        const fileName = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+        const { error: upErr } = await sb.storage.from("archive-images").upload(fileName, file);
+        if (upErr) {
+          statusEl.innerText = "IMAGE UPLOAD ERROR : " + upErr.message;
+          return;
+        }
+        const { data: pubData } = sb.storage.from("archive-images").getPublicUrl(fileName);
+        imageUrl = pubData.publicUrl;
+      }
 
-    const fillLight = new THREE.DirectionalLight(0xffffff, 0.55);
-    fillLight.position.set(0, -4.5, 3.0);
-    scene.add(fillLight);
+      const { error } = await sb.from("archives").insert({
+        title,
+        description,
+        image_url: imageUrl
+      });
 
-    // Typography Texture Generator (Initial Airy Spacing & Crisp Legibility)
-    const TERM_SETS = {
-      ascii: ['.', ':', '-', '=', '+', '*', '#', '%', '@', '+', '=', ':'],
-      korean: ['매듭', '결', '흐름', '고리', '숨', '축', '파동', '굽이', '맥', '균형', '선', '여백'],
-      hanja: ['結', '筋', '脈', '律', '形', '軸', '流', '節', '氣', '體', '環', '線'],
-      english: ['KNOT', 'FORM', 'FLOW', 'AXIS', 'NODE', 'LOOP', 'WAVE', 'CORE', 'LINE', 'VOID'],
+      if (error) {
+        statusEl.innerText = "PUBLISH ERROR : " + error.message;
+      } else {
+        statusEl.innerText = "PUBLISHED.";
+        document.getElementById("arc-title").value = "";
+        document.getElementById("arc-desc").value = "";
+        fileInput.value = "";
+        loadArchives();
+      }
+    }
+
+    // =========================================================
+    // 5. GUESTBOOK
+    // =========================================================
+    async function loadGuestbook() {
+      const listEl = document.getElementById("gb-list");
+      const { data, error } = await sb
+        .from("guestbook")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        listEl.innerHTML = `<p style="font-size:0.84rem; color:var(--muted);">ERROR : ${error.message}</p>`;
+        return;
+      }
+      if (!data || data.length === 0) {
+        listEl.innerHTML = `<p style="font-size:0.84rem; color:var(--muted);">첫 번째 방명록을 남겨보세요.</p>`;
+        return;
+      }
+
+      const isAdmin = currentUser && currentUser.email === ADMIN_EMAIL;
+
+      listEl.innerHTML = data.map(row => {
+        const displayName = row.author_name && row.author_name.trim()
+          ? row.author_name.trim()
+          : row.author_email.split("@")[0];
+        const isOwner = currentUser && currentUser.id === row.user_id;
+        const canDelete = isAdmin || isOwner;
+
+        return `
+          <div class="gb-item">
+            <div class="gb-head">
+              <span class="gb-author">
+                <strong>${escapeHtml(displayName)}</strong> (${escapeHtml(row.author_email)})
+              </span>
+              <div class="gb-actions">
+                <span>${new Date(row.created_at).toLocaleString("ko-KR")}</span>
+                ${canDelete ? `<button class="btn-del" onclick="deleteGuestbook(${row.id})">DELETE</button>` : ""}
+              </div>
+            </div>
+            <div class="gb-msg">${escapeHtml(row.message)}</div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    async function postGuestbook() {
+      const statusEl = document.getElementById("gb-status");
+      const nameEl = document.getElementById("gb-name");
+      const inputEl = document.getElementById("gb-input");
+      const authorName = nameEl.value.trim();
+      const message = inputEl.value.trim();
+
+      if (!currentUser) {
+        statusEl.innerText = "먼저 상단에서 로그인해 주세요.";
+        return;
+      }
+      if (!authorName) {
+        statusEl.innerText = "방명록에 표시할 이름을 입력하세요.";
+        nameEl.focus();
+        return;
+      }
+      if (!message) {
+        statusEl.innerText = "메시지를 입력하세요.";
+        inputEl.focus();
+        return;
+      }
+
+      statusEl.innerText = "POSTING...";
+      localStorage.setItem("gb_display_name_" + currentUser.id, authorName);
+
+      const { error } = await sb.from("guestbook").insert({
+        user_id: currentUser.id,
+        author_email: currentUser.email,
+        author_name: authorName,
+        message
+      });
+
+      if (error) {
+        statusEl.innerText = "ERROR : " + error.message;
+      } else {
+        statusEl.innerText = "";
+        inputEl.value = "";
+        loadGuestbook();
+      }
+    }
+
+    async function deleteGuestbook(id) {
+      if (!currentUser) return;
+      if (!confirm("이 방명록 댓글을 삭제하시겠습니까?")) return;
+
+      const statusEl = document.getElementById("gb-status");
+      const { error } = await sb
+        .from("guestbook")
+        .delete()
+        .eq("id", id);
+
+      if (error) {
+        statusEl.innerText = "DELETE ERROR : " + error.message;
+      } else {
+        statusEl.innerText = "";
+        loadGuestbook();
+      }
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    // =========================================================
+    // 6. 3D TORUS KNOT SCULPTURE ENGINE (INITIAL EDITION RESTORED)
+    // =========================================================
+    const MODEL_SCALE = 18.0;
+    const ASCII_CHARS = [" ", ".", ":", "-", "=", "+", "*", "#", "%", "@"];
+
+    const SCULPTURE_CATALOG = {
+      0: { label: "삼엽매듭 · 三葉結 · TREFOIL TORUS KNOT", ko: "삼엽매듭", hj: "三葉結", en: "TREFOIL TORUS KNOT" }
     };
 
-    let currentMode = 'ascii';
-    let isRotating = true;
-    let isFlowing = true;
+    const MAX_SCULPTURE_ID = 1;
+    const STRIP_W = 2048;
 
-    const texCanvas = document.createElement('canvas');
-    texCanvas.width = 2048;
-    texCanvas.height = 1024;
-    const ctx = texCanvas.getContext('2d');
+    let glyphMode = "ascii";
+    let currentModelType = "knot";
+    let autoRotate = true;
+    let flowEnabled = false;
+    let flowPhase = 0;
 
-    function drawTypographyTexture(mode) {
-      ctx.fillStyle = '#0d0d0d';
-      ctx.fillRect(0, 0, texCanvas.width, texCanvas.height);
+    let scene, camera, renderer, modelPivot;
+    let activeSculptureMesh = null;
+    let raycaster = new THREE.Raycaster();
+    let pointerNDC = new THREE.Vector2(-99, -99);
 
-      const tokens = TERM_SETS[mode] || TERM_SETS.ascii;
-      // Generous grid spacing (reverted from cramped micro-grid)
-      const cols = mode === 'ascii' ? 48 : 24;
-      const rows = mode === 'ascii' ? 24 : 18;
-      const cellW = texCanvas.width / cols;
-      const cellH = texCanvas.height / rows;
+    let dragMode = "none";
+    let prevMouse = { x: 0, y: 0 };
+    const DEFAULT_CAM_Z = 148.0;
+    const DEFAULT_PAN_Y = 0.0;
+    let targetCamZ = DEFAULT_CAM_Z;
+    let targetPan = new THREE.Vector2(0, DEFAULT_PAN_Y);
 
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
+    // ---------------------------------------------------------
+    // 6-A. 고선명 아틀라스 + 2048px 가변 자간 스트립 (1:1 종횡비 보장)
+    // ---------------------------------------------------------
+    function buildProportionalTypographySystem() {
+      const charSet = new Set(ASCII_CHARS);
+      Object.values(SCULPTURE_CATALOG).forEach(entry => {
+        for (const ch of entry.ko) charSet.add(ch);
+        for (const ch of entry.hj) charSet.add(ch);
+        for (const ch of entry.en) charSet.add(ch);
+      });
 
-      for (let r = 0; r < rows; r++) {
-        for (let c = 0; c < cols; c++) {
-          const idx = (r * 3 + c) % tokens.length;
-          const token = tokens[idx];
+      const chars = Array.from(charSet);
+      const cols = 10;
+      const rows = Math.ceil(chars.length / cols);
+      const cellSize = 144;
+      const fontSize = 96;
 
-          // Subtle wave luminance modulation for sculptural depth
-          const wave = Math.sin((c / cols) * Math.PI * 4 + (r / rows) * Math.PI * 2);
-          const alpha = mode === 'ascii'
-            ? 0.45 + 0.5 * ((wave + 1) * 0.5)
-            : 0.55 + 0.42 * ((wave + 1) * 0.5);
+      const canvas = document.createElement("canvas");
+      canvas.width = cols * cellSize;
+      canvas.height = rows * cellSize;
 
-          if (mode === 'ascii') {
-            ctx.font = '700 28px "JetBrains Mono", monospace';
-          } else if (mode === 'korean') {
-            ctx.font = '700 26px "Noto Sans KR", sans-serif';
-          } else if (mode === 'hanja') {
-            ctx.font = '700 30px "Noto Serif KR", serif';
-          } else {
-            ctx.font = '700 22px "JetBrains Mono", monospace';
+      const ctx = canvas.getContext("2d");
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "#ffffff";
+      ctx.font = `700 ${fontSize}px "Helvetica Neue", Helvetica, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+
+      const charInfo = {};
+      chars.forEach((ch, idx) => {
+        const c = idx % cols;
+        const r = Math.floor(idx / cols);
+        ctx.fillText(ch, c * cellSize + cellSize / 2, r * cellSize + cellSize / 2 + 2);
+
+        const inkPx = ch === " " ? 42 : ctx.measureText(ch).width;
+        const advPx = Math.min(cellSize * 0.92, Math.max(40, inkPx + 18));
+        charInfo[ch] = {
+          col: c,
+          row: r,
+          uSpan: advPx / cellSize
+        };
+      });
+
+      const atlasTex = new THREE.CanvasTexture(canvas);
+      atlasTex.generateMipmaps = true;
+      atlasTex.minFilter = THREE.LinearMipmapLinearFilter;
+      atlasTex.magFilter = THREE.LinearFilter;
+      atlasTex.needsUpdate = true;
+
+      const totalSpans = {
+        ko: new Float32Array(MAX_SCULPTURE_ID),
+        hj: new Float32Array(MAX_SCULPTURE_ID),
+        en: new Float32Array(MAX_SCULPTURE_ID)
+      };
+
+      function createLanguageStrip(langKey) {
+        const data = new Uint8Array(STRIP_W * MAX_SCULPTURE_ID * 4);
+        for (let mId = 0; mId < MAX_SCULPTURE_ID; mId++) {
+          const entry = SCULPTURE_CATALOG[mId] || SCULPTURE_CATALOG[0];
+          const word = (entry[langKey] || "KNOT") + " · ";
+          const glyphs = [];
+          let totalSpan = 0;
+          for (const ch of word) {
+            const info = charInfo[ch] || charInfo["#"];
+            glyphs.push(info);
+            totalSpan += info.uSpan;
+          }
+          totalSpans[langKey][mId] = totalSpan;
+
+          let curIdx = 0;
+          let accSpan = 0;
+          for (let x = 0; x < STRIP_W; x++) {
+            const uNorm = (x + 0.5) / STRIP_W;
+            const targetSpan = uNorm * totalSpan;
+            while (curIdx < glyphs.length - 1 && accSpan + glyphs[curIdx].uSpan < targetSpan) {
+              accSpan += glyphs[curIdx].uSpan;
+              curIdx++;
+            }
+            const g = glyphs[curIdx];
+            const localFrac = Math.max(0, Math.min(1, (targetSpan - accSpan) / g.uSpan));
+
+            const offset = (mId * STRIP_W + x) * 4;
+            data[offset]     = Math.round(((g.col + 0.5) / cols) * 255);
+            data[offset + 1] = Math.round(((g.row + 0.5) / rows) * 255);
+            data[offset + 2] = Math.round(localFrac * 255);
+            data[offset + 3] = Math.round(g.uSpan * 255);
+          }
+        }
+        const tex = new THREE.DataTexture(data, STRIP_W, MAX_SCULPTURE_ID, THREE.RGBAFormat);
+        tex.minFilter = THREE.NearestFilter;
+        tex.magFilter = THREE.NearestFilter;
+        tex.needsUpdate = true;
+        return tex;
+      }
+
+      const asciiData = new Uint8Array(ASCII_CHARS.length * 4);
+      ASCII_CHARS.forEach((ch, idx) => {
+        const g = charInfo[ch];
+        asciiData[idx * 4]     = Math.round(((g.col + 0.5) / cols) * 255);
+        asciiData[idx * 4 + 1] = Math.round(((g.row + 0.5) / rows) * 255);
+        asciiData[idx * 4 + 2] = Math.round(g.uSpan * 255);
+        asciiData[idx * 4 + 3] = 255;
+      });
+      const asciiStripTex = new THREE.DataTexture(asciiData, ASCII_CHARS.length, 1, THREE.RGBAFormat);
+      asciiStripTex.minFilter = THREE.NearestFilter;
+      asciiStripTex.magFilter = THREE.NearestFilter;
+      asciiStripTex.needsUpdate = true;
+
+      return {
+        atlasTex,
+        asciiStripTex,
+        cols,
+        rows,
+        totalSpans,
+        strips: {
+          ko: createLanguageStrip("ko"),
+          hj: createLanguageStrip("hj"),
+          en: createLanguageStrip("en")
+        }
+      };
+    }
+
+    const TYPO = buildProportionalTypographySystem();
+
+    // ---------------------------------------------------------
+    // 6-B. 연속 일체형 표면 메쉬 빌더 (물리적 호 길이 UV)
+    // ---------------------------------------------------------
+    class UnifiedSculptureBuilder {
+      constructor() {
+        this.positions = [];
+        this.normals = [];
+        this.uvs = [];
+        this.muscleIds = [];
+        this.wordSpans = [];
+        this.indices = [];
+      }
+
+      addSculptedPart({ rings, regionGrid }) {
+        const M = rings.length;
+        const N = rings[0].length;
+        const baseVertex = this.positions.length / 3;
+
+        const pts = rings.map(ring =>
+          ring.map(p => new THREE.Vector3(p[0] * MODEL_SCALE, p[1] * MODEL_SCALE, p[2] * MODEL_SCALE))
+        );
+
+        const centers = pts.map(ring => {
+          const c = new THREE.Vector3();
+          ring.forEach(p => c.add(p));
+          return c.divideScalar(N);
+        });
+
+        let outwardSign = 0;
+        for (let i = 0; i < M; i++) {
+          const i0 = Math.max(0, i - 1), i1 = Math.min(M - 1, i + 1);
+          for (let j = 0; j < N; j++) {
+            const j0 = (j - 1 + N) % N, j1 = (j + 1) % N;
+            const dU = new THREE.Vector3().subVectors(pts[i][j1], pts[i][j0]);
+            const dV = new THREE.Vector3().subVectors(pts[i1][j], pts[i0][j]);
+            const n = new THREE.Vector3().crossVectors(dU, dV);
+            outwardSign += n.dot(new THREE.Vector3().subVectors(pts[i][j], centers[i]));
+          }
+        }
+        const flip = outwardSign < 0 ? -1 : 1;
+
+        const vArc = new Float64Array(M);
+        vArc[0] = 0;
+        for (let i = 1; i < M; i++) {
+          let sum = 0;
+          for (let j = 0; j < N; j++) {
+            sum += pts[i][j].distanceTo(pts[i - 1][j]);
+          }
+          vArc[i] = vArc[i - 1] + sum / N;
+        }
+
+        const activeSpanTable = glyphMode === "ascii" ? TYPO.totalSpans.en : TYPO.totalSpans[glyphMode];
+
+        for (let i = 0; i < M; i++) {
+          const i0 = Math.max(0, i - 1), i1 = Math.min(M - 1, i + 1);
+          const uArc = new Float64Array(N + 1);
+          uArc[0] = 0;
+          for (let j = 1; j <= N; j++) {
+            uArc[j] = uArc[j - 1] + pts[i][j % N].distanceTo(pts[i][(j - 1) % N]);
           }
 
-          ctx.fillStyle = `rgba(242, 242, 242, ${alpha.toFixed(2)})`;
-          ctx.fillText(token, c * cellW + cellW * 0.5, r * cellH + cellH * 0.5);
+          for (let j = 0; j <= N; j++) {
+            const jj = j % N;
+            const j0 = (jj - 1 + N) % N, j1 = (jj + 1) % N;
+            const p = pts[i][jj];
+            const dU = new THREE.Vector3().subVectors(pts[i][j1], pts[i][j0]);
+            const dV = new THREE.Vector3().subVectors(pts[i1][jj], pts[i0][jj]);
+            const n = new THREE.Vector3().crossVectors(dU, dV).multiplyScalar(flip);
+            if (n.lengthSq() < 1e-10) n.subVectors(p, centers[i]);
+            n.normalize();
+
+            const mId = regionGrid[i][jj];
+            this.positions.push(p.x, p.y, p.z);
+            this.normals.push(n.x, n.y, n.z);
+            this.uvs.push(uArc[j], vArc[i]);
+            this.muscleIds.push(mId);
+            this.wordSpans.push(activeSpanTable[mId] || 10.0);
+          }
+        }
+
+        const stride = N + 1;
+        for (let i = 0; i < M - 1; i++) {
+          for (let j = 0; j < N; j++) {
+            const a = baseVertex + i * stride + j;
+            const b = baseVertex + (i + 1) * stride + j;
+            const c = baseVertex + (i + 1) * stride + (j + 1);
+            const d = baseVertex + i * stride + (j + 1);
+            if (flip > 0) {
+              this.indices.push(a, b, d, b, c, d);
+            } else {
+              this.indices.push(a, d, b, b, d, c);
+            }
+          }
+        }
+      }
+
+      buildGeometry() {
+        const geom = new THREE.BufferGeometry();
+        geom.setAttribute("position", new THREE.Float32BufferAttribute(this.positions, 3));
+        geom.setAttribute("normal", new THREE.Float32BufferAttribute(this.normals, 3));
+        geom.setAttribute("uv", new THREE.Float32BufferAttribute(this.uvs, 2));
+        geom.setAttribute("aMuscleId", new THREE.Float32BufferAttribute(this.muscleIds, 1));
+        geom.setAttribute("aWordSpan", new THREE.Float32BufferAttribute(this.wordSpans, 1));
+        geom.setIndex(this.indices);
+        return geom;
+      }
+    }
+
+    // ---------------------------------------------------------
+    // 6-C. 삼엽 매듭 조형 (TORUS KNOT) 지오메트리
+    // ---------------------------------------------------------
+    function buildTorusKnotGeometry() {
+      const B = new UnifiedSculptureBuilder();
+      const segsU = 360, segsV = 56;
+      const p = 2, q = 3, scale = 0.76, tubeRadius = 0.39;
+
+      const centers = [];
+      for (let i = 0; i <= segsU; i++) {
+        const t = (i / segsU) * Math.PI * 2;
+        const r = Math.cos(q * t) + 2.0;
+        centers.push(new THREE.Vector3(
+          r * Math.cos(p * t) * scale,
+          -Math.sin(q * t) * scale * 1.15,
+          r * Math.sin(p * t) * scale
+        ));
+      }
+
+      const tangents = centers.map((_, i) => {
+        const prev = centers[(i - 1 + segsU) % segsU];
+        const next = centers[(i + 1) % segsU];
+        return new THREE.Vector3().subVectors(next, prev).normalize();
+      });
+
+      let normal = new THREE.Vector3(0, 1, 0);
+      normal.sub(tangents[0].clone().multiplyScalar(tangents[0].dot(normal))).normalize();
+
+      const rings = [], regs = [];
+      for (let i = 0; i <= segsU; i++) {
+        if (i > 0) {
+          const axis = new THREE.Vector3().crossVectors(tangents[i - 1], tangents[i]);
+          if (axis.lengthSq() > 1e-10) {
+            axis.normalize();
+            const ang = Math.acos(Math.max(-1, Math.min(1, tangents[i - 1].dot(tangents[i]))));
+            normal.applyAxisAngle(axis, ang).normalize();
+          }
+        }
+        const binormal = new THREE.Vector3().crossVectors(tangents[i], normal).normalize();
+        const ring = [], idRow = [];
+        for (let j = 0; j < segsV; j++) {
+          const th = (j / segsV) * Math.PI * 2;
+          const pt = centers[i].clone()
+            .addScaledVector(normal, Math.cos(th) * tubeRadius)
+            .addScaledVector(binormal, Math.sin(th) * tubeRadius);
+          ring.push([pt.x, pt.y, pt.z]);
+          idRow.push(0);
+        }
+        rings.push(ring);
+        regs.push(idRow);
+      }
+
+      B.addSculptedPart({ rings, regionGrid: regs });
+      return B.buildGeometry();
+    }
+
+    // ---------------------------------------------------------
+    // 6-D. 초창기 매듭 조형 아스키 아트 & 타이포그래피 셰이더
+    // ---------------------------------------------------------
+    function createKnotShaderMaterial() {
+      const cols = TYPO.cols;
+      const rows = TYPO.rows;
+
+      return new THREE.ShaderMaterial({
+        extensions: {
+          derivatives: true
+        },
+        uniforms: {
+          uAtlas: { value: TYPO.atlasTex },
+          uAsciiStrip: { value: TYPO.asciiStripTex },
+          uWordStrip: { value: TYPO.strips.en },
+          uAsciiMode: { value: 1.0 },
+          uMaxMuscles: { value: MAX_SCULPTURE_ID },
+          uFlowPhase: { value: 0.0 },
+          uCharHeightWorld: { value: 1.05 }
+        },
+        vertexShader: `
+          attribute float aMuscleId;
+          attribute float aWordSpan;
+
+          varying vec3 vNormalView;
+          varying vec3 vViewPos;
+          varying vec2 vWorldArc;
+          varying float vMuscleId;
+          varying float vWordSpan;
+
+          void main() {
+            vNormalView = normalize(normalMatrix * normal);
+            vec4 mvPos = modelViewMatrix * vec4(position, 1.0);
+            vViewPos = -mvPos.xyz;
+            vWorldArc = uv;
+            vMuscleId = aMuscleId;
+            vWordSpan = aWordSpan;
+            gl_Position = projectionMatrix * mvPos;
+          }
+        `,
+        fragmentShader: `
+          uniform sampler2D uAtlas;
+          uniform sampler2D uAsciiStrip;
+          uniform sampler2D uWordStrip;
+          uniform float uAsciiMode;
+          uniform float uMaxMuscles;
+          uniform float uFlowPhase;
+          uniform float uCharHeightWorld;
+
+          varying vec3 vNormalView;
+          varying vec3 vViewPos;
+          varying vec2 vWorldArc;
+          varying float vMuscleId;
+          varying float vWordSpan;
+
+          void main() {
+            vec3 n = normalize(vNormalView);
+            if (!gl_FrontFacing) n = -n;
+            vec3 viewDir = normalize(vViewPos);
+
+            // 3점 스튜디오 조각 조명
+            vec3 keyDir  = normalize(vec3(-0.56, 0.54, 0.72));
+            vec3 fillDir = normalize(vec3( 0.58, 0.16, 0.62));
+            vec3 rimDir  = normalize(vec3( 0.85, 0.25, -0.45));
+
+            float halfLambert = dot(n, keyDir) * 0.5 + 0.5;
+            float keyLight  = pow(clamp(halfLambert, 0.0, 1.0), 1.32) * 0.84;
+            float fillLight = max(dot(n, fillDir), 0.0) * 0.24;
+            float rimFactor = pow(1.0 - clamp(dot(n, viewDir), 0.0, 1.0), 2.3);
+            float rimLight  = rimFactor * max(dot(n, rimDir) * 0.5 + 0.5, 0.0) * 0.36;
+
+            float baseLum = clamp(0.10 + keyLight + fillLight + rimLight, 0.05, 0.98);
+
+            // 물리적 호 길이 기반 1:1 종횡비 아스키 / 타이포그래피 좌표
+            float rowCoord = vWorldArc.y / uCharHeightWorld;
+            float rowIndex = floor(rowCoord);
+            float rowFrac  = fract(rowCoord);
+
+            vec2 dRow = vec2(dFdx(rowCoord), dFdy(rowCoord));
+            float pixelsPerChar = 1.0 / max(length(dRow), 1e-5);
+
+            float rowStagger = fract(rowIndex * 0.371) + uFlowPhase;
+            vec2 atlasUv;
+
+            if (uAsciiMode > 0.5) {
+              float colCoord = (vWorldArc.x / (uCharHeightWorld * 0.74)) + rowStagger * 4.0;
+              float cellFracX = fract(colCoord);
+              float lumIdx = clamp(floor(baseLum * 9.99), 0.0, 9.0);
+              vec4 aInfo = texture2D(uAsciiStrip, vec2((lumIdx + 0.5) / 10.0, 0.5));
+              float uSpan = aInfo.z;
+              float uLocal = 0.5 + (cellFracX - 0.5) * uSpan;
+              float vLocal = 0.5 + (rowFrac - 0.5) * 0.88;
+              atlasUv = vec2(
+                aInfo.x + (uLocal - 0.5) / ${cols.toFixed(1)},
+                1.0 - (1.0 - aInfo.y + (0.5 - vLocal) / ${rows.toFixed(1)})
+              );
+            } else {
+              float wordWidthWorld = max(vWordSpan * uCharHeightWorld, uCharHeightWorld);
+              float uNorm = fract((vWorldArc.x / wordWidthWorld) + rowStagger);
+              float mRow = (floor(vMuscleId + 0.5) + 0.5) / uMaxMuscles;
+              vec4 wInfo = texture2D(uWordStrip, vec2(uNorm, mRow));
+              float uLocal = wInfo.z;
+              float uSpan  = wInfo.w;
+              float vLocal = 0.5 + (rowFrac - 0.5) * 0.88;
+              atlasUv = vec2(
+                wInfo.x + ((uLocal - 0.5) * uSpan) / ${cols.toFixed(1)},
+                1.0 - (1.0 - wInfo.y + (0.5 - vLocal) / ${rows.toFixed(1)})
+              );
+            }
+
+            float glyphAlpha = texture2D(uAtlas, atlasUv).a;
+            float aaWidth = clamp(1.15 / max(pixelsPerChar, 1.0), 0.04, 0.22);
+            float crispGlyph = smoothstep(0.42 - aaWidth, 0.42 + aaWidth, glyphAlpha);
+
+            vec3 textInk = vec3(mix(0.28, 1.0, pow(baseLum, 0.72))) * crispGlyph;
+            gl_FragColor = vec4(textInk, 1.0);
+          }
+        `,
+        side: THREE.FrontSide
+      });
+    }
+
+    function updateGeometryWordSpans(geom, mode) {
+      if (!geom) return;
+      const idAttr = geom.getAttribute("aMuscleId");
+      const spanAttr = geom.getAttribute("aWordSpan");
+      if (!idAttr || !spanAttr) return;
+      const table = mode === "ascii" ? TYPO.totalSpans.en : TYPO.totalSpans[mode];
+      const count = idAttr.count;
+      for (let i = 0; i < count; i++) {
+        spanAttr.setX(i, table[Math.round(idAttr.getX(i))] || 10.0);
+      }
+      spanAttr.needsUpdate = true;
+    }
+
+    // ---------------------------------------------------------
+    // 6-E. Three.js 뷰포트 초기화 & 컨트롤
+    // ---------------------------------------------------------
+    let cachedKnotGeometry = null;
+
+    function initAnatomyEngine() {
+      const stage = document.getElementById("anatomy-stage");
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x000000);
+
+      camera = new THREE.PerspectiveCamera(34, stage.clientWidth / stage.clientHeight, 0.1, 600);
+      camera.position.set(0, DEFAULT_PAN_Y, DEFAULT_CAM_Z);
+
+      renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.setSize(stage.clientWidth, stage.clientHeight);
+      TYPO.atlasTex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+      stage.appendChild(renderer.domElement);
+
+      modelPivot = new THREE.Group();
+      modelPivot.rotation.order = "YXZ";
+      scene.add(modelPivot);
+
+      change3DModel("knot");
+
+      stage.addEventListener("mousedown", e => {
+        if (e.button === 2 || e.shiftKey) {
+          dragMode = "pan";
+        } else if (e.button === 0) {
+          dragMode = "rotate";
+        }
+        prevMouse = { x: e.clientX, y: e.clientY };
+      });
+
+      window.addEventListener("mouseup", () => {
+        dragMode = "none";
+      });
+
+      window.addEventListener("mousemove", e => {
+        const rect = stage.getBoundingClientRect();
+        if (e.clientX >= rect.left && e.clientX <= rect.right && e.clientY >= rect.top && e.clientY <= rect.bottom) {
+          pointerNDC.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+          pointerNDC.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+        } else {
+          pointerNDC.set(-99, -99);
+        }
+
+        if (dragMode === "none" || !modelPivot) return;
+        const dx = e.clientX - prevMouse.x;
+        const dy = e.clientY - prevMouse.y;
+
+        if (dragMode === "rotate") {
+          modelPivot.rotation.y += dx * 0.0085;
+          modelPivot.rotation.x = Math.max(-0.85, Math.min(0.85, modelPivot.rotation.x + dy * 0.006));
+        } else if (dragMode === "pan") {
+          const panSpeed = targetCamZ * 0.0014;
+          targetPan.x = Math.max(-34.0, Math.min(34.0, targetPan.x - dx * panSpeed));
+          targetPan.y = Math.max(-44.0, Math.min(44.0, targetPan.y + dy * panSpeed));
+        }
+        prevMouse = { x: e.clientX, y: e.clientY };
+      });
+
+      stage.addEventListener("wheel", e => {
+        e.preventDefault();
+        const rect = stage.getBoundingClientRect();
+        const ndcX = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+        const ndcY = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+
+        const oldZ = targetCamZ;
+        const zoomFactor = 1 + e.deltaY * 0.00125;
+        const newZ = Math.min(220.0, Math.max(24.0, oldZ * zoomFactor));
+        const ratio = newZ / oldZ;
+
+        let focusDepth = oldZ;
+        if (activeSculptureMesh) {
+          raycaster.setFromCamera(new THREE.Vector2(ndcX, ndcY), camera);
+          const hits = raycaster.intersectObject(activeSculptureMesh, false);
+          if (hits.length > 0) {
+            focusDepth = hits[0].distance;
+          }
+        }
+
+        const tanHalfFov = Math.tan((camera.fov * Math.PI) / 360);
+        const worldX = targetPan.x + ndcX * camera.aspect * tanHalfFov * focusDepth;
+        const worldY = targetPan.y + ndcY * tanHalfFov * focusDepth;
+
+        if (e.deltaY < 0) {
+          targetPan.x = worldX - ndcX * camera.aspect * tanHalfFov * (focusDepth * ratio);
+          targetPan.y = worldY - ndcY * tanHalfFov * (focusDepth * ratio);
+        } else {
+          targetPan.x += (0 - targetPan.x) * 0.22;
+          targetPan.y += (DEFAULT_PAN_Y - targetPan.y) * 0.22;
+        }
+
+        targetPan.x = Math.max(-34.0, Math.min(34.0, targetPan.x));
+        targetPan.y = Math.max(-44.0, Math.min(44.0, targetPan.y));
+        targetCamZ = newZ;
+      }, { passive: false });
+
+      window.addEventListener("resize", resizeAnatomyViewport);
+      resizeAnatomyViewport();
+      requestAnimationFrame(animateAnatomyScene);
+    }
+
+    function resizeAnatomyViewport() {
+      const stage = document.getElementById("anatomy-stage");
+      if (!stage || !renderer || stage.clientWidth === 0) return;
+      const w = stage.clientWidth;
+      const h = stage.clientHeight;
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+      renderer.setSize(w, h);
+    }
+
+    function change3DModel(type) {
+      currentModelType = type;
+      document.getElementById("model-knot").classList.add("active");
+
+      if (activeSculptureMesh) {
+        modelPivot.remove(activeSculptureMesh);
+        activeSculptureMesh.material.dispose();
+        activeSculptureMesh = null;
+      }
+
+      modelPivot.rotation.set(0, 0, 0);
+      targetCamZ = DEFAULT_CAM_Z;
+      targetPan.set(0, DEFAULT_PAN_Y);
+
+      if (!cachedKnotGeometry) {
+        cachedKnotGeometry = buildTorusKnotGeometry();
+      }
+      updateGeometryWordSpans(cachedKnotGeometry, glyphMode);
+
+      const mat = createKnotShaderMaterial();
+      mat.uniforms.uAsciiMode.value = glyphMode === "ascii" ? 1.0 : 0.0;
+      mat.uniforms.uCharHeightWorld.value = glyphMode === "ascii" ? 1.05 : 1.25;
+      if (glyphMode !== "ascii") {
+        mat.uniforms.uWordStrip.value = TYPO.strips[glyphMode];
+      }
+
+      activeSculptureMesh = new THREE.Mesh(cachedKnotGeometry, mat);
+      modelPivot.add(activeSculptureMesh);
+
+      document.getElementById("hud-right").innerHTML = `TARGET : <strong>TORUS KNOT</strong>`;
+    }
+
+    function setGlyphMode(mode) {
+      glyphMode = mode;
+      ["ascii", "ko", "hj", "en"].forEach(m => {
+        document.getElementById("mode-" + m).classList.toggle("active", m === mode);
+      });
+
+      if (activeSculptureMesh) {
+        updateGeometryWordSpans(activeSculptureMesh.geometry, mode);
+        const mat = activeSculptureMesh.material;
+        if (mode === "ascii") {
+          mat.uniforms.uAsciiMode.value = 1.0;
+          mat.uniforms.uCharHeightWorld.value = 1.05;
+        } else {
+          mat.uniforms.uAsciiMode.value = 0.0;
+          mat.uniforms.uWordStrip.value = TYPO.strips[mode];
+          mat.uniforms.uCharHeightWorld.value = 1.25;
         }
       }
     }
 
-    drawTypographyTexture(currentMode);
-
-    const typoTexture = new THREE.CanvasTexture(texCanvas);
-    typoTexture.wrapS = THREE.RepeatWrapping;
-    typoTexture.wrapT = THREE.RepeatWrapping;
-    typoTexture.repeat.set(5, 2);
-    typoTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
-
-    // Initial Proportions Torus Knot (radius: 1.38, tube: 0.42)
-    const knotGeometry = new THREE.TorusKnotGeometry(1.38, 0.42, 240, 48, 2, 3);
-    const knotMaterial = new THREE.MeshStandardMaterial({
-      map: typoTexture,
-      bumpMap: typoTexture,
-      bumpScale: 0.018,
-      roughness: 0.42,
-      metalness: 0.18,
-    });
-
-    const knotMesh = new THREE.Mesh(knotGeometry, knotMaterial);
-    scene.add(knotMesh);
-
-    // Subtle Inner Core Wireframe for Silhouette Definition
-    const coreGeometry = new THREE.TorusKnotGeometry(1.38, 0.416, 120, 24, 2, 3);
-    const coreMaterial = new THREE.MeshBasicMaterial({
-      color: 0x161616,
-      wireframe: true,
-      transparent: true,
-      opacity: 0.14,
-    });
-    const coreMesh = new THREE.Mesh(coreGeometry, coreMaterial);
-    knotMesh.add(coreMesh);
-
-    // --- UI Controls ---
-    const termButtons = document.querySelectorAll('#term-controls .ctrl-btn');
-    termButtons.forEach((btn) => {
-      btn.addEventListener('click', () => {
-        termButtons.forEach((b) => b.classList.remove('active'));
-        btn.classList.add('active');
-        currentMode = btn.dataset.mode;
-        drawTypographyTexture(currentMode);
-        typoTexture.needsUpdate = true;
-      });
-    });
-
-    const btnRotate = document.getElementById('btn-rotate');
-    btnRotate.addEventListener('click', () => {
-      isRotating = !isRotating;
-      btnRotate.textContent = `ROTATE: ${isRotating ? 'ON' : 'OFF'}`;
-      btnRotate.classList.toggle('active', isRotating);
-    });
-
-    const btnFlow = document.getElementById('btn-flow');
-    btnFlow.addEventListener('click', () => {
-      isFlowing = !isFlowing;
-      btnFlow.textContent = `FLOW: ${isFlowing ? 'ON' : 'OFF'}`;
-      btnFlow.classList.toggle('active', isFlowing);
-    });
-
-    const btnReset = document.getElementById('btn-reset');
-    btnReset.addEventListener('click', () => {
-      camera.position.copy(INITIAL_CAM_POS);
-      controls.target.set(0, 0, 0);
-      knotMesh.rotation.set(0, 0, 0);
-      controls.update();
-    });
-
-    // Resize Handler
-    function onResize() {
-      if (!container.clientWidth || !container.clientHeight) return;
-      camera.aspect = container.clientWidth / container.clientHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(container.clientWidth, container.clientHeight);
+    function toggleAutoRotate() {
+      autoRotate = !autoRotate;
+      document.getElementById("btn-autorotate").classList.toggle("active", autoRotate);
+      document.getElementById("btn-autorotate").innerText = `ROTATE : ${autoRotate ? "ON" : "OFF"}`;
     }
-    window.addEventListener('resize', onResize);
 
-    // Animation Loop
-    const clock = new THREE.Clock();
-    function animate() {
-      requestAnimationFrame(animate);
-      const delta = clock.getDelta();
+    function toggleFlow() {
+      flowEnabled = !flowEnabled;
+      document.getElementById("btn-flow").classList.toggle("active", flowEnabled);
+      document.getElementById("btn-flow").innerText = `FLOW : ${flowEnabled ? "ON" : "OFF"}`;
+    }
 
-      if (isRotating) {
-        knotMesh.rotation.y += delta * 0.28;
-        knotMesh.rotation.x = Math.sin(clock.elapsedTime * 0.35) * 0.14;
+    function resetAnatomyView() {
+      targetCamZ = DEFAULT_CAM_Z;
+      targetPan.set(0, DEFAULT_PAN_Y);
+      if (modelPivot) {
+        modelPivot.rotation.set(0, 0, 0);
+      }
+    }
+
+    function animateAnatomyScene() {
+      requestAnimationFrame(animateAnatomyScene);
+      if (!document.getElementById("sec-anatomy").classList.contains("active")) return;
+
+      camera.position.z += (targetCamZ - camera.position.z) * 0.16;
+      camera.position.x += (targetPan.x - camera.position.x) * 0.16;
+      camera.position.y += (targetPan.y - camera.position.y) * 0.16;
+
+      if (autoRotate && dragMode === "none" && modelPivot) {
+        modelPivot.rotation.y += 0.0065;
       }
 
-      if (isFlowing) {
-        typoTexture.offset.x -= delta * 0.065;
+      if (flowEnabled && activeSculptureMesh) {
+        flowPhase = (flowPhase + 0.0018) % 1.0;
+        activeSculptureMesh.material.uniforms.uFlowPhase.value = flowPhase;
       }
 
-      controls.update();
       renderer.render(scene, camera);
     }
 
-    animate();
+    // =========================================================
+    // 7. INITIALIZE ON LOAD
+    // =========================================================
+    window.addEventListener("DOMContentLoaded", async () => {
+      initAnatomyEngine();
+      const { data } = await sb.auth.getSession();
+      updateAuthUI(data?.session?.user || null);
+      loadArchives();
+      loadGuestbook();
+    });
   </script>
 </body>
 </html>
