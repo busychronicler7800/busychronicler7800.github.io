@@ -472,12 +472,9 @@
           </div>
 
           <div class="toolbar-group">
-            <label>TERMINOLOGY</label>
+            <label>RENDER</label>
             <div class="toolbar-buttons">
-              <button class="btn-outline active" id="mode-ascii" onclick="setGlyphMode('ascii')">ASCII</button>
-              <button class="btn-outline" id="mode-ko" onclick="setGlyphMode('ko')">한글 (우리말)</button>
-              <button class="btn-outline" id="mode-hj" onclick="setGlyphMode('hj')">한자어 (의학)</button>
-              <button class="btn-outline" id="mode-en" onclick="setGlyphMode('en')">ENGLISH</button>
+              <button class="btn-outline active" id="mode-ascii">ASCII</button>
             </div>
           </div>
 
@@ -959,40 +956,30 @@
     }
 
     // =========================================================
-    // 6. CLASSIC TORUS KNOT ASCII & KINETIC TYPOGRAPHY ENGINE
+    // 6. CLASSIC SMOOTH TORUS KNOT ASCII SCULPTURE ENGINE
     // =========================================================
-    const TERMINOLOGY_TEXTS = {
-      // 한글 (순우리말 해부학 용어)
-      ko: "이마근 · 눈둘레근 · 입둘레근 · 깨물근 · 목빗근 · 큰가슴근 · 앞톱니근 · 배곧은근 · 배바깥빗근 · 등세모근 · 넓은등근 · 가시아래근 · 큰원근 · 어깨세모근 · 위팔두갈래근 · 위팔세갈래근 · 위팔노근 · 큰볼기근 · 중간볼기근 · 넙다리곧은근 · 가쪽넓은근 · 안쪽넓은근 · 넙다리빗근 · 넙다리두갈래근 · 반힘줄근 · 반막근 · 앞정강근 · 장딴지근 · 가자미근 · 발꿈치힘줄 · ",
-      // 한자어 (한글로 표기한 한자어 의학용어)
-      hj: "전두근 · 안륜근 · 구륜근 · 교근 · 흉쇄유돌근 · 대흉근 · 전거근 · 복직근 · 외복사근 · 승모근 · 광배근 · 극하근 · 대원근 · 삼각근 · 상완이두근 · 상완삼두근 · 완요골근 · 대둔근 · 중둔근 · 대퇴직근 · 외측광근 · 내측광근 · 봉공근 · 대퇴이두근 · 반건양근 · 반막양근 · 전경골근 · 비복근 · 가자미근 · 아킬레스건 · ",
-      // ENGLISH (영문 해부학 용어)
-      en: "FRONTALIS · ORBICULARIS OCULI · MASSETER · STERNOCLEIDOMASTOID · PECTORALIS MAJOR · SERRATUS ANTERIOR · RECTUS ABDOMINIS · EXTERNAL OBLIQUE · TRAPEZIUS · LATISSIMUS DORSI · INFRASPINATUS · DELTOID · BICEPS BRACHII · TRICEPS BRACHII · BRACHIORADIALIS · GLUTEUS MAXIMUS · RECTUS FEMORIS · VASTUS LATERALIS · VASTUS MEDIALIS · SARTORIUS · BICEPS FEMORIS · SEMITENDINOSUS · SEMIMEMBRANOSUS · TIBIALIS ANTERIOR · GASTROCNEMIUS · SOLEUS · ACHILLES TENDON · "
-    };
-
-    let glyphMode = "ascii";
     let autoRotate = true;
     let flowEnabled = false;
     let flowTime = 0;
 
     let scene, camera, renderer, knotPivot, knotMesh;
-    let shadedMaterial, typoMaterial;
+    let shadedMaterial;
     let renderTarget, postScene, postCamera, asciiPassMaterial;
-    let textTextures = {};
 
     let dragMode = "none";
     let prevMouse = { x: 0, y: 0 };
-    const DEFAULT_CAM_Z = 52.0;
+    const DEFAULT_CAM_Z = 48.0;
     let targetCamZ = DEFAULT_CAM_Z;
     let targetPan = new THREE.Vector2(0, 0);
 
     // ---------------------------------------------------------
-    // 6-A. 정방향 고정폭 ASCII 아틀라스 (10단계 밝기 문자)
+    // 6-A. 고해상도 9단계 고정폭 ASCII 글리프 아틀라스
+    //      (모든 조형 실루엣이 배경과 명확히 구분되도록 가시 문자만 배치)
     // ---------------------------------------------------------
     function createAsciiGlyphTexture() {
-      const chars = [" ", ".", ":", "-", "=", "+", "*", "#", "%", "@"];
-      const cellW = 64;
-      const cellH = 64;
+      const chars = [".", ":", "-", "=", "+", "*", "#", "%", "@"];
+      const cellW = 128;
+      const cellH = 128;
       const canvas = document.createElement("canvas");
       canvas.width = cellW * chars.length;
       canvas.height = cellH;
@@ -1002,12 +989,12 @@
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
       ctx.fillStyle = "#ffffff";
-      ctx.font = '700 48px "JetBrains Mono", "SFMono-Regular", Consolas, "Courier New", monospace';
+      ctx.font = '700 94px "JetBrains Mono", "SFMono-Regular", Menlo, Consolas, "Courier New", monospace';
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
 
       chars.forEach((ch, idx) => {
-        ctx.fillText(ch, idx * cellW + cellW / 2, cellH / 2 + 2);
+        ctx.fillText(ch, idx * cellW + cellW * 0.5, cellH * 0.53);
       });
 
       const tex = new THREE.CanvasTexture(canvas);
@@ -1019,147 +1006,7 @@
     }
 
     // ---------------------------------------------------------
-    // 6-B. 매듭 표면용 정방향 타이포그래피 텍스처 (16:1 무왜곡 비율)
-    // ---------------------------------------------------------
-    function createTypoBandTexture(phrase, maxAnisotropy) {
-      const width = 4096;
-      const height = 256;
-      const canvas = document.createElement("canvas");
-      canvas.width = width;
-      canvas.height = height;
-
-      const ctx = canvas.getContext("2d");
-      ctx.fillStyle = "#050505";
-      ctx.fillRect(0, 0, width, height);
-
-      ctx.fillStyle = "#ffffff";
-      ctx.font = '700 30px "Helvetica Neue", Helvetica, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif';
-      ctx.textBaseline = "middle";
-
-      const rowCount = 6;
-      const rowHeight = height / rowCount;
-
-      for (let r = 0; r < rowCount; r++) {
-        const y = r * rowHeight + rowHeight * 0.52;
-        let x = -((r * 173) % 420);
-        while (x < width + 600) {
-          ctx.fillText(phrase, x, y);
-          x += ctx.measureText(phrase).width;
-        }
-      }
-
-      const tex = new THREE.CanvasTexture(canvas);
-      tex.wrapS = THREE.RepeatWrapping;
-      tex.wrapT = THREE.RepeatWrapping;
-      tex.anisotropy = maxAnisotropy;
-      tex.minFilter = THREE.LinearMipmapLinearFilter;
-      tex.magFilter = THREE.LinearFilter;
-      tex.needsUpdate = true;
-      return tex;
-    }
-
-    // ---------------------------------------------------------
-    // 6-C. 삼엽 매듭 지오메트리 (우손 법칙 정방향 UV 보장)
-    // ---------------------------------------------------------
-    function buildCleanTorusKnotGeometry() {
-      const tubularSegments = 320;
-      const radialSegments = 64;
-      const p = 2;
-      const q = 3;
-      const scale = 5.4;
-      const tubeRadius = 2.75;
-
-      const centers = [];
-      for (let i = 0; i <= tubularSegments; i++) {
-        const t = (i / tubularSegments) * Math.PI * 2;
-        const r = Math.cos(q * t) + 2.0;
-        centers.push(new THREE.Vector3(
-          r * Math.cos(p * t) * scale,
-          -Math.sin(q * t) * scale * 1.15,
-          r * Math.sin(p * t) * scale
-        ));
-      }
-
-      const tangents = [];
-      const arcU = new Float32Array(tubularSegments + 1);
-      arcU[0] = 0;
-
-      for (let i = 0; i <= tubularSegments; i++) {
-        const prev = centers[(i - 1 + tubularSegments) % tubularSegments];
-        const next = centers[(i + 1) % tubularSegments];
-        tangents.push(new THREE.Vector3().subVectors(next, prev).normalize());
-        if (i > 0) {
-          arcU[i] = arcU[i - 1] + centers[i].distanceTo(centers[i - 1]);
-        }
-      }
-
-      let normal = new THREE.Vector3(0, 1, 0);
-      normal.sub(tangents[0].clone().multiplyScalar(tangents[0].dot(normal))).normalize();
-
-      const totalLengthU = arcU[tubularSegments];
-      const circumferenceV = 2 * Math.PI * tubeRadius;
-      // 캔버스 비율(4096 / 256 = 16)에 맞춘 타일 반복 횟수
-      const uRepeats = Math.max(1, Math.round(totalLengthU / (circumferenceV * 16.0)));
-
-      const positions = [];
-      const normals = [];
-      const uvs = [];
-      const indices = [];
-
-      for (let i = 0; i <= tubularSegments; i++) {
-        if (i > 0) {
-          const axis = new THREE.Vector3().crossVectors(tangents[i - 1], tangents[i]);
-          if (axis.lengthSq() > 1e-10) {
-            axis.normalize();
-            const ang = Math.acos(Math.max(-1, Math.min(1, tangents[i - 1].dot(tangents[i]))));
-            normal.applyAxisAngle(axis, ang).normalize();
-          }
-        }
-
-        const binormal = new THREE.Vector3().crossVectors(tangents[i], normal).normalize();
-        const uCoord = (arcU[i] / totalLengthU) * uRepeats;
-
-        for (let j = 0; j <= radialSegments; j++) {
-          const vCoord = j / radialSegments;
-          // θ = -v * 2π 로 설정해 (+u = 오른쪽, +v = 위쪽) 정방향 보장
-          const theta = -vCoord * Math.PI * 2;
-          const cosT = Math.cos(theta);
-          const sinT = Math.sin(theta);
-
-          const outDir = new THREE.Vector3()
-            .addScaledVector(normal, cosT)
-            .addScaledVector(binormal, sinT)
-            .normalize();
-
-          const pos = centers[i].clone().addScaledVector(outDir, tubeRadius);
-
-          positions.push(pos.x, pos.y, pos.z);
-          normals.push(outDir.x, outDir.y, outDir.z);
-          uvs.push(uCoord, vCoord);
-        }
-      }
-
-      const stride = radialSegments + 1;
-      for (let i = 0; i < tubularSegments; i++) {
-        for (let j = 0; j < radialSegments; j++) {
-          const a = i * stride + j;
-          const b = (i + 1) * stride + j;
-          const c = (i + 1) * stride + (j + 1);
-          const d = i * stride + (j + 1);
-          indices.push(a, b, d, b, c, d);
-        }
-      }
-
-      const geom = new THREE.BufferGeometry();
-      geom.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
-      geom.setAttribute("normal", new THREE.Float32BufferAttribute(normals, 3));
-      geom.setAttribute("uv", new THREE.Float32BufferAttribute(uvs, 2));
-      geom.setIndex(indices);
-      return geom;
-    }
-
-    // ---------------------------------------------------------
-    // 6-D. Three.js 뷰포트 및 ASCII / 타이포그래피 파이프라인 초기화
+    // 6-B. Three.js 뷰포트 및 매끄러운 스튜디오 ASCII 파이프라인
     // ---------------------------------------------------------
     function initAnatomyEngine() {
       const stage = document.getElementById("anatomy-stage");
@@ -1168,24 +1015,17 @@
       const dpr = Math.min(window.devicePixelRatio, 2);
 
       scene = new THREE.Scene();
-      scene.background = new THREE.Color(0x000000);
 
-      camera = new THREE.PerspectiveCamera(36, w / h, 0.1, 400);
+      camera = new THREE.PerspectiveCamera(38, w / h, 0.1, 400);
       camera.position.set(0, 0, DEFAULT_CAM_Z);
 
-      renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" });
       renderer.setPixelRatio(dpr);
       renderer.setSize(w, h);
+      renderer.setClearColor(0x000000, 0);
       stage.appendChild(renderer.domElement);
 
-      const maxAniso = renderer.capabilities.getMaxAnisotropy();
-      textTextures = {
-        ko: createTypoBandTexture(TERMINOLOGY_TEXTS.ko, maxAniso),
-        hj: createTypoBandTexture(TERMINOLOGY_TEXTS.hj, maxAniso),
-        en: createTypoBandTexture(TERMINOLOGY_TEXTS.en, maxAniso)
-      };
-
-      // 1) ASCII 모드용 3D 스튜디오 음영 재질
+      // 부드러운 3점 스튜디오 조명 + 프레넬 림 라이트 재질
       shadedMaterial = new THREE.ShaderMaterial({
         uniforms: {
           uTime: { value: 0.0 },
@@ -1194,12 +1034,12 @@
         vertexShader: `
           varying vec3 vNormalView;
           varying vec3 vViewPos;
-          varying vec2 vUv;
+          varying vec3 vLocalPos;
           void main() {
             vNormalView = normalize(normalMatrix * normal);
             vec4 mvPos = modelViewMatrix * vec4(position, 1.0);
             vViewPos = -mvPos.xyz;
-            vUv = uv;
+            vLocalPos = position;
             gl_Position = projectionMatrix * mvPos;
           }
         `,
@@ -1208,77 +1048,35 @@
           uniform float uFlow;
           varying vec3 vNormalView;
           varying vec3 vViewPos;
-          varying vec2 vUv;
+          varying vec3 vLocalPos;
 
           void main() {
             vec3 n = normalize(vNormalView);
             vec3 viewDir = normalize(vViewPos);
 
-            vec3 keyDir  = normalize(vec3(-0.55, 0.65, 0.75));
-            vec3 fillDir = normalize(vec3( 0.60, -0.25, 0.55));
+            vec3 keyDir  = normalize(vec3(-0.55, 0.70, 0.75));
+            vec3 fillDir = normalize(vec3( 0.65, -0.30, 0.50));
+            vec3 backDir = normalize(vec3( 0.0,  0.55, -0.80));
 
-            float diff = max(dot(n, keyDir), 0.0);
-            float fill = max(dot(n, fillDir), 0.0) * 0.25;
-            float spec = pow(max(dot(reflect(-keyDir, n), viewDir), 0.0), 22.0) * 0.35;
-            float rim  = pow(1.0 - max(dot(n, viewDir), 0.0), 2.4) * 0.32;
+            // 부드러운 하프-램버트 음영
+            float halfLambert = dot(n, keyDir) * 0.5 + 0.5;
+            float diff = pow(clamp(halfLambert, 0.0, 1.0), 1.45) * 0.68;
+            float fill = max(dot(n, fillDir), 0.0) * 0.22;
+            float back = max(dot(n, backDir), 0.0) * 0.16;
+            float spec = pow(max(dot(reflect(-keyDir, n), viewDir), 0.0), 28.0) * 0.34;
 
-            float lum = 0.08 + diff * 0.72 + fill + spec + rim;
+            // 외곽 실루엣을 순수 블랙 배경과 선명히 분리하는 림 라이트
+            float rim  = pow(1.0 - clamp(dot(n, viewDir), 0.0, 1.0), 2.1) * 0.52;
+
+            float lum = 0.14 + diff + fill + back + spec + rim;
+
             if (uFlow > 0.5) {
-              lum += sin(vUv.x * 24.0 - uTime * 3.5) * 0.14;
+              float wave = sin(vLocalPos.x * 0.45 + vLocalPos.y * 0.45 - uTime * 3.2) * 0.16;
+              lum += wave;
             }
-            lum = clamp(lum, 0.04, 0.99);
+
+            lum = clamp(lum, 0.12, 1.0);
             gl_FragColor = vec4(vec3(lum), 1.0);
-          }
-        `
-      });
-
-      // 2) 한글 / 한자어 / 영문 키네틱 타이포그래피 재질
-      typoMaterial = new THREE.ShaderMaterial({
-        uniforms: {
-          uTextMap: { value: textTextures.ko },
-          uTime: { value: 0.0 },
-          uFlow: { value: 0.0 }
-        },
-        vertexShader: `
-          varying vec3 vNormalView;
-          varying vec3 vViewPos;
-          varying vec2 vUv;
-          void main() {
-            vNormalView = normalize(normalMatrix * normal);
-            vec4 mvPos = modelViewMatrix * vec4(position, 1.0);
-            vViewPos = -mvPos.xyz;
-            vUv = uv;
-            gl_Position = projectionMatrix * mvPos;
-          }
-        `,
-        fragmentShader: `
-          uniform sampler2D uTextMap;
-          uniform float uTime;
-          uniform float uFlow;
-          varying vec3 vNormalView;
-          varying vec3 vViewPos;
-          varying vec2 vUv;
-
-          void main() {
-            vec3 n = normalize(vNormalView);
-            vec3 viewDir = normalize(vViewPos);
-
-            vec3 keyDir = normalize(vec3(-0.55, 0.65, 0.75));
-            float diff = max(dot(n, keyDir), 0.0);
-            float rim = pow(1.0 - max(dot(n, viewDir), 0.0), 2.2) * 0.35;
-            float shade = clamp(0.18 + diff * 0.78 + rim, 0.10, 1.0);
-
-            vec2 uv = vUv;
-            if (uFlow > 0.5) {
-              float rowId = floor(uv.y * 6.0);
-              float dir = mod(rowId, 2.0) < 0.5 ? 1.0 : -1.0;
-              uv.x += uTime * 0.06 * dir;
-            }
-
-            float ink = texture2D(uTextMap, uv).r;
-            vec3 baseSurface = vec3(0.03) * shade;
-            vec3 glyphColor = vec3(shade) * ink;
-            gl_FragColor = vec4(max(baseSurface, glyphColor), 1.0);
           }
         `
       });
@@ -1287,12 +1085,21 @@
       knotPivot.rotation.order = "YXZ";
       scene.add(knotPivot);
 
-      const knotGeometry = buildCleanTorusKnotGeometry();
+      const knotGeometry = new THREE.TorusKnotGeometry(10.2, 3.25, 320, 64, 2, 3);
       knotMesh = new THREE.Mesh(knotGeometry, shadedMaterial);
       knotPivot.add(knotMesh);
 
-      // 3) 풀스크린 ASCII 포스트 프로세싱 패스
-      renderTarget = new THREE.WebGLRenderTarget(Math.max(1, Math.floor(w * dpr)), Math.max(1, Math.floor(h * dpr)));
+      // 고해상도 2x2 슈퍼샘플링 ASCII 포스트 프로세싱 패스
+      renderTarget = new THREE.WebGLRenderTarget(
+        Math.max(1, Math.floor(w * dpr)),
+        Math.max(1, Math.floor(h * dpr)),
+        {
+          minFilter: THREE.LinearFilter,
+          magFilter: THREE.LinearFilter,
+          format: THREE.RGBAFormat
+        }
+      );
+
       postScene = new THREE.Scene();
       postCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
 
@@ -1302,7 +1109,7 @@
           uSceneTex: { value: renderTarget.texture },
           uAsciiTex: { value: asciiTex },
           uResolution: { value: new THREE.Vector2(w * dpr, h * dpr) },
-          uCellSize: { value: new THREE.Vector2(10.0 * dpr, 14.0 * dpr) }
+          uCellSize: { value: new THREE.Vector2(8.0 * dpr, 12.0 * dpr) }
         },
         vertexShader: `
           void main() {
@@ -1317,21 +1124,30 @@
 
           void main() {
             vec2 cellIndex = floor(gl_FragCoord.xy / uCellSize);
-            vec2 cellCenterPx = (cellIndex + 0.5) * uCellSize;
-            vec2 sceneUv = cellCenterPx / uResolution;
+            vec2 cellOriginPx = cellIndex * uCellSize;
 
-            float lum = texture2D(uSceneTex, sceneUv).r;
-            if (lum < 0.025) {
+            // 셀 내부 2x2 슈퍼샘플링으로 곡면 경계를 매끄럽게 추출
+            vec4 s0 = texture2D(uSceneTex, (cellOriginPx + uCellSize * vec2(0.25, 0.25)) / uResolution);
+            vec4 s1 = texture2D(uSceneTex, (cellOriginPx + uCellSize * vec2(0.75, 0.25)) / uResolution);
+            vec4 s2 = texture2D(uSceneTex, (cellOriginPx + uCellSize * vec2(0.25, 0.75)) / uResolution);
+            vec4 s3 = texture2D(uSceneTex, (cellOriginPx + uCellSize * vec2(0.75, 0.75)) / uResolution);
+
+            float coverage = (s0.a + s1.a + s2.a + s3.a) * 0.25;
+            if (coverage < 0.15) {
               gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
               return;
             }
 
+            float lumSum = s0.r * s0.a + s1.r * s1.a + s2.r * s2.a + s3.r * s3.a;
+            float lum = clamp(lumSum / max(coverage * 4.0, 0.001), 0.08, 1.0);
+
             vec2 cellUv = fract(gl_FragCoord.xy / uCellSize);
-            float charIdx = clamp(floor(lum * 9.99), 0.0, 9.0);
-            vec2 glyphUv = vec2((charIdx + cellUv.x) / 10.0, cellUv.y);
+            float charIdx = clamp(floor(lum * 8.999), 0.0, 8.0);
+            vec2 glyphUv = vec2((charIdx + cellUv.x) / 9.0, cellUv.y);
 
             float mask = texture2D(uAsciiTex, glyphUv).r;
-            float brightness = mix(0.25, 1.0, pow(lum, 0.78));
+            // 어두운 음영부도 배경과 명확히 구분되도록 최소 밝기(0.38) 보장
+            float brightness = mix(0.38, 1.0, pow(lum, 0.75)) * smoothstep(0.10, 0.45, coverage);
             gl_FragColor = vec4(vec3(mask * brightness), 1.0);
           }
         `
@@ -1340,7 +1156,7 @@
       const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), asciiPassMaterial);
       postScene.add(quad);
 
-      // 마우스 회전 / 이동 / 줌 이벤트
+      // 마우스 회전 / 이동 / 줌 컨트롤
       stage.addEventListener("mousedown", e => {
         if (e.button === 2 || e.shiftKey) {
           dragMode = "pan";
@@ -1373,7 +1189,7 @@
       stage.addEventListener("wheel", e => {
         e.preventDefault();
         const zoomFactor = 1 + e.deltaY * 0.0012;
-        targetCamZ = Math.min(95.0, Math.max(22.0, targetCamZ * zoomFactor));
+        targetCamZ = Math.min(95.0, Math.max(20.0, targetCamZ * zoomFactor));
       }, { passive: false });
 
       window.addEventListener("resize", resizeAnatomyViewport);
@@ -1398,22 +1214,7 @@
       }
       if (asciiPassMaterial) {
         asciiPassMaterial.uniforms.uResolution.value.set(w * dpr, h * dpr);
-        asciiPassMaterial.uniforms.uCellSize.value.set(10.0 * dpr, 14.0 * dpr);
-      }
-    }
-
-    function setGlyphMode(mode) {
-      glyphMode = mode;
-      ["ascii", "ko", "hj", "en"].forEach(m => {
-        document.getElementById("mode-" + m).classList.toggle("active", m === mode);
-      });
-
-      if (!knotMesh) return;
-      if (mode === "ascii") {
-        knotMesh.material = shadedMaterial;
-      } else {
-        typoMaterial.uniforms.uTextMap.value = textTextures[mode];
-        knotMesh.material = typoMaterial;
+        asciiPassMaterial.uniforms.uCellSize.value.set(8.0 * dpr, 12.0 * dpr);
       }
     }
 
@@ -1428,7 +1229,6 @@
       document.getElementById("btn-flow").classList.toggle("active", flowEnabled);
       document.getElementById("btn-flow").innerText = `FLOW : ${flowEnabled ? "ON" : "OFF"}`;
       if (shadedMaterial) shadedMaterial.uniforms.uFlow.value = flowEnabled ? 1.0 : 0.0;
-      if (typoMaterial) typoMaterial.uniforms.uFlow.value = flowEnabled ? 1.0 : 0.0;
     }
 
     function resetAnatomyView() {
@@ -1451,22 +1251,17 @@
         knotPivot.rotation.y += 0.0065;
       }
 
-      if (flowEnabled) {
+      if (flowEnabled && shadedMaterial) {
         flowTime += 0.016;
-        if (shadedMaterial) shadedMaterial.uniforms.uTime.value = flowTime;
-        if (typoMaterial) typoMaterial.uniforms.uTime.value = flowTime;
+        shadedMaterial.uniforms.uTime.value = flowTime;
       }
 
-      if (glyphMode === "ascii") {
-        renderer.setRenderTarget(renderTarget);
-        renderer.clear();
-        renderer.render(scene, camera);
-        renderer.setRenderTarget(null);
-        renderer.render(postScene, postCamera);
-      } else {
-        renderer.setRenderTarget(null);
-        renderer.render(scene, camera);
-      }
+      renderer.setRenderTarget(renderTarget);
+      renderer.clear();
+      renderer.render(scene, camera);
+
+      renderer.setRenderTarget(null);
+      renderer.render(postScene, postCamera);
     }
 
     // =========================================================
