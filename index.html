@@ -467,7 +467,7 @@
           <div class="toolbar-group">
             <label>MODEL</label>
             <div class="toolbar-buttons">
-              <button class="btn-outline active" id="model-knot" onclick="change3DModel('knot')">TORUS KNOT (매듭 조형)</button>
+              <button class="btn-outline active" id="model-knot" onclick="resetAnatomyView()">TORUS KNOT (매듭 조형)</button>
             </div>
           </div>
 
@@ -494,7 +494,7 @@
         <div id="anatomy-stage" oncontextmenu="return false;">
           <div class="anatomy-hud">
             <span id="hud-left">LEFT DRAG : ROTATE · RIGHT/SHIFT DRAG : PAN · WHEEL : ZOOM IN / OUT</span>
-            <span id="hud-right">TARGET : <strong>TORUS KNOT</strong></span>
+            <span id="hud-right">TARGET : <strong>TORUS KNOT (P=2, Q=3)</strong></span>
           </div>
         </div>
       </div>
@@ -959,279 +959,119 @@
     }
 
     // =========================================================
-    // 6. 3D TORUS KNOT SCULPTURE ENGINE (INITIAL EDITION RESTORED)
+    // 6. CLASSIC TORUS KNOT ASCII & KINETIC TYPOGRAPHY ENGINE
     // =========================================================
-    const MODEL_SCALE = 18.0;
-    const ASCII_CHARS = [" ", ".", ":", "-", "=", "+", "*", "#", "%", "@"];
-
-    const SCULPTURE_CATALOG = {
-      0: { label: "삼엽매듭 · 三葉結 · TREFOIL TORUS KNOT", ko: "삼엽매듭", hj: "三葉結", en: "TREFOIL TORUS KNOT" }
+    const TERMINOLOGY_TEXTS = {
+      // 한글 (순우리말 해부학 용어)
+      ko: "이마근 · 눈둘레근 · 입둘레근 · 깨물근 · 목빗근 · 큰가슴근 · 앞톱니근 · 배곧은근 · 배바깥빗근 · 등세모근 · 넓은등근 · 가시아래근 · 큰원근 · 어깨세모근 · 위팔두갈래근 · 위팔세갈래근 · 위팔노근 · 큰볼기근 · 중간볼기근 · 넙다리곧은근 · 가쪽넓은근 · 안쪽넓은근 · 넙다리빗근 · 넙다리두갈래근 · 반힘줄근 · 반막근 · 앞정강근 · 장딴지근 · 가자미근 · 발꿈치힘줄 · ",
+      // 한자어 (한글로 표기한 한자어 의학용어)
+      hj: "전두근 · 안륜근 · 구륜근 · 교근 · 흉쇄유돌근 · 대흉근 · 전거근 · 복직근 · 외복사근 · 승모근 · 광배근 · 극하근 · 대원근 · 삼각근 · 상완이두근 · 상완삼두근 · 완요골근 · 대둔근 · 중둔근 · 대퇴직근 · 외측광근 · 내측광근 · 봉공근 · 대퇴이두근 · 반건양근 · 반막양근 · 전경골근 · 비복근 · 가자미근 · 아킬레스건 · ",
+      // ENGLISH (영문 해부학 용어)
+      en: "FRONTALIS · ORBICULARIS OCULI · MASSETER · STERNOCLEIDOMASTOID · PECTORALIS MAJOR · SERRATUS ANTERIOR · RECTUS ABDOMINIS · EXTERNAL OBLIQUE · TRAPEZIUS · LATISSIMUS DORSI · INFRASPINATUS · DELTOID · BICEPS BRACHII · TRICEPS BRACHII · BRACHIORADIALIS · GLUTEUS MAXIMUS · RECTUS FEMORIS · VASTUS LATERALIS · VASTUS MEDIALIS · SARTORIUS · BICEPS FEMORIS · SEMITENDINOSUS · SEMIMEMBRANOSUS · TIBIALIS ANTERIOR · GASTROCNEMIUS · SOLEUS · ACHILLES TENDON · "
     };
 
-    const MAX_SCULPTURE_ID = 1;
-    const STRIP_W = 2048;
-
     let glyphMode = "ascii";
-    let currentModelType = "knot";
     let autoRotate = true;
     let flowEnabled = false;
-    let flowPhase = 0;
+    let flowTime = 0;
 
-    let scene, camera, renderer, modelPivot;
-    let activeSculptureMesh = null;
-    let raycaster = new THREE.Raycaster();
-    let pointerNDC = new THREE.Vector2(-99, -99);
+    let scene, camera, renderer, knotPivot, knotMesh;
+    let shadedMaterial, typoMaterial;
+    let renderTarget, postScene, postCamera, asciiPassMaterial;
+    let textTextures = {};
 
     let dragMode = "none";
     let prevMouse = { x: 0, y: 0 };
-    const DEFAULT_CAM_Z = 148.0;
-    const DEFAULT_PAN_Y = 0.0;
+    const DEFAULT_CAM_Z = 52.0;
     let targetCamZ = DEFAULT_CAM_Z;
-    let targetPan = new THREE.Vector2(0, DEFAULT_PAN_Y);
+    let targetPan = new THREE.Vector2(0, 0);
 
     // ---------------------------------------------------------
-    // 6-A. 고선명 아틀라스 + 2048px 가변 자간 스트립 (1:1 종횡비 보장)
+    // 6-A. 정방향 고정폭 ASCII 아틀라스 (10단계 밝기 문자)
     // ---------------------------------------------------------
-    function buildProportionalTypographySystem() {
-      const charSet = new Set(ASCII_CHARS);
-      Object.values(SCULPTURE_CATALOG).forEach(entry => {
-        for (const ch of entry.ko) charSet.add(ch);
-        for (const ch of entry.hj) charSet.add(ch);
-        for (const ch of entry.en) charSet.add(ch);
-      });
-
-      const chars = Array.from(charSet);
-      const cols = 10;
-      const rows = Math.ceil(chars.length / cols);
-      const cellSize = 144;
-      const fontSize = 96;
-
+    function createAsciiGlyphTexture() {
+      const chars = [" ", ".", ":", "-", "=", "+", "*", "#", "%", "@"];
+      const cellW = 64;
+      const cellH = 64;
       const canvas = document.createElement("canvas");
-      canvas.width = cols * cellSize;
-      canvas.height = rows * cellSize;
+      canvas.width = cellW * chars.length;
+      canvas.height = cellH;
 
       const ctx = canvas.getContext("2d");
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "#000000";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
       ctx.fillStyle = "#ffffff";
-      ctx.font = `700 ${fontSize}px "Helvetica Neue", Helvetica, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif`;
+      ctx.font = '700 48px "JetBrains Mono", "SFMono-Regular", Consolas, "Courier New", monospace';
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
 
-      const charInfo = {};
       chars.forEach((ch, idx) => {
-        const c = idx % cols;
-        const r = Math.floor(idx / cols);
-        ctx.fillText(ch, c * cellSize + cellSize / 2, r * cellSize + cellSize / 2 + 2);
-
-        const inkPx = ch === " " ? 42 : ctx.measureText(ch).width;
-        const advPx = Math.min(cellSize * 0.92, Math.max(40, inkPx + 18));
-        charInfo[ch] = {
-          col: c,
-          row: r,
-          uSpan: advPx / cellSize
-        };
+        ctx.fillText(ch, idx * cellW + cellW / 2, cellH / 2 + 2);
       });
 
-      const atlasTex = new THREE.CanvasTexture(canvas);
-      atlasTex.generateMipmaps = true;
-      atlasTex.minFilter = THREE.LinearMipmapLinearFilter;
-      atlasTex.magFilter = THREE.LinearFilter;
-      atlasTex.needsUpdate = true;
-
-      const totalSpans = {
-        ko: new Float32Array(MAX_SCULPTURE_ID),
-        hj: new Float32Array(MAX_SCULPTURE_ID),
-        en: new Float32Array(MAX_SCULPTURE_ID)
-      };
-
-      function createLanguageStrip(langKey) {
-        const data = new Uint8Array(STRIP_W * MAX_SCULPTURE_ID * 4);
-        for (let mId = 0; mId < MAX_SCULPTURE_ID; mId++) {
-          const entry = SCULPTURE_CATALOG[mId] || SCULPTURE_CATALOG[0];
-          const word = (entry[langKey] || "KNOT") + " · ";
-          const glyphs = [];
-          let totalSpan = 0;
-          for (const ch of word) {
-            const info = charInfo[ch] || charInfo["#"];
-            glyphs.push(info);
-            totalSpan += info.uSpan;
-          }
-          totalSpans[langKey][mId] = totalSpan;
-
-          let curIdx = 0;
-          let accSpan = 0;
-          for (let x = 0; x < STRIP_W; x++) {
-            const uNorm = (x + 0.5) / STRIP_W;
-            const targetSpan = uNorm * totalSpan;
-            while (curIdx < glyphs.length - 1 && accSpan + glyphs[curIdx].uSpan < targetSpan) {
-              accSpan += glyphs[curIdx].uSpan;
-              curIdx++;
-            }
-            const g = glyphs[curIdx];
-            const localFrac = Math.max(0, Math.min(1, (targetSpan - accSpan) / g.uSpan));
-
-            const offset = (mId * STRIP_W + x) * 4;
-            data[offset]     = Math.round(((g.col + 0.5) / cols) * 255);
-            data[offset + 1] = Math.round(((g.row + 0.5) / rows) * 255);
-            data[offset + 2] = Math.round(localFrac * 255);
-            data[offset + 3] = Math.round(g.uSpan * 255);
-          }
-        }
-        const tex = new THREE.DataTexture(data, STRIP_W, MAX_SCULPTURE_ID, THREE.RGBAFormat);
-        tex.minFilter = THREE.NearestFilter;
-        tex.magFilter = THREE.NearestFilter;
-        tex.needsUpdate = true;
-        return tex;
-      }
-
-      const asciiData = new Uint8Array(ASCII_CHARS.length * 4);
-      ASCII_CHARS.forEach((ch, idx) => {
-        const g = charInfo[ch];
-        asciiData[idx * 4]     = Math.round(((g.col + 0.5) / cols) * 255);
-        asciiData[idx * 4 + 1] = Math.round(((g.row + 0.5) / rows) * 255);
-        asciiData[idx * 4 + 2] = Math.round(g.uSpan * 255);
-        asciiData[idx * 4 + 3] = 255;
-      });
-      const asciiStripTex = new THREE.DataTexture(asciiData, ASCII_CHARS.length, 1, THREE.RGBAFormat);
-      asciiStripTex.minFilter = THREE.NearestFilter;
-      asciiStripTex.magFilter = THREE.NearestFilter;
-      asciiStripTex.needsUpdate = true;
-
-      return {
-        atlasTex,
-        asciiStripTex,
-        cols,
-        rows,
-        totalSpans,
-        strips: {
-          ko: createLanguageStrip("ko"),
-          hj: createLanguageStrip("hj"),
-          en: createLanguageStrip("en")
-        }
-      };
-    }
-
-    const TYPO = buildProportionalTypographySystem();
-
-    // ---------------------------------------------------------
-    // 6-B. 연속 일체형 표면 메쉬 빌더 (물리적 호 길이 UV)
-    // ---------------------------------------------------------
-    class UnifiedSculptureBuilder {
-      constructor() {
-        this.positions = [];
-        this.normals = [];
-        this.uvs = [];
-        this.muscleIds = [];
-        this.wordSpans = [];
-        this.indices = [];
-      }
-
-      addSculptedPart({ rings, regionGrid }) {
-        const M = rings.length;
-        const N = rings[0].length;
-        const baseVertex = this.positions.length / 3;
-
-        const pts = rings.map(ring =>
-          ring.map(p => new THREE.Vector3(p[0] * MODEL_SCALE, p[1] * MODEL_SCALE, p[2] * MODEL_SCALE))
-        );
-
-        const centers = pts.map(ring => {
-          const c = new THREE.Vector3();
-          ring.forEach(p => c.add(p));
-          return c.divideScalar(N);
-        });
-
-        let outwardSign = 0;
-        for (let i = 0; i < M; i++) {
-          const i0 = Math.max(0, i - 1), i1 = Math.min(M - 1, i + 1);
-          for (let j = 0; j < N; j++) {
-            const j0 = (j - 1 + N) % N, j1 = (j + 1) % N;
-            const dU = new THREE.Vector3().subVectors(pts[i][j1], pts[i][j0]);
-            const dV = new THREE.Vector3().subVectors(pts[i1][j], pts[i0][j]);
-            const n = new THREE.Vector3().crossVectors(dU, dV);
-            outwardSign += n.dot(new THREE.Vector3().subVectors(pts[i][j], centers[i]));
-          }
-        }
-        const flip = outwardSign < 0 ? -1 : 1;
-
-        const vArc = new Float64Array(M);
-        vArc[0] = 0;
-        for (let i = 1; i < M; i++) {
-          let sum = 0;
-          for (let j = 0; j < N; j++) {
-            sum += pts[i][j].distanceTo(pts[i - 1][j]);
-          }
-          vArc[i] = vArc[i - 1] + sum / N;
-        }
-
-        const activeSpanTable = glyphMode === "ascii" ? TYPO.totalSpans.en : TYPO.totalSpans[glyphMode];
-
-        for (let i = 0; i < M; i++) {
-          const i0 = Math.max(0, i - 1), i1 = Math.min(M - 1, i + 1);
-          const uArc = new Float64Array(N + 1);
-          uArc[0] = 0;
-          for (let j = 1; j <= N; j++) {
-            uArc[j] = uArc[j - 1] + pts[i][j % N].distanceTo(pts[i][(j - 1) % N]);
-          }
-
-          for (let j = 0; j <= N; j++) {
-            const jj = j % N;
-            const j0 = (jj - 1 + N) % N, j1 = (jj + 1) % N;
-            const p = pts[i][jj];
-            const dU = new THREE.Vector3().subVectors(pts[i][j1], pts[i][j0]);
-            const dV = new THREE.Vector3().subVectors(pts[i1][jj], pts[i0][jj]);
-            const n = new THREE.Vector3().crossVectors(dU, dV).multiplyScalar(flip);
-            if (n.lengthSq() < 1e-10) n.subVectors(p, centers[i]);
-            n.normalize();
-
-            const mId = regionGrid[i][jj];
-            this.positions.push(p.x, p.y, p.z);
-            this.normals.push(n.x, n.y, n.z);
-            this.uvs.push(uArc[j], vArc[i]);
-            this.muscleIds.push(mId);
-            this.wordSpans.push(activeSpanTable[mId] || 10.0);
-          }
-        }
-
-        const stride = N + 1;
-        for (let i = 0; i < M - 1; i++) {
-          for (let j = 0; j < N; j++) {
-            const a = baseVertex + i * stride + j;
-            const b = baseVertex + (i + 1) * stride + j;
-            const c = baseVertex + (i + 1) * stride + (j + 1);
-            const d = baseVertex + i * stride + (j + 1);
-            if (flip > 0) {
-              this.indices.push(a, b, d, b, c, d);
-            } else {
-              this.indices.push(a, d, b, b, d, c);
-            }
-          }
-        }
-      }
-
-      buildGeometry() {
-        const geom = new THREE.BufferGeometry();
-        geom.setAttribute("position", new THREE.Float32BufferAttribute(this.positions, 3));
-        geom.setAttribute("normal", new THREE.Float32BufferAttribute(this.normals, 3));
-        geom.setAttribute("uv", new THREE.Float32BufferAttribute(this.uvs, 2));
-        geom.setAttribute("aMuscleId", new THREE.Float32BufferAttribute(this.muscleIds, 1));
-        geom.setAttribute("aWordSpan", new THREE.Float32BufferAttribute(this.wordSpans, 1));
-        geom.setIndex(this.indices);
-        return geom;
-      }
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.minFilter = THREE.LinearFilter;
+      tex.magFilter = THREE.LinearFilter;
+      tex.generateMipmaps = false;
+      tex.needsUpdate = true;
+      return tex;
     }
 
     // ---------------------------------------------------------
-    // 6-C. 삼엽 매듭 조형 (TORUS KNOT) 지오메트리
+    // 6-B. 매듭 표면용 정방향 타이포그래피 텍스처 (16:1 무왜곡 비율)
     // ---------------------------------------------------------
-    function buildTorusKnotGeometry() {
-      const B = new UnifiedSculptureBuilder();
-      const segsU = 360, segsV = 56;
-      const p = 2, q = 3, scale = 0.76, tubeRadius = 0.39;
+    function createTypoBandTexture(phrase, maxAnisotropy) {
+      const width = 4096;
+      const height = 256;
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+
+      const ctx = canvas.getContext("2d");
+      ctx.fillStyle = "#050505";
+      ctx.fillRect(0, 0, width, height);
+
+      ctx.fillStyle = "#ffffff";
+      ctx.font = '700 30px "Helvetica Neue", Helvetica, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif';
+      ctx.textBaseline = "middle";
+
+      const rowCount = 6;
+      const rowHeight = height / rowCount;
+
+      for (let r = 0; r < rowCount; r++) {
+        const y = r * rowHeight + rowHeight * 0.52;
+        let x = -((r * 173) % 420);
+        while (x < width + 600) {
+          ctx.fillText(phrase, x, y);
+          x += ctx.measureText(phrase).width;
+        }
+      }
+
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.wrapS = THREE.RepeatWrapping;
+      tex.wrapT = THREE.RepeatWrapping;
+      tex.anisotropy = maxAnisotropy;
+      tex.minFilter = THREE.LinearMipmapLinearFilter;
+      tex.magFilter = THREE.LinearFilter;
+      tex.needsUpdate = true;
+      return tex;
+    }
+
+    // ---------------------------------------------------------
+    // 6-C. 삼엽 매듭 지오메트리 (우손 법칙 정방향 UV 보장)
+    // ---------------------------------------------------------
+    function buildCleanTorusKnotGeometry() {
+      const tubularSegments = 320;
+      const radialSegments = 64;
+      const p = 2;
+      const q = 3;
+      const scale = 5.4;
+      const tubeRadius = 2.75;
 
       const centers = [];
-      for (let i = 0; i <= segsU; i++) {
-        const t = (i / segsU) * Math.PI * 2;
+      for (let i = 0; i <= tubularSegments; i++) {
+        const t = (i / tubularSegments) * Math.PI * 2;
         const r = Math.cos(q * t) + 2.0;
         centers.push(new THREE.Vector3(
           r * Math.cos(p * t) * scale,
@@ -1240,17 +1080,33 @@
         ));
       }
 
-      const tangents = centers.map((_, i) => {
-        const prev = centers[(i - 1 + segsU) % segsU];
-        const next = centers[(i + 1) % segsU];
-        return new THREE.Vector3().subVectors(next, prev).normalize();
-      });
+      const tangents = [];
+      const arcU = new Float32Array(tubularSegments + 1);
+      arcU[0] = 0;
+
+      for (let i = 0; i <= tubularSegments; i++) {
+        const prev = centers[(i - 1 + tubularSegments) % tubularSegments];
+        const next = centers[(i + 1) % tubularSegments];
+        tangents.push(new THREE.Vector3().subVectors(next, prev).normalize());
+        if (i > 0) {
+          arcU[i] = arcU[i - 1] + centers[i].distanceTo(centers[i - 1]);
+        }
+      }
 
       let normal = new THREE.Vector3(0, 1, 0);
       normal.sub(tangents[0].clone().multiplyScalar(tangents[0].dot(normal))).normalize();
 
-      const rings = [], regs = [];
-      for (let i = 0; i <= segsU; i++) {
+      const totalLengthU = arcU[tubularSegments];
+      const circumferenceV = 2 * Math.PI * tubeRadius;
+      // 캔버스 비율(4096 / 256 = 16)에 맞춘 타일 반복 횟수
+      const uRepeats = Math.max(1, Math.round(totalLengthU / (circumferenceV * 16.0)));
+
+      const positions = [];
+      const normals = [];
+      const uvs = [];
+      const indices = [];
+
+      for (let i = 0; i <= tubularSegments; i++) {
         if (i > 0) {
           const axis = new THREE.Vector3().crossVectors(tangents[i - 1], tangents[i]);
           if (axis.lengthSq() > 1e-10) {
@@ -1259,184 +1115,232 @@
             normal.applyAxisAngle(axis, ang).normalize();
           }
         }
+
         const binormal = new THREE.Vector3().crossVectors(tangents[i], normal).normalize();
-        const ring = [], idRow = [];
-        for (let j = 0; j < segsV; j++) {
-          const th = (j / segsV) * Math.PI * 2;
-          const pt = centers[i].clone()
-            .addScaledVector(normal, Math.cos(th) * tubeRadius)
-            .addScaledVector(binormal, Math.sin(th) * tubeRadius);
-          ring.push([pt.x, pt.y, pt.z]);
-          idRow.push(0);
+        const uCoord = (arcU[i] / totalLengthU) * uRepeats;
+
+        for (let j = 0; j <= radialSegments; j++) {
+          const vCoord = j / radialSegments;
+          // θ = -v * 2π 로 설정해 (+u = 오른쪽, +v = 위쪽) 정방향 보장
+          const theta = -vCoord * Math.PI * 2;
+          const cosT = Math.cos(theta);
+          const sinT = Math.sin(theta);
+
+          const outDir = new THREE.Vector3()
+            .addScaledVector(normal, cosT)
+            .addScaledVector(binormal, sinT)
+            .normalize();
+
+          const pos = centers[i].clone().addScaledVector(outDir, tubeRadius);
+
+          positions.push(pos.x, pos.y, pos.z);
+          normals.push(outDir.x, outDir.y, outDir.z);
+          uvs.push(uCoord, vCoord);
         }
-        rings.push(ring);
-        regs.push(idRow);
       }
 
-      B.addSculptedPart({ rings, regionGrid: regs });
-      return B.buildGeometry();
+      const stride = radialSegments + 1;
+      for (let i = 0; i < tubularSegments; i++) {
+        for (let j = 0; j < radialSegments; j++) {
+          const a = i * stride + j;
+          const b = (i + 1) * stride + j;
+          const c = (i + 1) * stride + (j + 1);
+          const d = i * stride + (j + 1);
+          indices.push(a, b, d, b, c, d);
+        }
+      }
+
+      const geom = new THREE.BufferGeometry();
+      geom.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+      geom.setAttribute("normal", new THREE.Float32BufferAttribute(normals, 3));
+      geom.setAttribute("uv", new THREE.Float32BufferAttribute(uvs, 2));
+      geom.setIndex(indices);
+      return geom;
     }
 
     // ---------------------------------------------------------
-    // 6-D. 초창기 매듭 조형 아스키 아트 & 타이포그래피 셰이더
+    // 6-D. Three.js 뷰포트 및 ASCII / 타이포그래피 파이프라인 초기화
     // ---------------------------------------------------------
-    function createKnotShaderMaterial() {
-      const cols = TYPO.cols;
-      const rows = TYPO.rows;
+    function initAnatomyEngine() {
+      const stage = document.getElementById("anatomy-stage");
+      const w = stage.clientWidth;
+      const h = stage.clientHeight;
+      const dpr = Math.min(window.devicePixelRatio, 2);
 
-      return new THREE.ShaderMaterial({
-        extensions: {
-          derivatives: true
-        },
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x000000);
+
+      camera = new THREE.PerspectiveCamera(36, w / h, 0.1, 400);
+      camera.position.set(0, 0, DEFAULT_CAM_Z);
+
+      renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+      renderer.setPixelRatio(dpr);
+      renderer.setSize(w, h);
+      stage.appendChild(renderer.domElement);
+
+      const maxAniso = renderer.capabilities.getMaxAnisotropy();
+      textTextures = {
+        ko: createTypoBandTexture(TERMINOLOGY_TEXTS.ko, maxAniso),
+        hj: createTypoBandTexture(TERMINOLOGY_TEXTS.hj, maxAniso),
+        en: createTypoBandTexture(TERMINOLOGY_TEXTS.en, maxAniso)
+      };
+
+      // 1) ASCII 모드용 3D 스튜디오 음영 재질
+      shadedMaterial = new THREE.ShaderMaterial({
         uniforms: {
-          uAtlas: { value: TYPO.atlasTex },
-          uAsciiStrip: { value: TYPO.asciiStripTex },
-          uWordStrip: { value: TYPO.strips.en },
-          uAsciiMode: { value: 1.0 },
-          uMaxMuscles: { value: MAX_SCULPTURE_ID },
-          uFlowPhase: { value: 0.0 },
-          uCharHeightWorld: { value: 1.05 }
+          uTime: { value: 0.0 },
+          uFlow: { value: 0.0 }
         },
         vertexShader: `
-          attribute float aMuscleId;
-          attribute float aWordSpan;
-
           varying vec3 vNormalView;
           varying vec3 vViewPos;
-          varying vec2 vWorldArc;
-          varying float vMuscleId;
-          varying float vWordSpan;
-
+          varying vec2 vUv;
           void main() {
             vNormalView = normalize(normalMatrix * normal);
             vec4 mvPos = modelViewMatrix * vec4(position, 1.0);
             vViewPos = -mvPos.xyz;
-            vWorldArc = uv;
-            vMuscleId = aMuscleId;
-            vWordSpan = aWordSpan;
+            vUv = uv;
             gl_Position = projectionMatrix * mvPos;
           }
         `,
         fragmentShader: `
-          uniform sampler2D uAtlas;
-          uniform sampler2D uAsciiStrip;
-          uniform sampler2D uWordStrip;
-          uniform float uAsciiMode;
-          uniform float uMaxMuscles;
-          uniform float uFlowPhase;
-          uniform float uCharHeightWorld;
-
+          uniform float uTime;
+          uniform float uFlow;
           varying vec3 vNormalView;
           varying vec3 vViewPos;
-          varying vec2 vWorldArc;
-          varying float vMuscleId;
-          varying float vWordSpan;
+          varying vec2 vUv;
 
           void main() {
             vec3 n = normalize(vNormalView);
-            if (!gl_FrontFacing) n = -n;
             vec3 viewDir = normalize(vViewPos);
 
-            // 3점 스튜디오 조각 조명
-            vec3 keyDir  = normalize(vec3(-0.56, 0.54, 0.72));
-            vec3 fillDir = normalize(vec3( 0.58, 0.16, 0.62));
-            vec3 rimDir  = normalize(vec3( 0.85, 0.25, -0.45));
+            vec3 keyDir  = normalize(vec3(-0.55, 0.65, 0.75));
+            vec3 fillDir = normalize(vec3( 0.60, -0.25, 0.55));
 
-            float halfLambert = dot(n, keyDir) * 0.5 + 0.5;
-            float keyLight  = pow(clamp(halfLambert, 0.0, 1.0), 1.32) * 0.84;
-            float fillLight = max(dot(n, fillDir), 0.0) * 0.24;
-            float rimFactor = pow(1.0 - clamp(dot(n, viewDir), 0.0, 1.0), 2.3);
-            float rimLight  = rimFactor * max(dot(n, rimDir) * 0.5 + 0.5, 0.0) * 0.36;
+            float diff = max(dot(n, keyDir), 0.0);
+            float fill = max(dot(n, fillDir), 0.0) * 0.25;
+            float spec = pow(max(dot(reflect(-keyDir, n), viewDir), 0.0), 22.0) * 0.35;
+            float rim  = pow(1.0 - max(dot(n, viewDir), 0.0), 2.4) * 0.32;
 
-            float baseLum = clamp(0.10 + keyLight + fillLight + rimLight, 0.05, 0.98);
-
-            // 물리적 호 길이 기반 1:1 종횡비 아스키 / 타이포그래피 좌표
-            float rowCoord = vWorldArc.y / uCharHeightWorld;
-            float rowIndex = floor(rowCoord);
-            float rowFrac  = fract(rowCoord);
-
-            vec2 dRow = vec2(dFdx(rowCoord), dFdy(rowCoord));
-            float pixelsPerChar = 1.0 / max(length(dRow), 1e-5);
-
-            float rowStagger = fract(rowIndex * 0.371) + uFlowPhase;
-            vec2 atlasUv;
-
-            if (uAsciiMode > 0.5) {
-              float colCoord = (vWorldArc.x / (uCharHeightWorld * 0.74)) + rowStagger * 4.0;
-              float cellFracX = fract(colCoord);
-              float lumIdx = clamp(floor(baseLum * 9.99), 0.0, 9.0);
-              vec4 aInfo = texture2D(uAsciiStrip, vec2((lumIdx + 0.5) / 10.0, 0.5));
-              float uSpan = aInfo.z;
-              float uLocal = 0.5 + (cellFracX - 0.5) * uSpan;
-              float vLocal = 0.5 + (rowFrac - 0.5) * 0.88;
-              atlasUv = vec2(
-                aInfo.x + (uLocal - 0.5) / ${cols.toFixed(1)},
-                1.0 - (1.0 - aInfo.y + (0.5 - vLocal) / ${rows.toFixed(1)})
-              );
-            } else {
-              float wordWidthWorld = max(vWordSpan * uCharHeightWorld, uCharHeightWorld);
-              float uNorm = fract((vWorldArc.x / wordWidthWorld) + rowStagger);
-              float mRow = (floor(vMuscleId + 0.5) + 0.5) / uMaxMuscles;
-              vec4 wInfo = texture2D(uWordStrip, vec2(uNorm, mRow));
-              float uLocal = wInfo.z;
-              float uSpan  = wInfo.w;
-              float vLocal = 0.5 + (rowFrac - 0.5) * 0.88;
-              atlasUv = vec2(
-                wInfo.x + ((uLocal - 0.5) * uSpan) / ${cols.toFixed(1)},
-                1.0 - (1.0 - wInfo.y + (0.5 - vLocal) / ${rows.toFixed(1)})
-              );
+            float lum = 0.08 + diff * 0.72 + fill + spec + rim;
+            if (uFlow > 0.5) {
+              lum += sin(vUv.x * 24.0 - uTime * 3.5) * 0.14;
             }
+            lum = clamp(lum, 0.04, 0.99);
+            gl_FragColor = vec4(vec3(lum), 1.0);
+          }
+        `
+      });
 
-            float glyphAlpha = texture2D(uAtlas, atlasUv).a;
-            float aaWidth = clamp(1.15 / max(pixelsPerChar, 1.0), 0.04, 0.22);
-            float crispGlyph = smoothstep(0.42 - aaWidth, 0.42 + aaWidth, glyphAlpha);
-
-            vec3 textInk = vec3(mix(0.28, 1.0, pow(baseLum, 0.72))) * crispGlyph;
-            gl_FragColor = vec4(textInk, 1.0);
+      // 2) 한글 / 한자어 / 영문 키네틱 타이포그래피 재질
+      typoMaterial = new THREE.ShaderMaterial({
+        uniforms: {
+          uTextMap: { value: textTextures.ko },
+          uTime: { value: 0.0 },
+          uFlow: { value: 0.0 }
+        },
+        vertexShader: `
+          varying vec3 vNormalView;
+          varying vec3 vViewPos;
+          varying vec2 vUv;
+          void main() {
+            vNormalView = normalize(normalMatrix * normal);
+            vec4 mvPos = modelViewMatrix * vec4(position, 1.0);
+            vViewPos = -mvPos.xyz;
+            vUv = uv;
+            gl_Position = projectionMatrix * mvPos;
           }
         `,
-        side: THREE.FrontSide
+        fragmentShader: `
+          uniform sampler2D uTextMap;
+          uniform float uTime;
+          uniform float uFlow;
+          varying vec3 vNormalView;
+          varying vec3 vViewPos;
+          varying vec2 vUv;
+
+          void main() {
+            vec3 n = normalize(vNormalView);
+            vec3 viewDir = normalize(vViewPos);
+
+            vec3 keyDir = normalize(vec3(-0.55, 0.65, 0.75));
+            float diff = max(dot(n, keyDir), 0.0);
+            float rim = pow(1.0 - max(dot(n, viewDir), 0.0), 2.2) * 0.35;
+            float shade = clamp(0.18 + diff * 0.78 + rim, 0.10, 1.0);
+
+            vec2 uv = vUv;
+            if (uFlow > 0.5) {
+              float rowId = floor(uv.y * 6.0);
+              float dir = mod(rowId, 2.0) < 0.5 ? 1.0 : -1.0;
+              uv.x += uTime * 0.06 * dir;
+            }
+
+            float ink = texture2D(uTextMap, uv).r;
+            vec3 baseSurface = vec3(0.03) * shade;
+            vec3 glyphColor = vec3(shade) * ink;
+            gl_FragColor = vec4(max(baseSurface, glyphColor), 1.0);
+          }
+        `
       });
-    }
 
-    function updateGeometryWordSpans(geom, mode) {
-      if (!geom) return;
-      const idAttr = geom.getAttribute("aMuscleId");
-      const spanAttr = geom.getAttribute("aWordSpan");
-      if (!idAttr || !spanAttr) return;
-      const table = mode === "ascii" ? TYPO.totalSpans.en : TYPO.totalSpans[mode];
-      const count = idAttr.count;
-      for (let i = 0; i < count; i++) {
-        spanAttr.setX(i, table[Math.round(idAttr.getX(i))] || 10.0);
-      }
-      spanAttr.needsUpdate = true;
-    }
+      knotPivot = new THREE.Group();
+      knotPivot.rotation.order = "YXZ";
+      scene.add(knotPivot);
 
-    // ---------------------------------------------------------
-    // 6-E. Three.js 뷰포트 초기화 & 컨트롤
-    // ---------------------------------------------------------
-    let cachedKnotGeometry = null;
+      const knotGeometry = buildCleanTorusKnotGeometry();
+      knotMesh = new THREE.Mesh(knotGeometry, shadedMaterial);
+      knotPivot.add(knotMesh);
 
-    function initAnatomyEngine() {
-      const stage = document.getElementById("anatomy-stage");
-      scene = new THREE.Scene();
-      scene.background = new THREE.Color(0x000000);
+      // 3) 풀스크린 ASCII 포스트 프로세싱 패스
+      renderTarget = new THREE.WebGLRenderTarget(Math.max(1, Math.floor(w * dpr)), Math.max(1, Math.floor(h * dpr)));
+      postScene = new THREE.Scene();
+      postCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
 
-      camera = new THREE.PerspectiveCamera(34, stage.clientWidth / stage.clientHeight, 0.1, 600);
-      camera.position.set(0, DEFAULT_PAN_Y, DEFAULT_CAM_Z);
+      const asciiTex = createAsciiGlyphTexture();
+      asciiPassMaterial = new THREE.ShaderMaterial({
+        uniforms: {
+          uSceneTex: { value: renderTarget.texture },
+          uAsciiTex: { value: asciiTex },
+          uResolution: { value: new THREE.Vector2(w * dpr, h * dpr) },
+          uCellSize: { value: new THREE.Vector2(10.0 * dpr, 14.0 * dpr) }
+        },
+        vertexShader: `
+          void main() {
+            gl_Position = vec4(position, 1.0);
+          }
+        `,
+        fragmentShader: `
+          uniform sampler2D uSceneTex;
+          uniform sampler2D uAsciiTex;
+          uniform vec2 uResolution;
+          uniform vec2 uCellSize;
 
-      renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-      renderer.setSize(stage.clientWidth, stage.clientHeight);
-      TYPO.atlasTex.anisotropy = renderer.capabilities.getMaxAnisotropy();
-      stage.appendChild(renderer.domElement);
+          void main() {
+            vec2 cellIndex = floor(gl_FragCoord.xy / uCellSize);
+            vec2 cellCenterPx = (cellIndex + 0.5) * uCellSize;
+            vec2 sceneUv = cellCenterPx / uResolution;
 
-      modelPivot = new THREE.Group();
-      modelPivot.rotation.order = "YXZ";
-      scene.add(modelPivot);
+            float lum = texture2D(uSceneTex, sceneUv).r;
+            if (lum < 0.025) {
+              gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+              return;
+            }
 
-      change3DModel("knot");
+            vec2 cellUv = fract(gl_FragCoord.xy / uCellSize);
+            float charIdx = clamp(floor(lum * 9.99), 0.0, 9.0);
+            vec2 glyphUv = vec2((charIdx + cellUv.x) / 10.0, cellUv.y);
 
+            float mask = texture2D(uAsciiTex, glyphUv).r;
+            float brightness = mix(0.25, 1.0, pow(lum, 0.78));
+            gl_FragColor = vec4(vec3(mask * brightness), 1.0);
+          }
+        `
+      });
+
+      const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), asciiPassMaterial);
+      postScene.add(quad);
+
+      // 마우스 회전 / 이동 / 줌 이벤트
       stage.addEventListener("mousedown", e => {
         if (e.button === 2 || e.shiftKey) {
           dragMode = "pan";
@@ -1451,64 +1355,25 @@
       });
 
       window.addEventListener("mousemove", e => {
-        const rect = stage.getBoundingClientRect();
-        if (e.clientX >= rect.left && e.clientX <= rect.right && e.clientY >= rect.top && e.clientY <= rect.bottom) {
-          pointerNDC.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-          pointerNDC.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-        } else {
-          pointerNDC.set(-99, -99);
-        }
-
-        if (dragMode === "none" || !modelPivot) return;
+        if (dragMode === "none" || !knotPivot) return;
         const dx = e.clientX - prevMouse.x;
         const dy = e.clientY - prevMouse.y;
 
         if (dragMode === "rotate") {
-          modelPivot.rotation.y += dx * 0.0085;
-          modelPivot.rotation.x = Math.max(-0.85, Math.min(0.85, modelPivot.rotation.x + dy * 0.006));
+          knotPivot.rotation.y += dx * 0.0085;
+          knotPivot.rotation.x = Math.max(-1.1, Math.min(1.1, knotPivot.rotation.x + dy * 0.0065));
         } else if (dragMode === "pan") {
           const panSpeed = targetCamZ * 0.0014;
-          targetPan.x = Math.max(-34.0, Math.min(34.0, targetPan.x - dx * panSpeed));
-          targetPan.y = Math.max(-44.0, Math.min(44.0, targetPan.y + dy * panSpeed));
+          targetPan.x = Math.max(-24.0, Math.min(24.0, targetPan.x - dx * panSpeed));
+          targetPan.y = Math.max(-24.0, Math.min(24.0, targetPan.y + dy * panSpeed));
         }
         prevMouse = { x: e.clientX, y: e.clientY };
       });
 
       stage.addEventListener("wheel", e => {
         e.preventDefault();
-        const rect = stage.getBoundingClientRect();
-        const ndcX = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-        const ndcY = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-
-        const oldZ = targetCamZ;
-        const zoomFactor = 1 + e.deltaY * 0.00125;
-        const newZ = Math.min(220.0, Math.max(24.0, oldZ * zoomFactor));
-        const ratio = newZ / oldZ;
-
-        let focusDepth = oldZ;
-        if (activeSculptureMesh) {
-          raycaster.setFromCamera(new THREE.Vector2(ndcX, ndcY), camera);
-          const hits = raycaster.intersectObject(activeSculptureMesh, false);
-          if (hits.length > 0) {
-            focusDepth = hits[0].distance;
-          }
-        }
-
-        const tanHalfFov = Math.tan((camera.fov * Math.PI) / 360);
-        const worldX = targetPan.x + ndcX * camera.aspect * tanHalfFov * focusDepth;
-        const worldY = targetPan.y + ndcY * tanHalfFov * focusDepth;
-
-        if (e.deltaY < 0) {
-          targetPan.x = worldX - ndcX * camera.aspect * tanHalfFov * (focusDepth * ratio);
-          targetPan.y = worldY - ndcY * tanHalfFov * (focusDepth * ratio);
-        } else {
-          targetPan.x += (0 - targetPan.x) * 0.22;
-          targetPan.y += (DEFAULT_PAN_Y - targetPan.y) * 0.22;
-        }
-
-        targetPan.x = Math.max(-34.0, Math.min(34.0, targetPan.x));
-        targetPan.y = Math.max(-44.0, Math.min(44.0, targetPan.y));
-        targetCamZ = newZ;
+        const zoomFactor = 1 + e.deltaY * 0.0012;
+        targetCamZ = Math.min(95.0, Math.max(22.0, targetCamZ * zoomFactor));
       }, { passive: false });
 
       window.addEventListener("resize", resizeAnatomyViewport);
@@ -1521,41 +1386,20 @@
       if (!stage || !renderer || stage.clientWidth === 0) return;
       const w = stage.clientWidth;
       const h = stage.clientHeight;
+      const dpr = Math.min(window.devicePixelRatio, 2);
+
       camera.aspect = w / h;
       camera.updateProjectionMatrix();
+      renderer.setPixelRatio(dpr);
       renderer.setSize(w, h);
-    }
 
-    function change3DModel(type) {
-      currentModelType = type;
-      document.getElementById("model-knot").classList.add("active");
-
-      if (activeSculptureMesh) {
-        modelPivot.remove(activeSculptureMesh);
-        activeSculptureMesh.material.dispose();
-        activeSculptureMesh = null;
+      if (renderTarget) {
+        renderTarget.setSize(Math.max(1, Math.floor(w * dpr)), Math.max(1, Math.floor(h * dpr)));
       }
-
-      modelPivot.rotation.set(0, 0, 0);
-      targetCamZ = DEFAULT_CAM_Z;
-      targetPan.set(0, DEFAULT_PAN_Y);
-
-      if (!cachedKnotGeometry) {
-        cachedKnotGeometry = buildTorusKnotGeometry();
+      if (asciiPassMaterial) {
+        asciiPassMaterial.uniforms.uResolution.value.set(w * dpr, h * dpr);
+        asciiPassMaterial.uniforms.uCellSize.value.set(10.0 * dpr, 14.0 * dpr);
       }
-      updateGeometryWordSpans(cachedKnotGeometry, glyphMode);
-
-      const mat = createKnotShaderMaterial();
-      mat.uniforms.uAsciiMode.value = glyphMode === "ascii" ? 1.0 : 0.0;
-      mat.uniforms.uCharHeightWorld.value = glyphMode === "ascii" ? 1.05 : 1.25;
-      if (glyphMode !== "ascii") {
-        mat.uniforms.uWordStrip.value = TYPO.strips[glyphMode];
-      }
-
-      activeSculptureMesh = new THREE.Mesh(cachedKnotGeometry, mat);
-      modelPivot.add(activeSculptureMesh);
-
-      document.getElementById("hud-right").innerHTML = `TARGET : <strong>TORUS KNOT</strong>`;
     }
 
     function setGlyphMode(mode) {
@@ -1564,17 +1408,12 @@
         document.getElementById("mode-" + m).classList.toggle("active", m === mode);
       });
 
-      if (activeSculptureMesh) {
-        updateGeometryWordSpans(activeSculptureMesh.geometry, mode);
-        const mat = activeSculptureMesh.material;
-        if (mode === "ascii") {
-          mat.uniforms.uAsciiMode.value = 1.0;
-          mat.uniforms.uCharHeightWorld.value = 1.05;
-        } else {
-          mat.uniforms.uAsciiMode.value = 0.0;
-          mat.uniforms.uWordStrip.value = TYPO.strips[mode];
-          mat.uniforms.uCharHeightWorld.value = 1.25;
-        }
+      if (!knotMesh) return;
+      if (mode === "ascii") {
+        knotMesh.material = shadedMaterial;
+      } else {
+        typoMaterial.uniforms.uTextMap.value = textTextures[mode];
+        knotMesh.material = typoMaterial;
       }
     }
 
@@ -1588,13 +1427,15 @@
       flowEnabled = !flowEnabled;
       document.getElementById("btn-flow").classList.toggle("active", flowEnabled);
       document.getElementById("btn-flow").innerText = `FLOW : ${flowEnabled ? "ON" : "OFF"}`;
+      if (shadedMaterial) shadedMaterial.uniforms.uFlow.value = flowEnabled ? 1.0 : 0.0;
+      if (typoMaterial) typoMaterial.uniforms.uFlow.value = flowEnabled ? 1.0 : 0.0;
     }
 
     function resetAnatomyView() {
       targetCamZ = DEFAULT_CAM_Z;
-      targetPan.set(0, DEFAULT_PAN_Y);
-      if (modelPivot) {
-        modelPivot.rotation.set(0, 0, 0);
+      targetPan.set(0, 0);
+      if (knotPivot) {
+        knotPivot.rotation.set(0, 0, 0);
       }
     }
 
@@ -1606,16 +1447,26 @@
       camera.position.x += (targetPan.x - camera.position.x) * 0.16;
       camera.position.y += (targetPan.y - camera.position.y) * 0.16;
 
-      if (autoRotate && dragMode === "none" && modelPivot) {
-        modelPivot.rotation.y += 0.0065;
+      if (autoRotate && dragMode === "none" && knotPivot) {
+        knotPivot.rotation.y += 0.0065;
       }
 
-      if (flowEnabled && activeSculptureMesh) {
-        flowPhase = (flowPhase + 0.0018) % 1.0;
-        activeSculptureMesh.material.uniforms.uFlowPhase.value = flowPhase;
+      if (flowEnabled) {
+        flowTime += 0.016;
+        if (shadedMaterial) shadedMaterial.uniforms.uTime.value = flowTime;
+        if (typoMaterial) typoMaterial.uniforms.uTime.value = flowTime;
       }
 
-      renderer.render(scene, camera);
+      if (glyphMode === "ascii") {
+        renderer.setRenderTarget(renderTarget);
+        renderer.clear();
+        renderer.render(scene, camera);
+        renderer.setRenderTarget(null);
+        renderer.render(postScene, postCamera);
+      } else {
+        renderer.setRenderTarget(null);
+        renderer.render(scene, camera);
+      }
     }
 
     // =========================================================
