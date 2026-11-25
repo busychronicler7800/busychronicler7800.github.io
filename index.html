@@ -4,62 +4,63 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>BUSYCHRONICLER7800</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Noto+Sans+KR:wght@400;500;700&family=Noto+Serif+KR:wght@500;700&display=swap" rel="stylesheet" />
   <style>
     :root {
-      --bg: #000000;
-      --fg: #ffffff;
+      --bg: #050505;
+      --panel: #0a0a0a;
+      --border: #262626;
+      --border-strong: #404040;
+      --text: #ececec;
       --muted: #7a7a7a;
-      --line: #2a2a2a;
-      --panel: #080808;
+      --accent: #ffffff;
     }
 
     * {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
-      border-radius: 0 !important;
     }
 
-    body {
+    html, body {
+      width: 100%;
+      height: 100%;
       background-color: var(--bg);
-      color: var(--fg);
-      font-family: "Helvetica Neue", Helvetica, Arial, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
-      line-height: 1.55;
+      color: var(--text);
+      font-family: 'JetBrains Mono', 'Noto Sans KR', monospace;
+      overflow-x: hidden;
       -webkit-font-smoothing: antialiased;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
     }
 
-    /* HEADER & NAVIGATION */
+    /* Header */
     header {
-      border-bottom: 1px solid var(--line);
-      padding: 20px 32px;
+      width: 100%;
+      height: 60px;
+      padding: 0 32px;
+      border-bottom: 1px solid var(--border);
       display: flex;
-      justify-content: space-between;
       align-items: center;
-      flex-wrap: wrap;
-      gap: 16px;
+      justify-content: space-between;
+      background: var(--bg);
       position: sticky;
       top: 0;
-      background: rgba(0, 0, 0, 0.94);
-      z-index: 100;
+      z-index: 20;
     }
 
     .brand {
-      font-size: 0.95rem;
+      font-size: 13px;
       font-weight: 700;
       letter-spacing: 0.14em;
-      text-transform: uppercase;
-      cursor: pointer;
+      color: var(--accent);
+      text-decoration: none;
     }
 
     nav {
       display: flex;
-      gap: 24px;
-      flex-wrap: wrap;
+      align-items: center;
+      gap: 28px;
     }
 
     .nav-btn {
@@ -67,2511 +68,639 @@
       border: none;
       color: var(--muted);
       font-family: inherit;
-      font-size: 0.8rem;
+      font-size: 11px;
       font-weight: 500;
       letter-spacing: 0.1em;
-      text-transform: uppercase;
       cursor: pointer;
-      padding: 4px 0;
+      padding: 6px 2px;
       border-bottom: 1px solid transparent;
-      transition: color 0.15s, border-color 0.15s;
+      transition: color 0.2s, border-color 0.2s;
     }
 
-    .nav-btn:hover,
+    .nav-btn:hover {
+      color: var(--text);
+    }
+
     .nav-btn.active {
-      color: var(--fg);
-      border-bottom-color: var(--fg);
+      color: var(--accent);
+      border-bottom-color: var(--accent);
     }
 
-    .auth-indicator {
-      font-size: 0.74rem;
-      letter-spacing: 0.08em;
-      color: var(--muted);
+    .status-badge {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      color: var(--muted);
     }
 
-    .badge-admin {
-      border: 1px solid var(--fg);
-      color: var(--fg);
-      padding: 1px 6px;
-      font-size: 0.68rem;
-      font-weight: 700;
+    .status-tag {
+      border: 1px solid var(--border-strong);
+      color: var(--text);
+      padding: 3px 7px;
+      font-size: 9px;
+      letter-spacing: 0.12em;
     }
 
-    /* MAIN CONTAINER */
+    /* Main Container */
     main {
-      width: 100%;
-      max-width: 1240px;
+      max-width: 1380px;
       margin: 0 auto;
-      padding: 28px 32px 80px;
-      flex: 1;
+      padding: 24px 32px 36px;
     }
 
-    .section {
+    .view-section {
       display: none;
     }
 
-    .section.active {
+    .view-section.active {
       display: block;
     }
 
-    .box {
-      border: 1px solid var(--line);
-      background: var(--panel);
-      padding: 24px;
-      margin-bottom: 24px;
-    }
-
-    h2 {
-      font-size: 0.82rem;
-      font-weight: 700;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      margin-bottom: 16px;
-      padding-bottom: 10px;
-      border-bottom: 1px solid var(--line);
-    }
-
-    /* FORMS & BUTTONS */
-    .form-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
-      margin-bottom: 16px;
-    }
-
-    .form-row-3 {
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 16px;
-      margin-bottom: 16px;
-    }
-
-    .form-group {
+    /* Control Strip */
+    .control-bar {
       display: flex;
-      flex-direction: column;
-      gap: 6px;
-      margin-bottom: 16px;
-    }
-
-    label {
-      font-size: 0.72rem;
-      letter-spacing: 0.08em;
-      color: var(--muted);
-      text-transform: uppercase;
-    }
-
-    input, textarea {
-      width: 100%;
-      background: #000000;
-      border: 1px solid var(--line);
-      color: var(--fg);
-      font-family: inherit;
-      font-size: 0.84rem;
-      padding: 9px 12px;
-      outline: none;
-    }
-
-    input:focus, textarea:focus {
-      border-color: var(--fg);
-    }
-
-    .btn {
-      background: var(--fg);
-      color: var(--bg);
-      border: 1px solid var(--fg);
-      font-family: inherit;
-      font-size: 0.76rem;
-      font-weight: 700;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      padding: 10px 18px;
-      cursor: pointer;
-      transition: background 0.15s, color 0.15s;
-    }
-
-    .btn:hover {
-      background: var(--bg);
-      color: var(--fg);
-    }
-
-    .btn-outline {
-      background: #050505;
-      color: #d0d0d0;
-      border: 1px solid #383838;
-      font-family: inherit;
-      font-size: 0.72rem;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      padding: 7px 14px;
-      cursor: pointer;
-      transition: background 0.15s, color 0.15s, border-color 0.15s;
-    }
-
-    .btn-outline:hover {
-      border-color: #ffffff;
-      color: #ffffff;
-    }
-
-    .btn-outline.active {
-      border-color: #ffffff;
-      background: #ffffff;
-      color: #000000;
-      font-weight: 700;
-    }
-
-    .btn-del {
-      background: transparent;
-      color: var(--muted);
-      border: 1px solid var(--line);
-      font-family: inherit;
-      font-size: 0.66rem;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      padding: 2px 8px;
-      cursor: pointer;
-      transition: color 0.15s, border-color 0.15s;
-    }
-
-    .btn-del:hover {
-      color: #ffffff;
-      border-color: #ffffff;
-    }
-
-    /* 01. 3D SCULPTURE VIEWER */
-    .anatomy-toolbar {
-      display: flex;
-      justify-content: space-between;
+      flex-wrap: wrap;
       align-items: flex-end;
-      flex-wrap: wrap;
-      gap: 16px;
-      margin-bottom: 16px;
+      gap: 32px;
+      padding-bottom: 18px;
     }
 
-    .toolbar-group {
+    .control-group {
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 8px;
     }
 
-    .toolbar-buttons {
+    .control-label {
+      font-size: 10px;
+      letter-spacing: 0.14em;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+
+    .btn-row {
       display: flex;
-      gap: 6px;
       flex-wrap: wrap;
-      align-items: center;
+      gap: 6px;
     }
 
-    #anatomy-stage {
-      width: 100%;
-      height: 820px;
-      border: 1px solid var(--line);
-      background: #000000;
+    .ctrl-btn {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-family: 'JetBrains Mono', 'Noto Sans KR', sans-serif;
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.04em;
+      padding: 8px 14px;
+      cursor: pointer;
+      transition: all 0.18s ease;
+    }
+
+    .ctrl-btn:hover {
+      border-color: var(--border-strong);
+      color: var(--text);
+    }
+
+    .ctrl-btn.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #050505;
+      font-weight: 700;
+    }
+
+    /* Canvas Frame */
+    .canvas-wrapper {
       position: relative;
+      width: 100%;
+      height: calc(100vh - 205px);
+      min-height: 520px;
+      border: 1px solid var(--border);
+      background: radial-gradient(circle at 50% 48%, #101010 0%, #050505 72%);
       overflow: hidden;
-      cursor: grab;
-      user-select: none;
     }
 
-    #anatomy-stage:active {
-      cursor: grabbing;
-    }
-
-    #anatomy-stage canvas {
+    #sculpture-canvas {
       width: 100%;
       height: 100%;
       display: block;
+      cursor: grab;
     }
 
-    .anatomy-hud {
+    #sculpture-canvas:active {
+      cursor: grabbing;
+    }
+
+    .canvas-meta-left,
+    .canvas-meta-right {
       position: absolute;
-      bottom: 12px;
-      left: 16px;
-      right: 16px;
-      display: flex;
-      justify-content: space-between;
-      flex-wrap: wrap;
-      gap: 8px;
-      font-size: 0.72rem;
-      letter-spacing: 0.08em;
+      bottom: 16px;
+      font-size: 10px;
+      letter-spacing: 0.1em;
       color: var(--muted);
       pointer-events: none;
-      background: rgba(0, 0, 0, 0.88);
-      padding: 6px 12px;
-      border: 1px solid #1e1e1e;
+      line-height: 1.6;
     }
 
-    .anatomy-hud strong {
-      color: var(--fg);
+    .canvas-meta-left {
+      left: 20px;
     }
 
-    /* 02. ARCHIVE GRID */
+    .canvas-meta-right {
+      right: 20px;
+      text-align: right;
+    }
+
+    /* Secondary Pages (Archive / Bio / Guestbook) */
+    .editorial-box {
+      border: 1px solid var(--border);
+      padding: 36px;
+      background: var(--panel);
+      min-height: 480px;
+    }
+
+    .editorial-title {
+      font-size: 14px;
+      letter-spacing: 0.14em;
+      color: var(--accent);
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
     .archive-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
       gap: 20px;
     }
 
     .archive-card {
-      border: 1px solid var(--line);
-      background: var(--panel);
+      border: 1px solid var(--border);
+      padding: 20px;
+      background: var(--bg);
+    }
+
+    .archive-card h3 {
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      margin-bottom: 8px;
+      color: var(--accent);
+    }
+
+    .archive-card p {
+      font-size: 11px;
+      color: var(--muted);
+      line-height: 1.7;
+    }
+
+    .bio-text {
+      max-width: 680px;
+      font-size: 12px;
+      line-height: 1.9;
+      color: #cccccc;
+    }
+
+    .guestbook-form {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 24px;
+      max-width: 680px;
+    }
+
+    .guestbook-input {
+      flex: 1;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: inherit;
+      font-size: 12px;
+      padding: 10px 14px;
+      outline: none;
+    }
+
+    .guestbook-input:focus {
+      border-color: var(--accent);
+    }
+
+    .guestbook-list {
+      max-width: 680px;
       display: flex;
       flex-direction: column;
-    }
-
-    .archive-card img {
-      width: 100%;
-      height: 220px;
-      object-fit: cover;
-      border-bottom: 1px solid var(--line);
-      filter: grayscale(100%);
-      transition: filter 0.25s;
-    }
-
-    .archive-card:hover img {
-      filter: grayscale(0%);
-    }
-
-    .archive-body {
-      padding: 18px;
-      flex: 1;
-    }
-
-    .archive-meta {
-      font-size: 0.7rem;
-      color: var(--muted);
-      letter-spacing: 0.08em;
-      margin-bottom: 6px;
-    }
-
-    .archive-title {
-      font-size: 0.95rem;
-      font-weight: 700;
-      margin-bottom: 8px;
-    }
-
-    .archive-desc {
-      font-size: 0.84rem;
-      color: #cccccc;
-      white-space: pre-line;
-    }
-
-    /* 03. BIO */
-    .bio-grid {
-      display: grid;
-      grid-template-columns: 1fr 2fr;
-      gap: 24px;
-    }
-
-    .bio-list {
-      list-style: none;
-    }
-
-    .bio-list li {
-      padding: 12px 0;
-      border-bottom: 1px solid var(--line);
-      display: flex;
-      justify-content: space-between;
-      gap: 16px;
-      font-size: 0.86rem;
-    }
-
-    .bio-key {
-      color: var(--muted);
-      font-size: 0.75rem;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      min-width: 120px;
-    }
-
-    /* 04. GUESTBOOK & AUTH */
-    .auth-mode-tabs {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 18px;
-    }
-
-    .gb-item {
-      border-bottom: 1px solid var(--line);
-      padding: 16px 0;
-    }
-
-    .gb-item:last-child {
-      border-bottom: none;
-    }
-
-    .gb-head {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 8px;
-      font-size: 0.76rem;
-      color: var(--muted);
-      margin-bottom: 8px;
-    }
-
-    .gb-author strong {
-      color: var(--fg);
-      font-weight: 700;
-    }
-
-    .gb-actions {
-      display: flex;
-      align-items: center;
       gap: 10px;
     }
 
-    .gb-msg {
-      font-size: 0.9rem;
-      white-space: pre-wrap;
-      word-break: break-word;
-    }
-
-    footer {
-      border-top: 1px solid var(--line);
-      padding: 20px 32px;
-      font-size: 0.74rem;
-      color: var(--muted);
+    .guestbook-item {
+      border: 1px solid var(--border);
+      padding: 12px 16px;
+      font-size: 11px;
       display: flex;
       justify-content: space-between;
-      letter-spacing: 0.06em;
+      color: #d4d4d4;
+    }
+
+    .guestbook-date {
+      color: var(--muted);
+      font-size: 10px;
     }
 
     @media (max-width: 768px) {
-      header, main, footer { padding-left: 18px; padding-right: 18px; }
-      .form-row, .form-row-3, .bio-grid { grid-template-columns: 1fr; }
-      #anatomy-stage { height: 580px; }
+      header {
+        padding: 0 16px;
+        height: auto;
+        py: 12px;
+        flex-direction: column;
+        gap: 10px;
+        padding-top: 12px;
+        padding-bottom: 12px;
+      }
+      nav {
+        gap: 14px;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+      .status-badge {
+        display: none;
+      }
+      main {
+        padding: 16px;
+      }
+      .canvas-wrapper {
+        height: 62vh;
+        min-height: 400px;
+      }
     }
   </style>
 </head>
 <body>
-
   <header>
-    <div class="brand" onclick="switchTab('anatomy')">BUSYCHRONICLER7800</div>
+    <a href="#sculpture" class="brand">BUSYCHRONICLER7800</a>
     <nav>
-      <button class="nav-btn active" id="nav-anatomy" onclick="switchTab('anatomy')">01. SCULPTURE</button>
-      <button class="nav-btn" id="nav-archive" onclick="switchTab('archive')">02. ARCHIVE</button>
-      <button class="nav-btn" id="nav-bio" onclick="switchTab('bio')">03. BIO</button>
-      <button class="nav-btn" id="nav-guestbook" onclick="switchTab('guestbook')">04. GUESTBOOK</button>
+      <button class="nav-btn active" data-target="sculpture">01. SCULPTURE</button>
+      <button class="nav-btn" data-target="archive">02. ARCHIVE</button>
+      <button class="nav-btn" data-target="bio">03. BIO</button>
+      <button class="nav-btn" data-target="guestbook">04. GUESTBOOK</button>
     </nav>
-    <div class="auth-indicator" id="header-auth-status">GUEST MODE</div>
+    <div class="status-badge">
+      <span>EDITION 01 // WEBGL</span>
+      <span class="status-tag">ACTIVE</span>
+    </div>
   </header>
 
   <main>
-    <!-- 01. 3D SCULPTURE & MICRO-TYPOGRAPHY VIEWER -->
-    <section id="sec-anatomy" class="section active">
-      <div class="box">
-        <div class="anatomy-toolbar">
-          <div class="toolbar-group">
-            <label>MODEL</label>
-            <div class="toolbar-buttons">
-              <button class="btn-outline active" id="model-knot" onclick="change3DModel('knot')">TORUS KNOT (매듭 조형)</button>
-              <button class="btn-outline" id="model-ecorche" onclick="change3DModel('ecorche')">ÉCORCHÉ (에코르셰)</button>
-            </div>
-          </div>
-
-          <div class="toolbar-group">
-            <label>TERMINOLOGY</label>
-            <div class="toolbar-buttons">
-              <button class="btn-outline active" id="mode-ascii" onclick="setGlyphMode('ascii')">ASCII</button>
-              <button class="btn-outline" id="mode-ko" onclick="setGlyphMode('ko')">한글 (우리말)</button>
-              <button class="btn-outline" id="mode-hj" onclick="setGlyphMode('hj')">한자어 (의학)</button>
-              <button class="btn-outline" id="mode-en" onclick="setGlyphMode('en')">ENGLISH</button>
-            </div>
-          </div>
-
-          <div class="toolbar-group">
-            <label>VIEW & CONTROL</label>
-            <div class="toolbar-buttons">
-              <button class="btn-outline active" id="btn-autorotate" onclick="toggleAutoRotate()">ROTATE : ON</button>
-              <button class="btn-outline" id="btn-flow" onclick="toggleFlow()">FLOW : OFF</button>
-              <button class="btn-outline" onclick="resetAnatomyView()">RESET VIEW</button>
-            </div>
+    <!-- 01. SCULPTURE -->
+    <section id="sculpture" class="view-section active">
+      <div class="control-bar">
+        <div class="control-group">
+          <span class="control-label">MODEL</span>
+          <div class="btn-row">
+            <button class="ctrl-btn active" id="btn-model-knot">TORUS KNOT (매듭 조형)</button>
           </div>
         </div>
 
-        <div id="anatomy-stage" oncontextmenu="return false;">
-          <div class="anatomy-hud">
-            <span id="hud-left">LEFT DRAG : ROTATE · RIGHT/SHIFT DRAG : PAN · WHEEL : DEEP ZOOM TO REVEAL TEXT</span>
-            <span id="hud-right">TARGET : <strong>TORUS KNOT</strong></span>
+        <div class="control-group">
+          <span class="control-label">TERMINOLOGY</span>
+          <div class="btn-row" id="term-controls">
+            <button class="ctrl-btn active" data-mode="ascii">ASCII</button>
+            <button class="ctrl-btn" data-mode="korean">한글 (우리말)</button>
+            <button class="ctrl-btn" data-mode="hanja">한자어 (의학)</button>
+            <button class="ctrl-btn" data-mode="english">ENGLISH</button>
           </div>
+        </div>
+
+        <div class="control-group">
+          <span class="control-label">VIEW &amp; CONTROL</span>
+          <div class="btn-row">
+            <button class="ctrl-btn active" id="btn-rotate">ROTATE: ON</button>
+            <button class="ctrl-btn active" id="btn-flow">FLOW: ON</button>
+            <button class="ctrl-btn" id="btn-reset">RESET VIEW</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="canvas-wrapper" id="canvas-container">
+        <canvas id="sculpture-canvas"></canvas>
+        <div class="canvas-meta-left">
+          FORM: TORUS KNOT (P=2, Q=3)<br />
+          SURFACE: KINETIC TYPOGRAPHY MESH
+        </div>
+        <div class="canvas-meta-right">
+          DRAG: ORBIT 360°<br />
+          SCROLL: ZOOM IN / OUT
         </div>
       </div>
     </section>
 
     <!-- 02. ARCHIVE -->
-    <section id="sec-archive" class="section">
-      <div id="admin-archive-box" class="box" style="display:none;">
-        <h2>NEW ARCHIVE ENTRY (ADMIN)</h2>
-        <div class="form-row">
-          <div class="form-group" style="margin:0;">
-            <label>TITLE</label>
-            <input type="text" id="arc-title" placeholder="EXHIBITION / EVENT / STUDY LOG" />
+    <section id="archive" class="view-section">
+      <div class="editorial-box">
+        <h2 class="editorial-title">02. ARCHIVE — DIGITAL SCULPTURE STUDIES</h2>
+        <div class="archive-grid">
+          <div class="archive-card">
+            <h3>STUDY 01 // TORUS KNOT (매듭 조형)</h3>
+            <p>연속된 매듭 곡면 위에 아스키 코드와 해부학·조형 언어를 맵핑한 초기 키네틱 타이포그래피 조각 연구.</p>
           </div>
-          <div class="form-group" style="margin:0;">
-            <label>IMAGE FILE (OPTIONAL)</label>
-            <input type="file" id="arc-file" accept="image/*" />
+          <div class="archive-card">
+            <h3>STUDY 02 // ÉCORCHÉ (IN PREPARATION)</h3>
+            <p>고해상도 3D 인체 해부학 조형 데이터 정밀 보정 및 표면 노말 맵 리토폴로지 작업 진행 중.</p>
           </div>
-        </div>
-        <div class="form-group">
-          <label>DESCRIPTION</label>
-          <textarea id="arc-desc" rows="3" placeholder="기록할 내용을 입력하세요..."></textarea>
-        </div>
-        <button class="btn" onclick="publishArchive()">PUBLISH ENTRY</button>
-        <div id="arc-status" style="margin-top:10px; font-size:0.8rem; color:var(--muted);"></div>
-      </div>
-
-      <div class="box">
-        <h2>CHRONICLE ARCHIVE</h2>
-        <div id="archive-list" class="archive-grid">
-          <p style="font-size:0.84rem; color:var(--muted);">LOADING ARCHIVES...</p>
         </div>
       </div>
     </section>
 
     <!-- 03. BIO -->
-    <section id="sec-bio" class="section">
-      <div class="bio-grid">
-        <div class="box">
-          <h2>IDENTITY</h2>
-          <p style="font-size:1.1rem; font-weight:700; margin-bottom:8px;">SIHOO KANG / 강시후</p>
-          <p style="font-size:0.84rem; color:var(--muted); margin-bottom:20px;">
-            PHYSICAL THERAPY UNDERGRADUATE · CREATIVE CODER · DIGITAL ARCHIVIST
-          </p>
-          <p style="font-size:0.84rem; color:#cccccc;">
-            인체 해부학 구조와 3D 웹 그래픽스, 미니멀리즘 타이포그래피를 결합한 인터랙티브 아트워크와 개인 아카이브를 구축합니다.
-          </p>
-        </div>
-
-        <div class="box">
-          <h2>INDEX & PRACTICE</h2>
-          <ul class="bio-list">
-            <li>
-              <span class="bio-key">DISCIPLINE</span>
-              <span>Department of Physical Therapy, Gachon University</span>
-            </li>
-            <li>
-              <span class="bio-key">3D & WEB</span>
-              <span>Blender (Écorché Sculpting), Three.js, WebGL Spatial Typography</span>
-            </li>
-            <li>
-              <span class="bio-key">SYSTEMS</span>
-              <span>Supabase, Vercel Serverless Proxy, GitHub Pages</span>
-            </li>
-            <li>
-              <span class="bio-key">ARCHIVE</span>
-              <span>Event Logs, Photography, Exhibition & Study Notes</span>
-            </li>
-            <li>
-              <span class="bio-key">DOMAIN</span>
-              <span>busychronicler7800.com</span>
-            </li>
-          </ul>
-        </div>
+    <section id="bio" class="view-section">
+      <div class="editorial-box">
+        <h2 class="editorial-title">03. BIO — BUSYCHRONICLER7800</h2>
+        <p class="bio-text">
+          BUSYCHRONICLER7800은 기하학적 위상 구조와 언어의 물성을 결합하여 웹 기반 3D 타이포그래피 조각을 탐구하는 디지털 아카이브입니다.<br /><br />
+          단순한 시각적 장식을 배제하고, 빛과 음영의 농도에 따라 배열되는 문자들의 리듬을 통해 입체 조형의 본질적인 구조를 기록합니다.
+        </p>
       </div>
     </section>
 
     <!-- 04. GUESTBOOK -->
-    <section id="sec-guestbook" class="section">
-      <div class="box" id="auth-panel">
-        <h2>AUTHENTICATION</h2>
-        <div id="auth-logged-out">
-          <div class="auth-mode-tabs">
-            <button class="btn-outline active" id="tab-auth-signin" onclick="setAuthMode('signin')">SIGN IN</button>
-            <button class="btn-outline" id="tab-auth-signup" onclick="setAuthMode('signup')">CREATE ACCOUNT</button>
-          </div>
-
-          <div id="form-signin">
-            <div class="form-row">
-              <div class="form-group" style="margin:0;">
-                <label>EMAIL</label>
-                <input type="email" id="signin-email" placeholder="you@example.com" />
-              </div>
-              <div class="form-group" style="margin:0;">
-                <label>PASSWORD</label>
-                <input type="password" id="signin-password" placeholder="••••••" />
-              </div>
-            </div>
-            <button class="btn" onclick="handleSignIn()">SIGN IN</button>
-          </div>
-
-          <div id="form-signup" style="display:none;">
-            <div class="form-row-3">
-              <div class="form-group" style="margin:0;">
-                <label>EMAIL</label>
-                <input type="email" id="signup-email" placeholder="you@example.com" />
-              </div>
-              <div class="form-group" style="margin:0;">
-                <label>PASSWORD (6+ CHARS)</label>
-                <input type="password" id="signup-password" placeholder="••••••" />
-              </div>
-              <div class="form-group" style="margin:0;">
-                <label>CONFIRM PASSWORD</label>
-                <input type="password" id="signup-password-confirm" placeholder="비밀번호 재입력" />
-              </div>
-            </div>
-            <button class="btn" onclick="handleSignUp()">CREATE ACCOUNT</button>
-          </div>
-        </div>
-
-        <div id="auth-logged-in" style="display:none; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
-          <div id="auth-user-info" style="font-size:0.85rem;"></div>
-          <button class="btn-outline" onclick="handleSignOut()">SIGN OUT</button>
-        </div>
-        <div id="auth-msg" style="margin-top:12px; font-size:0.8rem; color:var(--muted);"></div>
-      </div>
-
-      <div class="box">
-        <h2>GUESTBOOK</h2>
-        <div id="gb-form-area" style="margin-bottom:24px; padding-bottom:20px; border-bottom:1px solid var(--line);">
-          <div class="form-group">
-            <label>DISPLAY NAME (방명록 표시 이름)</label>
-            <input type="text" id="gb-name" maxlength="30" placeholder="방명록에 표시할 이름을 입력하세요 (예: 강시후)" />
-          </div>
-          <div class="form-group">
-            <label>LEAVE A MESSAGE</label>
-            <textarea id="gb-input" rows="3" placeholder="로그인 후 방명록을 남길 수 있습니다."></textarea>
-          </div>
-          <button class="btn" onclick="postGuestbook()">POST MESSAGE</button>
-          <div id="gb-status" style="margin-top:8px; font-size:0.8rem; color:var(--muted);"></div>
-        </div>
-
-        <div id="gb-list">
-          <p style="font-size:0.84rem; color:var(--muted);">LOADING MESSAGES...</p>
-        </div>
+    <section id="guestbook" class="view-section">
+      <div class="editorial-box">
+        <h2 class="editorial-title">04. GUESTBOOK</h2>
+        <form class="guestbook-form" id="guestbook-form">
+          <input type="text" class="guestbook-input" id="guestbook-input" placeholder="기록을 남겨주세요..." maxlength="120" required />
+          <button type="submit" class="ctrl-btn active">POST</button>
+        </form>
+        <div class="guestbook-list" id="guestbook-list"></div>
       </div>
     </section>
   </main>
 
-  <footer>
-    <span>© 2026 BUSYCHRONICLER7800</span>
-    <span>MINIMAL MONOCHROME ARCHIVE</span>
-  </footer>
-
-  <script>
-    // =========================================================
-    // 1. SUPABASE CONFIGURATION
-    // =========================================================
-    const SUPABASE_URL = "https://busychronicler7800-github-io-delta.vercel.app";
-    const SUPABASE_ANON_KEY = "sb_publishable_A3BcYO4bYJZGBbKmFivEaw_vTQqYIae";
-    const ADMIN_EMAIL = "kangsihoo0530@gmail.com";
-
-    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    let currentUser = null;
-
-    // =========================================================
-    // 2. NAVIGATION
-    // =========================================================
-    function switchTab(tabName) {
-      document.querySelectorAll(".section").forEach(sec => sec.classList.remove("active"));
-      document.querySelectorAll(".nav-btn").forEach(btn => btn.classList.remove("active"));
-      document.getElementById("sec-" + tabName).classList.add("active");
-      document.getElementById("nav-" + tabName).classList.add("active");
-
-      if (tabName === "anatomy") resizeAnatomyViewport();
-      if (tabName === "archive") loadArchives();
-      if (tabName === "guestbook") loadGuestbook();
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+      }
     }
+  </script>
 
-    // =========================================================
-    // 3. AUTHENTICATION
-    // =========================================================
-    function setAuthMode(mode) {
-      const isSignIn = mode === "signin";
-      document.getElementById("tab-auth-signin").classList.toggle("active", isSignIn);
-      document.getElementById("tab-auth-signup").classList.toggle("active", !isSignIn);
-      document.getElementById("form-signin").style.display = isSignIn ? "block" : "none";
-      document.getElementById("form-signup").style.display = isSignIn ? "none" : "block";
-      document.getElementById("auth-msg").innerText = "";
-    }
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
-    function updateAuthUI(user) {
-      currentUser = user;
-      const headerStatus = document.getElementById("header-auth-status");
-      const loggedOutBox = document.getElementById("auth-logged-out");
-      const loggedInBox = document.getElementById("auth-logged-in");
-      const userInfo = document.getElementById("auth-user-info");
-      const adminArchiveBox = document.getElementById("admin-archive-box");
+    // --- Navigation Tabs ---
+    const navBtns = document.querySelectorAll('.nav-btn');
+    const sections = document.querySelectorAll('.view-section');
 
-      if (user) {
-        const isAdmin = user.email === ADMIN_EMAIL;
-        headerStatus.innerHTML = `SIGNED IN : ${user.email} ${isAdmin ? '<span class="badge-admin">ADMIN</span>' : ''}`;
-        loggedOutBox.style.display = "none";
-        loggedInBox.style.display = "flex";
-        userInfo.innerHTML = `SIGNED IN AS <strong>${user.email}</strong> ${isAdmin ? '<span class="badge-admin">ADMIN</span>' : ''}`;
-        adminArchiveBox.style.display = isAdmin ? "block" : "none";
-
-        const savedName = localStorage.getItem("gb_display_name_" + user.id);
-        if (savedName && !document.getElementById("gb-name").value) {
-          document.getElementById("gb-name").value = savedName;
+    navBtns.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        navBtns.forEach((b) => b.classList.remove('active'));
+        sections.forEach((s) => s.classList.remove('active'));
+        btn.classList.add('active');
+        const target = document.getElementById(btn.dataset.target);
+        if (target) target.classList.add('active');
+        if (btn.dataset.target === 'sculpture') {
+          onResize();
         }
-      } else {
-        headerStatus.innerText = "GUEST MODE";
-        loggedOutBox.style.display = "block";
-        loggedInBox.style.display = "none";
-        adminArchiveBox.style.display = "none";
-      }
-    }
-
-    async function handleSignUp() {
-      const email = document.getElementById("signup-email").value.trim();
-      const password = document.getElementById("signup-password").value;
-      const confirmPw = document.getElementById("signup-password-confirm").value;
-      const msgEl = document.getElementById("auth-msg");
-
-      if (!email) {
-        msgEl.innerText = "이메일 주소를 입력하세요.";
-        return;
-      }
-      if (password.length < 6) {
-        msgEl.innerText = "비밀번호는 6자 이상이어야 합니다.";
-        return;
-      }
-      if (password !== confirmPw) {
-        msgEl.innerText = "비밀번호가 서로 일치하지 않습니다. 다시 확인해 주세요.";
-        return;
-      }
-
-      msgEl.innerText = "CREATING ACCOUNT...";
-      const { error } = await sb.auth.signUp({ email, password });
-      if (error) {
-        msgEl.innerText = "ERROR : " + error.message;
-      } else {
-        document.getElementById("signin-email").value = email;
-        document.getElementById("signup-password").value = "";
-        document.getElementById("signup-password-confirm").value = "";
-        setAuthMode("signin");
-        msgEl.innerText = "계정이 생성되었습니다. 방금 입력한 이메일과 비밀번호로 로그인해 주세요.";
-      }
-    }
-
-    async function handleSignIn() {
-      const email = document.getElementById("signin-email").value.trim();
-      const password = document.getElementById("signin-password").value;
-      const msgEl = document.getElementById("auth-msg");
-      if (!email || !password) {
-        msgEl.innerText = "이메일과 비밀번호를 입력하세요.";
-        return;
-      }
-      msgEl.innerText = "SIGNING IN...";
-      const { data, error } = await sb.auth.signInWithPassword({ email, password });
-      if (error) {
-        msgEl.innerText = "ERROR : " + error.message;
-      } else {
-        msgEl.innerText = "";
-        updateAuthUI(data.user);
-        loadGuestbook();
-      }
-    }
-
-    async function handleSignOut() {
-      await sb.auth.signOut();
-      updateAuthUI(null);
-      loadGuestbook();
-    }
-
-    // =========================================================
-    // 4. ARCHIVE
-    // =========================================================
-    async function loadArchives() {
-      const listEl = document.getElementById("archive-list");
-      const { data, error } = await sb
-        .from("archives")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (error) {
-        listEl.innerHTML = `<p style="font-size:0.84rem; color:var(--muted);">ARCHIVE LOAD ERROR : ${error.message}</p>`;
-        return;
-      }
-      if (!data || data.length === 0) {
-        listEl.innerHTML = `<p style="font-size:0.84rem; color:var(--muted);">등록된 아카이브 게시물이 없습니다.</p>`;
-        return;
-      }
-
-      listEl.innerHTML = data.map(item => `
-        <article class="archive-card">
-          ${item.image_url ? `<img src="${item.image_url}" alt="${escapeHtml(item.title)}" />` : ""}
-          <div class="archive-body">
-            <div class="archive-meta">${new Date(item.created_at).toLocaleDateString("ko-KR")}</div>
-            <div class="archive-title">${escapeHtml(item.title)}</div>
-            <div class="archive-desc">${escapeHtml(item.description || "")}</div>
-          </div>
-        </article>
-      `).join("");
-    }
-
-    async function publishArchive() {
-      if (!currentUser || currentUser.email !== ADMIN_EMAIL) return;
-      const title = document.getElementById("arc-title").value.trim();
-      const description = document.getElementById("arc-desc").value.trim();
-      const fileInput = document.getElementById("arc-file");
-      const statusEl = document.getElementById("arc-status");
-
-      if (!title) {
-        statusEl.innerText = "제목을 입력하세요.";
-        return;
-      }
-
-      statusEl.innerText = "PUBLISHING...";
-      let imageUrl = "";
-
-      if (fileInput.files && fileInput.files[0]) {
-        const file = fileInput.files[0];
-        const fileName = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
-        const { error: upErr } = await sb.storage.from("archive-images").upload(fileName, file);
-        if (upErr) {
-          statusEl.innerText = "IMAGE UPLOAD ERROR : " + upErr.message;
-          return;
-        }
-        const { data: pubData } = sb.storage.from("archive-images").getPublicUrl(fileName);
-        imageUrl = pubData.publicUrl;
-      }
-
-      const { error } = await sb.from("archives").insert({
-        title,
-        description,
-        image_url: imageUrl
       });
+    });
 
-      if (error) {
-        statusEl.innerText = "PUBLISH ERROR : " + error.message;
-      } else {
-        statusEl.innerText = "PUBLISHED.";
-        document.getElementById("arc-title").value = "";
-        document.getElementById("arc-desc").value = "";
-        fileInput.value = "";
-        loadArchives();
-      }
+    // --- Guestbook (Local Persistence) ---
+    const gbForm = document.getElementById('guestbook-form');
+    const gbInput = document.getElementById('guestbook-input');
+    const gbList = document.getElementById('guestbook-list');
+    const GB_KEY = 'bc7800_guestbook_v1';
+
+    function renderGuestbook() {
+      const saved = JSON.parse(localStorage.getItem(GB_KEY) || '[]');
+      const items = saved.length
+        ? saved
+        : [{ text: 'TORUS KNOT INITIAL EDITION ARCHIVED.', date: '2026.11' }];
+      gbList.innerHTML = items
+        .map(
+          (item) => `
+          <div class="guestbook-item">
+            <span>${item.text.replace(/</g, '&lt;')}</span>
+            <span class="guestbook-date">${item.date}</span>
+          </div>`
+        )
+        .join('');
     }
 
-    // =========================================================
-    // 5. GUESTBOOK
-    // =========================================================
-    async function loadGuestbook() {
-      const listEl = document.getElementById("gb-list");
-      const { data, error } = await sb
-        .from("guestbook")
-        .select("*")
-        .order("created_at", { ascending: false });
+    gbForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const val = gbInput.value.trim();
+      if (!val) return;
+      const saved = JSON.parse(localStorage.getItem(GB_KEY) || '[]');
+      const now = new Date();
+      const dateStr = `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, '0')}.${String(now.getDate()).padStart(2, '0')}`;
+      saved.unshift({ text: val, date: dateStr });
+      localStorage.setItem(GB_KEY, JSON.stringify(saved.slice(0, 30)));
+      gbInput.value = '';
+      renderGuestbook();
+    });
+    renderGuestbook();
 
-      if (error) {
-        listEl.innerHTML = `<p style="font-size:0.84rem; color:var(--muted);">ERROR : ${error.message}</p>`;
-        return;
-      }
-      if (!data || data.length === 0) {
-        listEl.innerHTML = `<p style="font-size:0.84rem; color:var(--muted);">첫 번째 방명록을 남겨보세요.</p>`;
-        return;
-      }
+    // --- Three.js Torus Knot (Initial Balanced Scale & Airy Typography) ---
+    const container = document.getElementById('canvas-container');
+    const canvas = document.getElementById('sculpture-canvas');
 
-      const isAdmin = currentUser && currentUser.email === ADMIN_EMAIL;
+    const scene = new THREE.Scene();
 
-      listEl.innerHTML = data.map(row => {
-        const displayName = row.author_name && row.author_name.trim()
-          ? row.author_name.trim()
-          : row.author_email.split("@")[0];
-        const isOwner = currentUser && currentUser.id === row.user_id;
-        const canDelete = isAdmin || isOwner;
+    const INITIAL_CAM_POS = new THREE.Vector3(0, 0, 5.4);
+    const camera = new THREE.PerspectiveCamera(
+      42,
+      container.clientWidth / container.clientHeight,
+      0.1,
+      100
+    );
+    camera.position.copy(INITIAL_CAM_POS);
 
-        return `
-          <div class="gb-item">
-            <div class="gb-head">
-              <span class="gb-author">
-                <strong>${escapeHtml(displayName)}</strong> (${escapeHtml(row.author_email)})
-              </span>
-              <div class="gb-actions">
-                <span>${new Date(row.created_at).toLocaleString("ko-KR")}</span>
-                ${canDelete ? `<button class="btn-del" onclick="deleteGuestbook(${row.id})">DELETE</button>` : ""}
-              </div>
-            </div>
-            <div class="gb-msg">${escapeHtml(row.message)}</div>
-          </div>
-        `;
-      }).join("");
-    }
+    const renderer = new THREE.WebGLRenderer({
+      canvas,
+      antialias: true,
+      alpha: true,
+      powerPreference: 'high-performance',
+    });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(container.clientWidth, container.clientHeight);
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.15;
 
-    async function postGuestbook() {
-      const statusEl = document.getElementById("gb-status");
-      const nameEl = document.getElementById("gb-name");
-      const inputEl = document.getElementById("gb-input");
-      const authorName = nameEl.value.trim();
-      const message = inputEl.value.trim();
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.06;
+    controls.minDistance = 2.4;
+    controls.maxDistance = 9.5;
+    controls.enablePan = false;
 
-      if (!currentUser) {
-        statusEl.innerText = "먼저 상단에서 로그인해 주세요.";
-        return;
-      }
-      if (!authorName) {
-        statusEl.innerText = "방명록에 표시할 이름을 입력하세요.";
-        nameEl.focus();
-        return;
-      }
-      if (!message) {
-        statusEl.innerText = "메시지를 입력하세요.";
-        inputEl.focus();
-        return;
-      }
+    // Studio Lighting (Sculptural Monochrome Contrast)
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.32);
+    scene.add(ambientLight);
 
-      statusEl.innerText = "POSTING...";
-      localStorage.setItem("gb_display_name_" + currentUser.id, authorName);
+    const keyLight = new THREE.DirectionalLight(0xffffff, 2.2);
+    keyLight.position.set(4.5, 5.5, 5.0);
+    scene.add(keyLight);
 
-      const { error } = await sb.from("guestbook").insert({
-        user_id: currentUser.id,
-        author_email: currentUser.email,
-        author_name: authorName,
-        message
-      });
+    const rimLight = new THREE.DirectionalLight(0xd8e2ff, 1.1);
+    rimLight.position.set(-5.0, -2.5, -4.0);
+    scene.add(rimLight);
 
-      if (error) {
-        statusEl.innerText = "ERROR : " + error.message;
-      } else {
-        statusEl.innerText = "";
-        inputEl.value = "";
-        loadGuestbook();
-      }
-    }
+    const fillLight = new THREE.DirectionalLight(0xffffff, 0.55);
+    fillLight.position.set(0, -4.5, 3.0);
+    scene.add(fillLight);
 
-    async function deleteGuestbook(id) {
-      if (!currentUser) return;
-      if (!confirm("이 방명록 댓글을 삭제하시겠습니까?")) return;
-
-      const statusEl = document.getElementById("gb-status");
-      const { error } = await sb
-        .from("guestbook")
-        .delete()
-        .eq("id", id);
-
-      if (error) {
-        statusEl.innerText = "DELETE ERROR : " + error.message;
-      } else {
-        statusEl.innerText = "";
-        loadGuestbook();
-      }
-    }
-
-    function escapeHtml(str) {
-      return String(str)
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;");
-    }
-
-    // =========================================================
-    // 6. MONUMENTAL SCALE (18x) UNIFIED ANATOMICAL SCULPTURE ENGINE
-    //    - 초기 로드 시 TORUS KNOT (매듭 조형) 기본 출력
-    //    - 단일 연속 고해상도 표면 조형으로 레퍼런스 우측 에코르셰 재현
-    //    - 햄스트링 4분할 포함 72종 세부 근육 · 1:1 비율 가변 자간 타이포그래피
-    // =========================================================
-    const MODEL_SCALE = 18.0;
-    const ASCII_CHARS = [" ", ".", ":", "-", "=", "+", "*", "#", "%", "@"];
-
-    const MUSCLE_CATALOG = {
-      0:  { label: "삼엽매듭 · 三葉結 · TREFOIL TORUS KNOT", ko: "삼엽매듭", hj: "三葉結", en: "TREFOIL TORUS KNOT" },
-
-      // 두경부 (1 ~ 12)
-      1:  { label: "이마근(전두근) · 前頭肌 · FRONTALIS", ko: "이마근", hj: "前頭肌", en: "FRONTALIS" },
-      2:  { label: "관자근 · 側頭肌 · TEMPORALIS", ko: "관자근", hj: "側頭肌", en: "TEMPORALIS" },
-      3:  { label: "눈둘레근 · 眼輪匝肌 · ORBICULARIS OCULI", ko: "눈둘레근", hj: "眼輪匝肌", en: "ORBICULARIS OCULI" },
-      4:  { label: "코근 · 鼻肌 · NASALIS", ko: "코근", hj: "鼻肌", en: "NASALIS" },
-      5:  { label: "큰광대근 · 大顴骨肌 · ZYGOMATICUS MAJOR", ko: "큰광대근", hj: "大顴骨肌", en: "ZYGOMATICUS MAJOR" },
-      6:  { label: "입둘레근 · 口輪匝肌 · ORBICULARIS ORIS", ko: "입둘레근", hj: "口輪匝肌", en: "ORBICULARIS ORIS" },
-      7:  { label: "깨물근 · 咬肌 · MASSETER", ko: "깨물근", hj: "咬肌", en: "MASSETER" },
-      8:  { label: "볼근 · 頰肌 · BUCCINATOR", ko: "볼근", hj: "頰肌", en: "BUCCINATOR" },
-      9:  { label: "턱끝근 · 頦肌 · MENTALIS", ko: "턱끝근", hj: "頦肌", en: "MENTALIS" },
-      10: { label: "뒤통수근 · 後頭肌 · OCCIPITALIS", ko: "뒤통수근", hj: "後頭肌", en: "OCCIPITALIS" },
-      11: { label: "목빗근 · 胸鎖乳突肌 · STERNOCLEIDOMASTOID", ko: "목빗근", hj: "胸鎖乳突肌", en: "STERNOCLEIDOMASTOID" },
-      12: { label: "목갈비근 · 斜角肌 · SCALENUS", ko: "목갈비근", hj: "斜角肌", en: "SCALENUS" },
-
-      // 체간 전면·측면 (13 ~ 20)
-      13: { label: "큰가슴근(빗장갈래) · 大胸肌鎖骨部 · PECTORALIS MAJOR CLAVICULAR", ko: "큰가슴근 빗장갈래", hj: "大胸肌鎖骨部", en: "PECTORALIS MAJOR CLAVICULAR" },
-      14: { label: "큰가슴근(복장갈비갈래) · 大胸肌胸肋部 · PECTORALIS MAJOR STERNOCOSTAL", ko: "큰가슴근 복장갈비갈래", hj: "大胸肌胸肋部", en: "PECTORALIS MAJOR STERNOCOSTAL" },
-      15: { label: "복장뼈근막 · 胸骨筋膜 · STERNAL FASCIA", ko: "복장뼈근막", hj: "胸骨筋膜", en: "STERNAL FASCIA" },
-      16: { label: "앞톱니근 · 前鋸肌 · SERRATUS ANTERIOR", ko: "앞톱니근", hj: "前鋸肌", en: "SERRATUS ANTERIOR" },
-      17: { label: "배곧은근 · 腹直肌 · RECTUS ABDOMINIS", ko: "배곧은근", hj: "腹直肌", en: "RECTUS ABDOMINIS" },
-      18: { label: "배바깥빗근 · 外腹斜肌 · EXTERNAL OBLIQUE", ko: "배바깥빗근", hj: "外腹斜肌", en: "EXTERNAL OBLIQUE" },
-      19: { label: "배속빗근 · 內腹斜肌 · INTERNAL OBLIQUE", ko: "배속빗근", hj: "內腹斜肌", en: "INTERNAL OBLIQUE" },
-      20: { label: "고랑인대(서혜인대) · 鼠蹊韌帶 · INGUINAL LIGAMENT", ko: "고랑인대", hj: "鼠蹊韌帶", en: "INGUINAL LIGAMENT" },
-
-      // 체간 후면 (21 ~ 30)
-      21: { label: "등세모근(상부) · 上部斜方肌 · TRAPEZIUS UPPER", ko: "상부등세모근", hj: "上部斜方肌", en: "TRAPEZIUS UPPER" },
-      22: { label: "등세모근(중부) · 中部斜方肌 · TRAPEZIUS MIDDLE", ko: "중부등세모근", hj: "中部斜方肌", en: "TRAPEZIUS MIDDLE" },
-      23: { label: "등세모근(하부) · 下部斜方肌 · TRAPEZIUS LOWER", ko: "하부등세모근", hj: "下部斜方肌", en: "TRAPEZIUS LOWER" },
-      24: { label: "가시아래근 · 棘下肌 · INFRASPINATUS", ko: "가시아래근", hj: "棘下肌", en: "INFRASPINATUS" },
-      25: { label: "작은원근 · 小圓肌 · TERES MINOR", ko: "작은원근", hj: "小圓肌", en: "TERES MINOR" },
-      26: { label: "큰원근 · 大圓肌 · TERES MAJOR", ko: "큰원근", hj: "大圓肌", en: "TERES MAJOR" },
-      27: { label: "큰마름근 · 大菱形肌 · RHOMBOID MAJOR", ko: "큰마름근", hj: "大菱形肌", en: "RHOMBOID MAJOR" },
-      28: { label: "넓은등근 · 闊背肌 · LATISSIMUS DORSI", ko: "넓은등근", hj: "闊背肌", en: "LATISSIMUS DORSI" },
-      29: { label: "척추세움근 · 豎脊肌 · ERECTOR SPINAE", ko: "척추세움근", hj: "豎脊肌", en: "ERECTOR SPINAE" },
-      30: { label: "등허리근막 · 胸腰筋膜 · THORACOLUMBAR FASCIA", ko: "등허리근막", hj: "胸腰筋膜", en: "THORACOLUMBAR FASCIA" },
-
-      // 어깨 및 상지 (31 ~ 49)
-      31: { label: "앞어깨세모근 · 前三角肌 · ANTERIOR DELTOID", ko: "앞어깨세모근", hj: "前三角肌", en: "ANTERIOR DELTOID" },
-      32: { label: "가쪽어깨세모근 · 中三角肌 · LATERAL DELTOID", ko: "가쪽어깨세모근", hj: "中三角肌", en: "LATERAL DELTOID" },
-      33: { label: "뒤어깨세모근 · 後三角肌 · POSTERIOR DELTOID", ko: "뒤어깨세모근", hj: "後三角肌", en: "POSTERIOR DELTOID" },
-      34: { label: "부리위팔근 · 喙肱肌 · CORACOBRACHIALIS", ko: "부리위팔근", hj: "喙肱肌", en: "CORACOBRACHIALIS" },
-      35: { label: "위팔두갈래근(긴갈래) · 肱二頭肌長頭 · BICEPS BRACHII LONG HEAD", ko: "위팔두갈래근 긴갈래", hj: "肱二頭肌長頭", en: "BICEPS BRACHII LONG HEAD" },
-      36: { label: "위팔두갈래근(짧은갈래) · 肱二頭肌短頭 · BICEPS BRACHII SHORT HEAD", ko: "위팔두갈래근 짧은갈래", hj: "肱二頭肌短頭", en: "BICEPS BRACHII SHORT HEAD" },
-      37: { label: "위팔근 · 肱肌 · BRACHIALIS", ko: "위팔근", hj: "肱肌", en: "BRACHIALIS" },
-      38: { label: "위팔세갈래근(긴갈래) · 肱三頭肌長頭 · TRICEPS BRACHII LONG HEAD", ko: "위팔세갈래근 긴갈래", hj: "肱三頭肌長頭", en: "TRICEPS BRACHII LONG HEAD" },
-      39: { label: "위팔세갈래근(가쪽갈래) · 肱三頭肌外側頭 · TRICEPS BRACHII LATERAL HEAD", ko: "위팔세갈래근 가쪽갈래", hj: "肱三頭肌外側頭", en: "TRICEPS BRACHII LATERAL HEAD" },
-      40: { label: "위팔세갈래근(안쪽갈래) · 肱三頭肌內側頭 · TRICEPS BRACHII MEDIAL HEAD", ko: "위팔세갈래근 안쪽갈래", hj: "肱三頭肌內側頭", en: "TRICEPS BRACHII MEDIAL HEAD" },
-      41: { label: "위팔노근 · 肱橈肌 · BRACHIORADIALIS", ko: "위팔노근", hj: "肱橈肌", en: "BRACHIORADIALIS" },
-      42: { label: "원엎침근 · 旋前圓肌 · PRONATOR TERES", ko: "원엎침근", hj: "旋前圓肌", en: "PRONATOR TERES" },
-      43: { label: "노쪽손목굽힘근 · 橈側腕屈肌 · FLEXOR CARPI RADIALIS", ko: "노쪽손목굽힘근", hj: "橈側腕屈肌", en: "FLEXOR CARPI RADIALIS" },
-      44: { label: "긴손바닥근 · 掌長肌 · PALMARIS LONGUS", ko: "긴손바닥근", hj: "掌長肌", en: "PALMARIS LONGUS" },
-      45: { label: "자쪽손목굽힘근 · 尺側腕屈肌 · FLEXOR CARPI ULNARIS", ko: "자쪽손목굽힘근", hj: "尺側腕屈肌", en: "FLEXOR CARPI ULNARIS" },
-      46: { label: "손가락폄근 · 指伸肌 · EXTENSOR DIGITORUM", ko: "손가락폄근", hj: "指伸肌", en: "EXTENSOR DIGITORUM" },
-      47: { label: "엄지두덩근 · 魚際肌 · THENAR EMINENCE", ko: "엄지두덩근", hj: "魚際肌", en: "THENAR EMINENCE" },
-      48: { label: "새끼두덩근 · 小魚際肌 · HYPOTHENAR EMINENCE", ko: "새끼두덩근", hj: "小魚際肌", en: "HYPOTHENAR EMINENCE" },
-      49: { label: "손가락뼈 · 指骨 · PHALANGES OF HAND", ko: "손가락뼈", hj: "指骨", en: "PHALANGES OF HAND" },
-
-      // 골반·대퇴·햄스트링 4분할 (50 ~ 65)
-      50: { label: "중간볼기근 · 中臀肌 · GLUTEUS MEDIUS", ko: "중간볼기근", hj: "中臀肌", en: "GLUTEUS MEDIUS" },
-      51: { label: "큰볼기근 · 大臀肌 · GLUTEUS MAXIMUS", ko: "큰볼기근", hj: "大臀肌", en: "GLUTEUS MAXIMUS" },
-      52: { label: "넙다리근막긴장근 · 闊筋膜張肌 · TENSOR FASCIAE LATAE", ko: "넙다리근막긴장근", hj: "闊筋膜張肌", en: "TENSOR FASCIAE LATAE" },
-      53: { label: "엉덩정강띠 · 髂脛束 · ILIOTIBIAL TRACT", ko: "엉덩정강띠", hj: "髂脛束", en: "ILIOTIBIAL TRACT" },
-      54: { label: "넙다리빗근 · 縫匠肌 · SARTORIUS", ko: "넙다리빗근", hj: "縫匠肌", en: "SARTORIUS" },
-      55: { label: "넙다리곧은근 · 股直肌 · RECTUS FEMORIS", ko: "넙다리곧은근", hj: "股直肌", en: "RECTUS FEMORIS" },
-      56: { label: "가쪽넓은근 · 股外側肌 · VASTUS LATERALIS", ko: "가쪽넓은근", hj: "股外側肌", en: "VASTUS LATERALIS" },
-      57: { label: "안쪽넓은근 · 股內側肌 · VASTUS MEDIALIS", ko: "안쪽넓은근", hj: "股內側肌", en: "VASTUS MEDIALIS" },
-      58: { label: "두덩근 · 恥骨肌 · PECTINEUS", ko: "두덩근", hj: "恥骨肌", en: "PECTINEUS" },
-      59: { label: "긴모음근 · 長收肌 · ADDUCTOR LONGUS", ko: "긴모음근", hj: "長收肌", en: "ADDUCTOR LONGUS" },
-      60: { label: "큰모음근 · 大收肌 · ADDUCTOR MAGNUS", ko: "큰모음근", hj: "大收肌", en: "ADDUCTOR MAGNUS" },
-      61: { label: "두덩정강근 · 股薄肌 · GRACILIS", ko: "두덩정강근", hj: "股薄肌", en: "GRACILIS" },
-      // 햄스트링 4개 구성 근육 세부 분리
-      62: { label: "넙다리두갈래근(긴갈래) · 股二頭肌長頭 · BICEPS FEMORIS LONG HEAD", ko: "넙다리두갈래근 긴갈래", hj: "股二頭肌長頭", en: "BICEPS FEMORIS LONG HEAD" },
-      63: { label: "넙다리두갈래근(짧은갈래) · 股二頭肌短頭 · BICEPS FEMORIS SHORT HEAD", ko: "넙다리두갈래근 짧은갈래", hj: "股二頭肌短頭", en: "BICEPS FEMORIS SHORT HEAD" },
-      64: { label: "반힘줄근 · 半腱肌 · SEMITENDINOSUS", ko: "반힘줄근", hj: "半腱肌", en: "SEMITENDINOSUS" },
-      65: { label: "반막근 · 半膜肌 · SEMIMEMBRANOSUS", ko: "반막근", hj: "半膜肌", en: "SEMIMEMBRANOSUS" },
-
-      // 하퇴·족부 (66 ~ 74)
-      66: { label: "앞정강근 · 脛骨前肌 · TIBIALIS ANTERIOR", ko: "앞정강근", hj: "脛骨前肌", en: "TIBIALIS ANTERIOR" },
-      67: { label: "긴발가락폄근 · 趾長伸肌 · EXTENSOR DIGITORUM LONGUS", ko: "긴발가락폄근", hj: "趾長伸肌", en: "EXTENSOR DIGITORUM LONGUS" },
-      68: { label: "긴종아리근 · 腓骨長肌 · FIBULARIS LONGUS", ko: "긴종아리근", hj: "腓骨長肌", en: "FIBULARIS LONGUS" },
-      69: { label: "장딴지근(안쪽갈래) · 腓腸肌內側頭 · GASTROCNEMIUS MEDIAL HEAD", ko: "장딴지근 안쪽갈래", hj: "腓腸肌內側頭", en: "GASTROCNEMIUS MEDIAL HEAD" },
-      70: { label: "장딴지근(가쪽갈래) · 腓腸肌外側頭 · GASTROCNEMIUS LATERAL HEAD", ko: "장딴지근 가쪽갈래", hj: "腓腸肌外側頭", en: "GASTROCNEMIUS LATERAL HEAD" },
-      71: { label: "가자미근 · 比目魚肌 · SOLEUS", ko: "가자미근", hj: "比目魚肌", en: "SOLEUS" },
-      72: { label: "발꿈치힘줄 · 跟腱 · ACHILLES TENDON", ko: "발꿈치힘줄", hj: "跟腱", en: "ACHILLES TENDON" },
-      73: { label: "긴발가락굽힘근 · 趾長屈肌 · FLEXOR DIGITORUM LONGUS", ko: "긴발가락굽힘근", hj: "趾長屈肌", en: "FLEXOR DIGITORUM LONGUS" },
-      74: { label: "발등근육 및 발가락뼈 · 足趾骨 · PHALANGES OF FOOT", ko: "발가락뼈", hj: "足趾骨", en: "PHALANGES OF FOOT" }
+    // Typography Texture Generator (Initial Airy Spacing & Crisp Legibility)
+    const TERM_SETS = {
+      ascii: ['.', ':', '-', '=', '+', '*', '#', '%', '@', '+', '=', ':'],
+      korean: ['매듭', '결', '흐름', '고리', '숨', '축', '파동', '굽이', '맥', '균형', '선', '여백'],
+      hanja: ['結', '筋', '脈', '律', '形', '軸', '流', '節', '氣', '體', '環', '線'],
+      english: ['KNOT', 'FORM', 'FLOW', 'AXIS', 'NODE', 'LOOP', 'WAVE', 'CORE', 'LINE', 'VOID'],
     };
 
-    const MAX_MUSCLE_ID = 75;
-    const STRIP_W = 2048;
-
-    let glyphMode = "ascii";
-    let currentModelType = "knot";
-    let autoRotate = true;
-    let flowEnabled = false;
-    let flowPhase = 0;
-
-    let scene, camera, renderer, modelPivot;
-    let activeSculptureMesh = null;
-    let raycaster = new THREE.Raycaster();
-    let pointerNDC = new THREE.Vector2(-99, -99);
-
-    let dragMode = "none";
-    let prevMouse = { x: 0, y: 0 };
-    const DEFAULT_CAM_Z = 142.0;
-    const DEFAULT_PAN_Y = 1.6;
-    let targetCamZ = DEFAULT_CAM_Z;
-    let targetPan = new THREE.Vector2(0, DEFAULT_PAN_Y);
-
-    // ---------------------------------------------------------
-    // 6-A. 고선명 아틀라스 + 2048px 가변 자간 스트립 (1:1 종횡비 보장)
-    // ---------------------------------------------------------
-    function buildProportionalTypographySystem() {
-      const charSet = new Set(ASCII_CHARS);
-      Object.values(MUSCLE_CATALOG).forEach(entry => {
-        for (const ch of entry.ko) charSet.add(ch);
-        for (const ch of entry.hj) charSet.add(ch);
-        for (const ch of entry.en) charSet.add(ch);
-      });
-
-      const chars = Array.from(charSet);
-      const cols = 14;
-      const rows = Math.ceil(chars.length / cols);
-      const cellSize = 144;
-      const fontSize = 96;
-
-      const canvas = document.createElement("canvas");
-      canvas.width = cols * cellSize;
-      canvas.height = rows * cellSize;
-
-      const ctx = canvas.getContext("2d");
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = "#ffffff";
-      ctx.font = `700 ${fontSize}px "Helvetica Neue", Helvetica, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif`;
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-
-      const charInfo = {};
-      chars.forEach((ch, idx) => {
-        const c = idx % cols;
-        const r = Math.floor(idx / cols);
-        ctx.fillText(ch, c * cellSize + cellSize / 2, r * cellSize + cellSize / 2 + 2);
-
-        const inkPx = ch === " " ? 42 : ctx.measureText(ch).width;
-        const advPx = Math.min(cellSize * 0.92, Math.max(40, inkPx + 18));
-        charInfo[ch] = {
-          col: c,
-          row: r,
-          uSpan: advPx / cellSize
-        };
-      });
-
-      const atlasTex = new THREE.CanvasTexture(canvas);
-      atlasTex.generateMipmaps = true;
-      atlasTex.minFilter = THREE.LinearMipmapLinearFilter;
-      atlasTex.magFilter = THREE.LinearFilter;
-      atlasTex.needsUpdate = true;
-
-      const totalSpans = {
-        ko: new Float32Array(MAX_MUSCLE_ID),
-        hj: new Float32Array(MAX_MUSCLE_ID),
-        en: new Float32Array(MAX_MUSCLE_ID)
-      };
-
-      function createLanguageStrip(langKey) {
-        const data = new Uint8Array(STRIP_W * MAX_MUSCLE_ID * 4);
-        for (let mId = 0; mId < MAX_MUSCLE_ID; mId++) {
-          const entry = MUSCLE_CATALOG[mId] || MUSCLE_CATALOG[0];
-          const word = (entry[langKey] || "MUSCLE") + " · ";
-          const glyphs = [];
-          let totalSpan = 0;
-          for (const ch of word) {
-            const info = charInfo[ch] || charInfo["#"];
-            glyphs.push(info);
-            totalSpan += info.uSpan;
-          }
-          totalSpans[langKey][mId] = totalSpan;
-
-          let curIdx = 0;
-          let accSpan = 0;
-          for (let x = 0; x < STRIP_W; x++) {
-            const uNorm = (x + 0.5) / STRIP_W;
-            const targetSpan = uNorm * totalSpan;
-            while (curIdx < glyphs.length - 1 && accSpan + glyphs[curIdx].uSpan < targetSpan) {
-              accSpan += glyphs[curIdx].uSpan;
-              curIdx++;
-            }
-            const g = glyphs[curIdx];
-            const localFrac = Math.max(0, Math.min(1, (targetSpan - accSpan) / g.uSpan));
-
-            const offset = (mId * STRIP_W + x) * 4;
-            data[offset]     = Math.round(((g.col + 0.5) / cols) * 255);
-            data[offset + 1] = Math.round(((g.row + 0.5) / rows) * 255);
-            data[offset + 2] = Math.round(localFrac * 255);
-            data[offset + 3] = Math.round(g.uSpan * 255);
-          }
-        }
-        const tex = new THREE.DataTexture(data, STRIP_W, MAX_MUSCLE_ID, THREE.RGBAFormat);
-        tex.minFilter = THREE.NearestFilter;
-        tex.magFilter = THREE.NearestFilter;
-        tex.needsUpdate = true;
-        return tex;
-      }
-
-      const asciiData = new Uint8Array(ASCII_CHARS.length * 4);
-      ASCII_CHARS.forEach((ch, idx) => {
-        const g = charInfo[ch];
-        asciiData[idx * 4]     = Math.round(((g.col + 0.5) / cols) * 255);
-        asciiData[idx * 4 + 1] = Math.round(((g.row + 0.5) / rows) * 255);
-        asciiData[idx * 4 + 2] = Math.round(g.uSpan * 255);
-        asciiData[idx * 4 + 3] = 255;
-      });
-      const asciiStripTex = new THREE.DataTexture(asciiData, ASCII_CHARS.length, 1, THREE.RGBAFormat);
-      asciiStripTex.minFilter = THREE.NearestFilter;
-      asciiStripTex.magFilter = THREE.NearestFilter;
-      asciiStripTex.needsUpdate = true;
-
-      return {
-        atlasTex,
-        asciiStripTex,
-        cols,
-        rows,
-        totalSpans,
-        strips: {
-          ko: createLanguageStrip("ko"),
-          hj: createLanguageStrip("hj"),
-          en: createLanguageStrip("en")
-        }
-      };
-    }
-
-    const TYPO = buildProportionalTypographySystem();
-
-    // ---------------------------------------------------------
-    // 6-B. 연속 일체형 표면 메쉬 빌더 (실제 물리적 호 길이 UV + 근간구 음영)
-    // ---------------------------------------------------------
-    class UnifiedSculptureBuilder {
-      constructor() {
-        this.positions = [];
-        this.normals = [];
-        this.uvs = [];
-        this.muscleIds = [];
-        this.wordSpans = [];
-        this.sulcusDepths = [];
-        this.indices = [];
-      }
-
-      /**
-       * 닫힌 입체 부위를 3D 물리 호 길이(Arc-Length) 기반 UV로 무왜곡 생성
-       */
-      addSculptedPart({
-        rings,        // [M][N] of [x, y, z]
-        regionGrid,   // [M][N] of muscleId
-        sulcusGrid,   // [M][N] of sulcus depth (0 = 깊은 근간구, 1 = 근복 표면)
-        capBottom = false,
-        capTop = false
-      }) {
-        const M = rings.length;
-        const N = rings[0].length;
-        const baseVertex = this.positions.length / 3;
-
-        const pts = rings.map(ring =>
-          ring.map(p => new THREE.Vector3(p[0] * MODEL_SCALE, p[1] * MODEL_SCALE, p[2] * MODEL_SCALE))
-        );
-
-        const centers = pts.map(ring => {
-          const c = new THREE.Vector3();
-          ring.forEach(p => c.add(p));
-          return c.divideScalar(N);
-        });
-
-        let outwardSign = 0;
-        for (let i = 0; i < M; i++) {
-          const i0 = Math.max(0, i - 1), i1 = Math.min(M - 1, i + 1);
-          for (let j = 0; j < N; j++) {
-            const j0 = (j - 1 + N) % N, j1 = (j + 1) % N;
-            const dU = new THREE.Vector3().subVectors(pts[i][j1], pts[i][j0]);
-            const dV = new THREE.Vector3().subVectors(pts[i1][j], pts[i0][j]);
-            const n = new THREE.Vector3().crossVectors(dU, dV);
-            outwardSign += n.dot(new THREE.Vector3().subVectors(pts[i][j], centers[i]));
-          }
-        }
-        const flip = outwardSign < 0 ? -1 : 1;
-
-        // 수직 누적 호 길이(vArc) 계산
-        const vArc = new Float64Array(M);
-        vArc[0] = 0;
-        for (let i = 1; i < M; i++) {
-          let sum = 0;
-          for (let j = 0; j < N; j++) {
-            sum += pts[i][j].distanceTo(pts[i - 1][j]);
-          }
-          vArc[i] = vArc[i - 1] + sum / N;
-        }
-
-        const activeSpanTable = glyphMode === "ascii" ? TYPO.totalSpans.en : TYPO.totalSpans[glyphMode];
-
-        for (let i = 0; i < M; i++) {
-          const i0 = Math.max(0, i - 1), i1 = Math.min(M - 1, i + 1);
-          // 각 링별 수평 누적 호 길이(uArc) 계산 -> 찌그러짐 없는 1:1 글자 비율
-          const uArc = new Float64Array(N + 1);
-          uArc[0] = 0;
-          for (let j = 1; j <= N; j++) {
-            uArc[j] = uArc[j - 1] + pts[i][j % N].distanceTo(pts[i][(j - 1) % N]);
-          }
-
-          for (let j = 0; j <= N; j++) {
-            const jj = j % N;
-            const j0 = (jj - 1 + N) % N, j1 = (jj + 1) % N;
-            const p = pts[i][jj];
-            const dU = new THREE.Vector3().subVectors(pts[i][j1], pts[i][j0]);
-            const dV = new THREE.Vector3().subVectors(pts[i1][jj], pts[i0][jj]);
-            const n = new THREE.Vector3().crossVectors(dU, dV).multiplyScalar(flip);
-            if (n.lengthSq() < 1e-10) n.subVectors(p, centers[i]);
-            n.normalize();
-
-            const mId = regionGrid[i][jj];
-            const sulc = sulcusGrid[i][jj];
-
-            this.positions.push(p.x, p.y, p.z);
-            this.normals.push(n.x, n.y, n.z);
-            this.uvs.push(uArc[j], vArc[i]);
-            this.muscleIds.push(mId);
-            this.wordSpans.push(activeSpanTable[mId] || 10.0);
-            this.sulcusDepths.push(sulc);
-          }
-        }
-
-        const stride = N + 1;
-        for (let i = 0; i < M - 1; i++) {
-          for (let j = 0; j < N; j++) {
-            const a = baseVertex + i * stride + j;
-            const b = baseVertex + (i + 1) * stride + j;
-            const c = baseVertex + (i + 1) * stride + (j + 1);
-            const d = baseVertex + i * stride + (j + 1);
-            if (flip > 0) {
-              this.indices.push(a, b, d, b, c, d);
-            } else {
-              this.indices.push(a, d, b, b, d, c);
-            }
-          }
-        }
-
-        if (capBottom) {
-          const capIdx = this.positions.length / 3;
-          const c0 = centers[0];
-          const mId0 = regionGrid[0][0];
-          this.positions.push(c0.x, c0.y, c0.z);
-          this.normals.push(0, -1, 0);
-          this.uvs.push(0, 0);
-          this.muscleIds.push(mId0);
-          this.wordSpans.push(activeSpanTable[mId0] || 10.0);
-          this.sulcusDepths.push(0.85);
-          for (let j = 0; j < N; j++) {
-            const a = baseVertex + j;
-            const b = baseVertex + j + 1;
-            if (flip > 0) this.indices.push(capIdx, a, b);
-            else this.indices.push(capIdx, b, a);
-          }
-        }
-
-        if (capTop) {
-          const capIdx = this.positions.length / 3;
-          const cTop = centers[M - 1];
-          const mIdTop = regionGrid[M - 1][0];
-          this.positions.push(cTop.x, cTop.y, cTop.z);
-          this.normals.push(0, 1, 0);
-          this.uvs.push(0, vArc[M - 1]);
-          this.muscleIds.push(mIdTop);
-          this.wordSpans.push(activeSpanTable[mIdTop] || 10.0);
-          this.sulcusDepths.push(0.85);
-          const topRow = baseVertex + (M - 1) * stride;
-          for (let j = 0; j < N; j++) {
-            const a = topRow + j;
-            const b = topRow + j + 1;
-            if (flip > 0) this.indices.push(capIdx, b, a);
-            else this.indices.push(capIdx, a, b);
-          }
-        }
-      }
-
-      buildGeometry() {
-        const geom = new THREE.BufferGeometry();
-        geom.setAttribute("position", new THREE.Float32BufferAttribute(this.positions, 3));
-        geom.setAttribute("normal", new THREE.Float32BufferAttribute(this.normals, 3));
-        geom.setAttribute("uv", new THREE.Float32BufferAttribute(this.uvs, 2));
-        geom.setAttribute("aMuscleId", new THREE.Float32BufferAttribute(this.muscleIds, 1));
-        geom.setAttribute("aWordSpan", new THREE.Float32BufferAttribute(this.wordSpans, 1));
-        geom.setAttribute("aSulcus", new THREE.Float32BufferAttribute(this.sulcusDepths, 1));
-        geom.setIndex(this.indices);
-        return geom;
-      }
-    }
-
-    // ---------------------------------------------------------
-    // 6-C. 실제 해부학 남성 에코르셰 조형 (레퍼런스 우측 남자 자세·비례·근육)
-    //      - 연속 일체형 고해상도 조각 표면에 근복 융기 & 근간구 음각
-    //      - 햄스트링 4분할 포함 72종 근육 구획
-    // ---------------------------------------------------------
-    function gauss(v, center, width) {
-      return Math.exp(-Math.pow((v - center) / width, 2));
-    }
-
-    function buildRealisticEcorcheGeometry() {
-      const B = new UnifiedSculptureBuilder();
-
-      // =======================================================
-      // 1. 두부 및 안면 해부학 조각 (Head & Face: y = 1.77 ~ 2.34)
-      // =======================================================
-      const hLat = 110, hLon = 128;
-      const headRings = [], headRegs = [], headSulc = [];
-
-      for (let i = 0; i <= hLat; i++) {
-        const v = i / hLat;
-        const phi = (v - 0.5) * Math.PI;
-        const cosP = Math.cos(phi), sinP = Math.sin(phi);
-        const rRow = [], idRow = [], sRow = [];
-
-        for (let j = 0; j < hLon; j++) {
-          const th = ((j / hLon) - 0.25) * Math.PI * 2;
-          const sinT = Math.sin(th), cosT = Math.cos(th);
-          const ax = Math.abs(sinT);
-
-          // 실제 성인 남성 두개골 비례
-          let x = 0.168 * cosP * sinT;
-          let y = 0.276 * sinP;
-          let z = 0.214 * cosP * cosT;
-          let sulc = 1.0;
-
-          if (y > 0.01) {
-            const upT = Math.min(1, y / 0.276);
-            const parietal = gauss(upT, 0.42, 0.26);
-            x *= (1.0 + parietal * 0.075);
-            if (cosT < 0) z -= parietal * (-cosT) * 0.026;
-          }
-
-          if (y < 0) {
-            const jawT = Math.min(1, Math.abs(y) / 0.276);
-            if (cosT < 0) {
-              z *= (1.0 - Math.pow(jawT, 1.15) * 0.64);
-            } else {
-              z += Math.sin(jawT * Math.PI) * 0.018 * cosT;
-            }
-            // 하악각(Gonial angle) 및 턱끝 테이퍼
-            const gonial = gauss(jawT, 0.50, 0.15) * gauss(cosT, -0.05, 0.34);
-            x *= (1.0 - Math.pow(jawT, 1.48) * 0.45 + gonial * 0.15);
-          }
-
-          // 관자놀이 오목함 & 깨물근(Masseter) 볼륨
-          const temple = gauss(y, 0.032, 0.062) * gauss(ax, 0.88, 0.22);
-          const masseter = gauss(y, -0.105, 0.044) * gauss(ax, 0.78, 0.22) * Math.max(0, cosT + 0.35);
-          x += Math.sign(sinT) * (-temple * 0.015 + masseter * 0.013);
-          sulc -= temple * 0.16;
-
-          // 안면 골격 및 안면 표정근 조각
-          if (cosT > 0.04) {
-            const brow = gauss(y, 0.032, 0.022) * gauss(x, 0, 0.118);
-            const eyeSocket = gauss(y, -0.008, 0.023) * gauss(Math.abs(x), 0.055, 0.026);
-            const eyeball = gauss(y, -0.008, 0.013) * gauss(Math.abs(x), 0.055, 0.015);
-            const cheekBone = gauss(y, -0.042, 0.028) * gauss(Math.abs(x), 0.088, 0.034);
-            const zygomatic = gauss(y + Math.abs(x) * 0.65, -0.035, 0.014) * gauss(Math.abs(x), 0.068, 0.032);
-            const cheekHollow = gauss(y, -0.105, 0.036) * gauss(Math.abs(x), 0.072, 0.030);
-            const noseBridge = gauss(y, -0.040, 0.052) * gauss(x, 0, 0.015);
-            const noseAlae = gauss(y, -0.074, 0.016) * gauss(Math.abs(x), 0.024, 0.012);
-            const mouthOrb = gauss(y, -0.126, 0.026) * gauss(x, 0, 0.046);
-            const lipSlit = gauss(y, -0.126, 0.005) * gauss(x, 0, 0.036);
-            const chin = gauss(y, -0.206, 0.032) * gauss(x, 0, 0.034);
-
-            z += (
-              brow * 0.024 -
-              eyeSocket * 0.028 +
-              eyeball * 0.014 +
-              cheekBone * 0.022 +
-              zygomatic * 0.009 -
-              cheekHollow * 0.015 +
-              noseBridge * 0.044 +
-              noseAlae * 0.016 +
-              mouthOrb * 0.022 -
-              lipSlit * 0.010 +
-              chin * 0.026
-            ) * cosT;
-
-            sulc -= (eyeSocket * 0.24 - eyeball * 0.14 + cheekHollow * 0.20 + lipSlit * 0.35) * cosT;
-          }
-
-          // 귀(Auricle) 입체 조형
-          const earMask = gauss(y, -0.035, 0.044) * gauss(cosT, -0.06, 0.14) * gauss(ax, 0.96, 0.10);
-          x += Math.sign(sinT) * earMask * 0.024;
-          sulc -= earMask * 0.15;
-
-          const worldY = y + 2.055;
-          const worldZ = z + 0.022;
-
-          // 세부 두경부 근육 구역 판별
-          let mId = 1; // 이마근(전두근)
-          if (cosT < -0.25 && y < 0.08) mId = 10; // 뒤통수근
-          else if (ax > 0.72 && y > -0.02 && y < 0.14) mId = 2; // 관자근
-          else if (cosT > 0.15) {
-            if (y > -0.035 && y <= 0.018 && Math.abs(x) < 0.095) mId = 3; // 눈둘레근
-            else if (y > -0.090 && y <= -0.010 && Math.abs(x) < 0.036) mId = 4; // 코근
-            else if (y > -0.095 && y <= -0.020 && Math.abs(x) >= 0.036 && Math.abs(x) < 0.105) mId = 5; // 큰광대근
-            else if (y > -0.158 && y <= -0.090 && Math.abs(x) < 0.054) mId = 6; // 입둘레근
-            else if (y <= -0.158 && Math.abs(x) < 0.056) mId = 9; // 턱끝근
-            else if (Math.abs(x) >= 0.082 && y <= -0.045) mId = 7; // 깨물근
-            else if (y <= -0.085) mId = 8; // 볼근
-          }
-
-          rRow.push([x, worldY, worldZ]);
-          idRow.push(mId);
-          sRow.push(Math.max(0.45, Math.min(1.0, sulc)));
-        }
-        headRings.push(rRow);
-        headRegs.push(idRow);
-        headSulc.push(sRow);
-      }
-      B.addSculptedPart({ rings: headRings, regionGrid: headRegs, sulcusGrid: headSulc });
-
-      // =======================================================
-      // 2. 경부 및 체간 일체형 조각 (Neck + Torso + Pelvis: y = -0.16 ~ 1.84)
-      // =======================================================
-      const torsoProfile = [
-        { y: -0.16, rx: 0.148, rz: 0.120, cz: -0.008 },
-        { y: -0.04, rx: 0.295, rz: 0.174, cz: -0.010 },
-        { y:  0.08, rx: 0.378, rz: 0.204, cz: -0.012 }, // 고관절 대전자 폭
-        { y:  0.22, rx: 0.372, rz: 0.200, cz: -0.008 }, // 장골능
-        { y:  0.42, rx: 0.332, rz: 0.186, cz:  0.000 },
-        { y:  0.64, rx: 0.320, rz: 0.182, cz:  0.006 }, // 배꼽/허리선
-        { y:  0.86, rx: 0.388, rz: 0.212, cz:  0.006 }, // 하부 흉곽
-        { y:  1.06, rx: 0.455, rz: 0.242, cz:  0.002 }, // 광배근 V-테이퍼
-        { y:  1.22, rx: 0.482, rz: 0.258, cz: -0.002 }, // 대흉근 최대 폭
-        { y:  1.36, rx: 0.425, rz: 0.222, cz: -0.008 }, // 쇄골선
-        { y:  1.45, rx: 0.325, rz: 0.184, cz: -0.010 }, // 승모근 경사
-        { y:  1.54, rx: 0.195, rz: 0.155, cz: -0.008 }, // 목 기저부
-        { y:  1.68, rx: 0.138, rz: 0.142, cz:  0.000 },
-        { y:  1.84, rx: 0.128, rz: 0.132, cz:  0.012 }
-      ];
-      const tDimCurve = new THREE.CatmullRomCurve3(torsoProfile.map(c => new THREE.Vector3(c.rx, c.y, c.rz)));
-      const tPosCurve = new THREE.CatmullRomCurve3(torsoProfile.map(c => new THREE.Vector3(0, c.y, c.cz)));
-
-      const tLat = 180, tLon = 160;
-      const torsoRings = [], torsoRegs = [], torsoSulc = [];
-
-      for (let i = 0; i <= tLat; i++) {
-        const u = i / tLat;
-        const dim = tDimCurve.getPoint(u);
-        const pos = tPosCurve.getPoint(u);
-        const rx = dim.x, y = dim.y, rz = dim.z, cz = pos.z;
-
-        const rRow = [], idRow = [], sRow = [];
-        for (let j = 0; j < tLon; j++) {
-          const th = ((j / tLon) - 0.25) * Math.PI * 2;
-          const sinT = Math.sin(th), cosT = Math.cos(th);
-          const ax = Math.abs(sinT);
-
-          let x = rx * sinT;
-          let z = cz + rz * cosT;
-          let sulc = 1.0;
-
-          // --- 전면(+Z) 및 측면 근육 조각 ---
-          if (cosT > -0.20) {
-            // 백선(Linea Alba) 및 복장뼈 중앙 고랑
-            if (y > 0.08 && y < 1.40) {
-              const midGroove = gauss(x, 0, 0.018);
-              z -= midGroove * 0.022;
-              sulc -= midGroove * 0.36;
-            }
-
-            // 큰가슴근(Pectoralis Major: 빗장갈래 + 복장갈비갈래)
-            if (y > 0.94 && y < 1.42) {
-              const pecSpanX = gauss(Math.abs(x), 0.215, 0.185);
-              const pecUpper = gauss(y, 1.33, 0.055) * pecSpanX;
-              const pecLower = Math.pow(Math.max(0, Math.sin(Math.max(0, Math.min(1, (y - 0.96) / 0.34)) * Math.PI)), 0.72) * pecSpanX;
-              const clavSulcus = gauss(y, 1.265, 0.013) * pecSpanX;
-              const infPecSulcus = gauss(y, 0.975, 0.018) * pecSpanX;
-
-              z += (pecUpper * 0.036 + pecLower * 0.062 - clavSulcus * 0.012 - infPecSulcus * 0.022) * Math.max(0, cosT);
-              sulc -= (clavSulcus * 0.26 + infPecSulcus * 0.38) * Math.max(0, cosT);
-            }
-
-            // 배곧은근(Rectus Abdominis 4단 식스팩) & 반달선(Linea Semilunaris)
-            if (y > 0.14 && y < 0.96 && Math.abs(x) < 0.185) {
-              const abWidth = Math.sin(Math.min(1, Math.abs(x) / 0.162) * Math.PI);
-              const abPhase = ((y - 0.14) / 0.82) * Math.PI * 3.0;
-              const abBellies = Math.max(0, Math.sin(abPhase));
-              const tendinousBand = Math.pow(Math.cos(abPhase), 10);
-              const semilunaris = gauss(Math.abs(x), 0.162, 0.016);
-
-              z += (abWidth > 0 ? abWidth * abBellies * 0.028 : 0) - semilunaris * 0.018;
-              sulc -= (semilunaris * 0.34 + (abWidth > 0 ? tendinousBand * 0.26 : 0));
-            }
-
-            // 서혜인대 V-고랑 (Inguinal Furrow)
-            const ingY = 0.24 - Math.abs(x) * 0.56;
-            if (y > -0.06 && y < 0.28 && Math.abs(x) < 0.35) {
-              const ingSulcus = gauss(y, ingY, 0.020);
-              z -= ingSulcus * 0.018;
-              sulc -= ingSulcus * 0.34;
-            }
-
-            // 목빗근(Sternocleidomastoid) & 흉골패임
-            if (y > 1.44 && y < 1.84) {
-              const scmCenter = 0.026 + ((y - 1.44) / 0.40) * 0.086;
-              const scmBelly = gauss(Math.abs(x), scmCenter, 0.022);
-              const scmGroove = gauss(Math.abs(x), scmCenter + 0.034, 0.018);
-              z += scmBelly * 0.024 - scmGroove * 0.012;
-              sulc -= scmGroove * 0.32;
-            }
-          }
-
-          // 측면 앞톱니근(Serratus Anterior) 4개 톱니 근다발
-          if (ax > 0.42 && y > 0.56 && y < 0.96) {
-            const serrMask = gauss(cosT, 0.12, 0.42);
-            const serrWave = Math.sin(((y - 0.56) / 0.40) * Math.PI * 3.5);
-            x += Math.sign(sinT) * Math.max(0, serrWave) * serrMask * 0.020;
-            if (serrWave < 0) sulc -= Math.abs(serrWave) * serrMask * 0.32;
-          }
-
-          // --- 후면(-Z) 등 및 둔부 근육 조각 ---
-          if (cosT < 0.18) {
-            // 척추 정중구(Spinal Furrow) & 척추세움근(Erector Spinae)
-            if (y > 0.08 && y < 1.54) {
-              const spineGroove = gauss(x, 0, 0.020);
-              const erector = gauss(Math.abs(x), 0.072, 0.042);
-              z += spineGroove * 0.030 - erector * 0.018;
-              sulc -= spineGroove * 0.38;
-            }
-
-            // 등세모근(Trapezius) 다이아몬드 경계 및 가시아래근(Infraspinatus)
-            if (y > 0.78 && y < 1.48) {
-              const trapLowerEdgeY = 0.84 + Math.abs(x) * 1.48;
-              const trapEdge = gauss(y, trapLowerEdgeY, 0.022);
-              const scapSpine = gauss(y, 1.28, 0.016) * gauss(Math.abs(x), 0.26, 0.14);
-              z += (trapEdge * 0.016 - scapSpine * 0.014) * Math.max(0, -cosT);
-              sulc -= (trapEdge * 0.32 + scapSpine * 0.24) * Math.max(0, -cosT);
-            }
-
-            // 넓은등근(Latissimus Dorsi)
-            if (y > 0.52 && y < 1.22) {
-              const latBelly = Math.sin(((y - 0.52) / 0.70) * Math.PI) * gauss(Math.abs(x), 0.26, 0.17);
-              z -= latBelly * 0.036 * Math.max(0, -cosT);
-            }
-
-            // 큰볼기근(Gluteus Maximus) & 중간볼기근(Gluteus Medius) & 둔부 주름
-            if (y > -0.16 && y < 0.24) {
-              const gluteMax = Math.sin(Math.max(0, Math.min(1, (y + 0.15) / 0.33)) * Math.PI) * gauss(Math.abs(x), 0.165, 0.145);
-              const gluteFold = gauss(y, -0.135, 0.020) * gauss(Math.abs(x), 0.17, 0.15);
-              const gluteCleft = gauss(x, 0, 0.016) * gauss(y, -0.02, 0.14);
-              z -= (gluteMax * 0.046 - gluteFold * 0.018 - gluteCleft * 0.024) * Math.max(0, -cosT);
-              sulc -= (gluteFold * 0.36 + gluteCleft * 0.38) * Math.max(0, -cosT);
-            }
-          }
-
-          // 세부 체간 근육 ID 할당
-          let mId = 17;
-          if (y > 1.44) {
-            if (cosT > 0.12) mId = Math.abs(x) < 0.12 ? 11 : 12; // 목빗근 / 목갈비근
-            else mId = 21; // 상부등세모근
-          } else if (cosT >= 0.0) {
-            if (y >= 1.265) mId = Math.abs(x) < 0.032 ? 15 : 13; // 큰가슴근(빗장갈래)
-            else if (y >= 0.96) mId = Math.abs(x) < 0.028 ? 15 : 14; // 큰가슴근(복장갈비갈래)
-            else if (y >= 0.56 && ax > 0.44) mId = 16; // 앞톱니근
-            else if (y >= 0.14 && Math.abs(x) <= 0.165) mId = 17; // 배곧은근
-            else if (y < 0.14 && ax > 0.55) mId = 50; // 중간볼기근
-            else if (y < 0.12) mId = 20; // 고랑인대
-            else mId = ax > 0.48 ? 18 : 19; // 배바깥빗근 / 배속빗근
+    let currentMode = 'ascii';
+    let isRotating = true;
+    let isFlowing = true;
+
+    const texCanvas = document.createElement('canvas');
+    texCanvas.width = 2048;
+    texCanvas.height = 1024;
+    const ctx = texCanvas.getContext('2d');
+
+    function drawTypographyTexture(mode) {
+      ctx.fillStyle = '#0d0d0d';
+      ctx.fillRect(0, 0, texCanvas.width, texCanvas.height);
+
+      const tokens = TERM_SETS[mode] || TERM_SETS.ascii;
+      // Generous grid spacing (reverted from cramped micro-grid)
+      const cols = mode === 'ascii' ? 48 : 24;
+      const rows = mode === 'ascii' ? 24 : 18;
+      const cellW = texCanvas.width / cols;
+      const cellH = texCanvas.height / rows;
+
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          const idx = (r * 3 + c) % tokens.length;
+          const token = tokens[idx];
+
+          // Subtle wave luminance modulation for sculptural depth
+          const wave = Math.sin((c / cols) * Math.PI * 4 + (r / rows) * Math.PI * 2);
+          const alpha = mode === 'ascii'
+            ? 0.45 + 0.5 * ((wave + 1) * 0.5)
+            : 0.55 + 0.42 * ((wave + 1) * 0.5);
+
+          if (mode === 'ascii') {
+            ctx.font = '700 28px "JetBrains Mono", monospace';
+          } else if (mode === 'korean') {
+            ctx.font = '700 26px "Noto Sans KR", sans-serif';
+          } else if (mode === 'hanja') {
+            ctx.font = '700 30px "Noto Serif KR", serif';
           } else {
-            if (y > 0.18) {
-              const trapEdgeY = 0.84 + Math.abs(x) * 1.48;
-              if (y >= trapEdgeY && Math.abs(x) < 0.36) {
-                if (y > 1.34) mId = 21; // 상부등세모근
-                else if (y > 1.14) mId = 22; // 중부등세모근
-                else mId = 23; // 하부등세모근
-              } else if (y > 1.12 && Math.abs(x) >= 0.18) {
-                mId = y > 1.19 ? 24 : (ax > 0.65 ? 25 : 26); // 가시아래근 / 작은원근 / 큰원근
-              } else if (y > 0.92 && Math.abs(x) < 0.22) {
-                mId = 27; // 큰마름근
-              } else if (y >= 0.44 && Math.abs(x) > 0.14) {
-                mId = 28; // 넓은등근
-              } else if (y >= 0.34 && Math.abs(x) <= 0.14) {
-                mId = 29; // 척추세움근
-              } else {
-                mId = 30; // 등허리근막
-              }
-            } else {
-              mId = ax > 0.56 ? 50 : 51; // 중간볼기근 / 큰볼기근
-            }
+            ctx.font = '700 22px "JetBrains Mono", monospace';
           }
 
-          rRow.push([x, y, z]);
-          idRow.push(mId);
-          sRow.push(Math.max(0.45, Math.min(1.0, sulc)));
+          ctx.fillStyle = `rgba(242, 242, 242, ${alpha.toFixed(2)})`;
+          ctx.fillText(token, c * cellW + cellW * 0.5, r * cellH + cellH * 0.5);
         }
-        torsoRings.push(rRow);
-        torsoRegs.push(idRow);
-        torsoSulc.push(sRow);
       }
-      B.addSculptedPart({ rings: torsoRings, regionGrid: torsoRegs, sulcusGrid: torsoSulc });
-
-      // =======================================================
-      // 3. 어깨 및 상지 일체형 조각 + 회외 손·5손가락 (레퍼런스 우측 팔 자세)
-      // =======================================================
-      [-1, 1].forEach(s => {
-        const armSpine = [
-          { x: s * 0.35, y: 1.36, z: -0.008, rx: 0.125, rz: 0.145 },
-          { x: s * 0.45, y: 1.33, z: -0.006, rx: 0.155, rz: 0.165 },
-          { x: s * 0.55, y: 1.22, z: -0.004, rx: 0.162, rz: 0.166 },
-          { x: s * 0.61, y: 1.07, z:  0.000, rx: 0.136, rz: 0.142 },
-          { x: s * 0.67, y: 0.91, z:  0.006, rx: 0.128, rz: 0.138 },
-          { x: s * 0.72, y: 0.76, z:  0.012, rx: 0.100, rz: 0.104 }, // 팔꿈치
-          { x: s * 0.78, y: 0.58, z:  0.028, rx: 0.116, rz: 0.108 },
-          { x: s * 0.85, y: 0.38, z:  0.048, rx: 0.088, rz: 0.076 },
-          { x: s * 0.91, y: 0.19, z:  0.068, rx: 0.056, rz: 0.038 }  // 손목
-        ];
-
-        const aPosCurve = new THREE.CatmullRomCurve3(armSpine.map(p => new THREE.Vector3(p.x, p.y, p.z)));
-        const aRadCurve = new THREE.CatmullRomCurve3(armSpine.map(p => new THREE.Vector3(p.rx, 0, p.rz)));
-        const aLat = 136, aLon = 92;
-        const armRings = [], armRegs = [], armSulc = [];
-
-        for (let i = 0; i <= aLat; i++) {
-          const t = i / aLat;
-          const pt = aPosCurve.getPoint(t);
-          const rd = aRadCurve.getPoint(t);
-          const tan = aPosCurve.getTangent(t).normalize();
-          const ref = new THREE.Vector3(0, 0, 1);
-          const nrm = new THREE.Vector3().crossVectors(ref, tan).normalize();
-          const bin = new THREE.Vector3().crossVectors(tan, nrm).normalize();
-
-          const rRow = [], idRow = [], sRow = [];
-          for (let j = 0; j < aLon; j++) {
-            const th = ((j / aLon) - 0.25) * Math.PI * 2;
-            const sinT = Math.sin(th), cosT = Math.cos(th);
-            const latOut = sinT * s; // +1 = 가쪽(외측), -1 = 안쪽(내측)
-            let rx = rd.x, rz = rd.z, sulc = 1.0;
-
-            // 삼각근(Deltoid) V자 정지부 윤곽 및 전/중/후 경계
-            if (t > 0.08 && t < 0.38) {
-              const deltEnv = Math.sin(((t - 0.08) / 0.30) * Math.PI);
-              const vBorder = gauss(t, 0.34 - Math.abs(latOut) * 0.04, 0.022);
-              const antSplit = gauss(cosT, 0.55, 0.18) * deltEnv;
-              const postSplit = gauss(cosT, -0.55, 0.18) * deltEnv;
-              rx += deltEnv * 0.018 - vBorder * 0.014;
-              rz += deltEnv * 0.016 - vBorder * 0.014;
-              sulc -= (vBorder * 0.32 + antSplit * 0.18 + postSplit * 0.18);
-            }
-
-            // 상완 이두근(장두/단두), 상완근, 상완 삼두근(장두/외측두/내측두)
-            if (t > 0.28 && t < 0.64) {
-              const armEnv = Math.sin(((t - 0.28) / 0.36) * Math.PI);
-              if (cosT > 0.15) {
-                const bicepsSplit = gauss(latOut, 0.05, 0.16) * armEnv;
-                rz += armEnv * Math.pow(cosT, 1.3) * 0.022 - bicepsSplit * 0.008;
-                sulc -= bicepsSplit * 0.20;
-              }
-              if (cosT < -0.15) {
-                const tricepsSplit = gauss(latOut, 0.0, 0.18) * armEnv;
-                rz += armEnv * Math.pow(-cosT, 1.3) * 0.024 - tricepsSplit * 0.010;
-                sulc -= tricepsSplit * 0.24;
-              }
-              // 내/외측 이두근고랑(Bicipital Sulcus)
-              const bicipitalGroove = gauss(cosT, 0.0, 0.22) * armEnv;
-              rx -= bicipitalGroove * 0.014;
-              sulc -= bicipitalGroove * 0.30;
-            }
-
-            // 전완(Forearm) 완요골근 & 굴근/신근 경계
-            if (t > 0.60 && t < 0.94) {
-              const foreEnv = Math.sin(((t - 0.60) / 0.34) * Math.PI);
-              const brachiorad = gauss(latOut, 0.78, 0.26) * foreEnv;
-              const foreGroove = gauss(cosT, 0.12, 0.24) * foreEnv;
-              rx += brachiorad * 0.015 - foreGroove * 0.010;
-              rz -= foreGroove * 0.008;
-              sulc -= foreGroove * 0.26;
-            }
-
-            const lx = rx * sinT, lz = rz * cosT;
-            const wx = pt.x + nrm.x * lx + bin.x * lz;
-            const wy = pt.y + nrm.y * lx + bin.y * lz;
-            const wz = pt.z + nrm.z * lx + bin.z * lz;
-
-            // 세부 상지 근육 ID 판별
-            let mId = 32;
-            if (t <= 0.34) {
-              if (cosT > 0.35) mId = 31; // 앞어깨세모근
-              else if (cosT < -0.35) mId = 33; // 뒤어깨세모근
-              else mId = 32; // 가쪽어깨세모근
-            } else if (t <= 0.63) {
-              if (cosT > 0.20) {
-                if (latOut < -0.55 && t < 0.48) mId = 34; // 부리위팔근
-                else mId = latOut >= 0 ? 35 : 36; // 위팔두갈래근 긴갈래 / 짧은갈래
-              } else if (cosT >= -0.20) {
-                mId = latOut >= 0 ? 37 : 40; // 위팔근 / 위팔세갈래근 안쪽갈래
-              } else {
-                if (t > 0.50) mId = 40; // 위팔세갈래근 안쪽갈래
-                else mId = latOut >= 0 ? 39 : 38; // 위팔세갈래근 가쪽갈래 / 긴갈래
-              }
-            } else {
-              if (latOut > 0.45) mId = 41; // 위팔노근
-              else if (cosT >= 0.0) {
-                if (t < 0.74 && latOut < -0.15) mId = 42; // 원엎침근
-                else if (latOut > 0.08) mId = 43; // 노쪽손목굽힘근
-                else if (latOut > -0.18) mId = 44; // 긴손바닥근
-                else mId = 45; // 자쪽손목굽힘근
-              } else {
-                mId = 46; // 손가락폄근
-              }
-            }
-
-            rRow.push([wx, wy, wz]);
-            idRow.push(mId);
-            sRow.push(Math.max(0.45, Math.min(1.0, sulc)));
-          }
-          armRings.push(rRow);
-          armRegs.push(idRow);
-          armSulc.push(sRow);
-        }
-        B.addSculptedPart({ rings: armRings, regionGrid: armRegs, sulcusGrid: armSulc });
-
-        // 회외 손바닥(Palm: 엄지두덩근 + 새끼두덩근) 및 5손가락
-        const palmCurve = new THREE.CatmullRomCurve3([
-          new THREE.Vector3(s * 0.908, 0.195, 0.068),
-          new THREE.Vector3(s * 0.940, 0.125, 0.082),
-          new THREE.Vector3(s * 0.964, 0.055, 0.092),
-          new THREE.Vector3(s * 0.972, 0.022, 0.094)
-        ]);
-        const palmRad = new THREE.CatmullRomCurve3([
-          new THREE.Vector3(0.052, 0, 0.032),
-          new THREE.Vector3(0.068, 0, 0.028),
-          new THREE.Vector3(0.074, 0, 0.022),
-          new THREE.Vector3(0.066, 0, 0.017)
-        ]);
-        const palmRings = [], palmRegs = [], palmSulc = [];
-        for (let i = 0; i <= 28; i++) {
-          const t = i / 28;
-          const pt = palmCurve.getPoint(t), rd = palmRad.getPoint(t);
-          const tan = palmCurve.getTangent(t).normalize();
-          const nrm = new THREE.Vector3().crossVectors(new THREE.Vector3(0, 0, 1), tan).normalize();
-          const bin = new THREE.Vector3().crossVectors(tan, nrm).normalize();
-          const rRow = [], idRow = [], sRow = [];
-          for (let j = 0; j < 36; j++) {
-            const th = ((j / 36) - 0.25) * Math.PI * 2;
-            const sinT = Math.sin(th), cosT = Math.cos(th);
-            const latOut = sinT * s;
-            const palmGroove = gauss(latOut, 0, 0.22) * Math.max(0, cosT);
-            const lx = rd.x * sinT;
-            const lz = (rd.z - palmGroove * 0.008) * cosT;
-            rRow.push([
-              pt.x + nrm.x * lx + bin.x * lz,
-              pt.y + nrm.y * lx + bin.y * lz,
-              pt.z + nrm.z * lx + bin.z * lz
-            ]);
-            idRow.push(latOut >= 0 ? 47 : 48); // 엄지두덩근 / 새끼두덩근
-            sRow.push(1.0 - palmGroove * 0.26);
-          }
-          palmRings.push(rRow);
-          palmRegs.push(idRow);
-          palmSulc.push(sRow);
-        }
-        B.addSculptedPart({ rings: palmRings, regionGrid: palmRegs, sulcusGrid: palmSulc, capTop: true });
-
-        // 5손가락 (엄지 가쪽 외전, 검지~새끼)
-        [
-          { ctrl: [[s * 0.958, 0.125, 0.085], [s * 1.005, 0.068, 0.105], [s * 1.042, 0.018, 0.118], [s * 1.064, -0.022, 0.125]], rad: [[0.020, 0.018], [0.016, 0.015], [0.013, 0.012], [0.010, 0.010]] },
-          { ctrl: [[s * 1.010, 0.036, 0.092], [s * 1.028, -0.030, 0.102], [s * 1.032, -0.090, 0.106], [s * 1.028, -0.136, 0.106]], rad: [[0.014, 0.014], [0.012, 0.012], [0.010, 0.010], [0.008, 0.008]] },
-          { ctrl: [[s * 0.980, 0.028, 0.094], [s * 0.994, -0.044, 0.104], [s * 0.996, -0.110, 0.108], [s * 0.992, -0.160, 0.108]], rad: [[0.015, 0.015], [0.013, 0.013], [0.011, 0.011], [0.008, 0.008]] },
-          { ctrl: [[s * 0.950, 0.032, 0.092], [s * 0.962, -0.035, 0.102], [s * 0.962, -0.096, 0.105], [s * 0.958, -0.142, 0.105]], rad: [[0.014, 0.014], [0.012, 0.012], [0.010, 0.010], [0.008, 0.008]] },
-          { ctrl: [[s * 0.922, 0.042, 0.088], [s * 0.932, -0.018, 0.096], [s * 0.930, -0.066, 0.098], [s * 0.925, -0.104, 0.098]], rad: [[0.012, 0.012], [0.010, 0.010], [0.008, 0.008], [0.006, 0.006]] }
-        ].forEach(f => {
-          const fc = new THREE.CatmullRomCurve3(f.ctrl.map(p => new THREE.Vector3(...p)));
-          const fr = new THREE.CatmullRomCurve3(f.rad.map(r => new THREE.Vector3(r[0], 0, r[1])));
-          const fRings = [], fRegs = [], fSulc = [];
-          for (let i = 0; i <= 20; i++) {
-            const t = i / 20;
-            const pt = fc.getPoint(t), rd = fr.getPoint(t);
-            const tan = fc.getTangent(t).normalize();
-            const nrm = new THREE.Vector3().crossVectors(new THREE.Vector3(0, 0, 1), tan).normalize();
-            const bin = new THREE.Vector3().crossVectors(tan, nrm).normalize();
-            const tip = t > 0.85 ? Math.cos(((t - 0.85) / 0.15) * Math.PI * 0.45) : 1.0;
-            const joint = gauss(t, 0.35, 0.04) + gauss(t, 0.68, 0.04);
-            const rRow = [], idRow = [], sRow = [];
-            for (let j = 0; j < 20; j++) {
-              const th = (j / 20) * Math.PI * 2;
-              const lx = rd.x * tip * Math.sin(th), lz = rd.z * tip * Math.cos(th);
-              rRow.push([pt.x + nrm.x * lx + bin.x * lz, pt.y + nrm.y * lx + bin.y * lz, pt.z + nrm.z * lx + bin.z * lz]);
-              idRow.push(49);
-              sRow.push(1.0 - joint * 0.18);
-            }
-            fRings.push(rRow);
-            fRegs.push(idRow);
-            fSulc.push(sRow);
-          }
-          B.addSculptedPart({ rings: fRings, regionGrid: fRegs, sulcusGrid: fSulc, capTop: true });
-        });
-      });
-
-      // =======================================================
-      // 4. 하지 일체형 조각 (햄스트링 4분할 포함) + 발·5발가락
-      // =======================================================
-      [-1, 1].forEach(s => {
-        const legSpine = [
-          { x: s * 0.192, y:  0.12, z: -0.005, rx: 0.184, rz: 0.184 }, // 고관절
-          { x: s * 0.202, y: -0.22, z:  0.016, rx: 0.198, rz: 0.198 },
-          { x: s * 0.188, y: -0.56, z:  0.022, rx: 0.178, rz: 0.184 },
-          { x: s * 0.176, y: -0.88, z:  0.018, rx: 0.138, rz: 0.144 },
-          { x: s * 0.172, y: -1.03, z:  0.014, rx: 0.114, rz: 0.120 }, // 무릎
-          { x: s * 0.174, y: -1.24, z: -0.010, rx: 0.130, rz: 0.138 },
-          { x: s * 0.174, y: -1.46, z: -0.024, rx: 0.142, rz: 0.156 }, // 장딴지 최대 볼륨
-          { x: s * 0.171, y: -1.78, z: -0.020, rx: 0.090, rz: 0.100 }, // 아킬레스건
-          { x: s * 0.170, y: -2.04, z: -0.010, rx: 0.062, rz: 0.072 }  // 발목
-        ];
-
-        const lPosCurve = new THREE.CatmullRomCurve3(legSpine.map(p => new THREE.Vector3(p.x, p.y, p.z)));
-        const lRadCurve = new THREE.CatmullRomCurve3(legSpine.map(p => new THREE.Vector3(p.rx, 0, p.rz)));
-        const lLat = 168, lLon = 104;
-        const legRings = [], legRegs = [], legSulc = [];
-
-        for (let i = 0; i <= lLat; i++) {
-          const t = i / lLat;
-          const pt = lPosCurve.getPoint(t);
-          const rd = lRadCurve.getPoint(t);
-          const rRow = [], idRow = [], sRow = [];
-
-          for (let j = 0; j < lLon; j++) {
-            const th = ((j / lLon) - 0.25) * Math.PI * 2;
-            const sinT = Math.sin(th), cosT = Math.cos(th);
-            const latOut = sinT * s; // +1 = 가쪽(외측), -1 = 안쪽(내측)
-            let rx = rd.x, rz = rd.z, sulc = 1.0;
-
-            // --- 대퇴(Thigh: t = 0.05 ~ 0.49) ---
-            if (t > 0.05 && t < 0.49) {
-              const thighEnv = Math.sin(((t - 0.05) / 0.44) * Math.PI);
-
-              // 전면 대퇴사두근(대퇴직근/외측광근/내측광근) & 넙다리빗근 사선 고랑
-              if (cosT > 0.10) {
-                const sartLat = 0.55 - ((t - 0.06) / 0.42) * 1.35;
-                const sartRidge = gauss(latOut, sartLat, 0.14) * thighEnv;
-                const sartGroove = gauss(latOut, sartLat + 0.16, 0.10) * thighEnv;
-                const latGroove = gauss(latOut, 0.42, 0.16) * thighEnv;
-                const medGroove = gauss(latOut, -0.36, 0.16) * thighEnv;
-
-                rx += (sartRidge * 0.010 - (latGroove + medGroove) * 0.014) * cosT;
-                rz += (sartRidge * 0.012 - (latGroove + medGroove + sartGroove) * 0.016) * cosT;
-                sulc -= (latGroove * 0.28 + medGroove * 0.28 + sartGroove * 0.26) * cosT;
-              }
-
-              // 내측광근(Vastus Medialis) 물방울 볼륨
-              if (latOut < -0.15 && cosT > 0.05) {
-                const vmo = gauss(t, 0.39, 0.065) * (-latOut);
-                rx += vmo * 0.022;
-                rz += vmo * 0.018;
-              }
-
-              // 엉덩정강띠(Iliotibial Tract) 외측 평탄면 경계
-              if (latOut > 0.65) {
-                const itBorder = gauss(cosT, -0.35, 0.20) * thighEnv;
-                rx -= itBorder * 0.012;
-                sulc -= itBorder * 0.26;
-              }
-
-              // 후면 햄스트링 4개 근육 간 고랑(Biceps Femoris Long/Short, Semitendinosus, Semimembranosus)
-              if (cosT < -0.15) {
-                const hamCentralCleft = gauss(latOut, -0.04, 0.16) * thighEnv * (-cosT);
-                const hamMedSplit = gauss(latOut, -0.45, 0.14) * gauss(t, 0.28, 0.14) * (-cosT);
-                const hamLatSplit = gauss(latOut, 0.55, 0.14) * gauss(t, 0.32, 0.12) * (-cosT);
-                rz -= (hamCentralCleft * 0.020 + hamMedSplit * 0.012 + hamLatSplit * 0.012);
-                sulc -= (hamCentralCleft * 0.34 + hamMedSplit * 0.24 + hamLatSplit * 0.24);
-              }
-            }
-
-            // 슬개골(Patella) & 오금(Popliteal Fossa)
-            if (cosT > 0.35) {
-              rz += gauss(t, 0.50, 0.030) * 0.016 * cosT;
-            } else if (cosT < -0.35) {
-              const popFossa = gauss(t, 0.51, 0.042) * gauss(latOut, 0, 0.35) * (-cosT);
-              rz += popFossa * 0.016;
-              sulc -= popFossa * 0.28;
-            }
-
-            // --- 하퇴(Lower Leg: t = 0.55 ~ 0.94) ---
-            if (t > 0.55 && t < 0.90) {
-              const calfEnv = Math.sin(((t - 0.55) / 0.35) * Math.PI);
-              if (cosT < -0.18) {
-                const gastroCleft = gauss(latOut, 0.04, 0.18) * calfEnv;
-                const gastroMed = gauss(latOut, -0.48, 0.28) * calfEnv;
-                const gastroLat = gauss(latOut, 0.52, 0.28) * calfEnv;
-                rz += (-gastroCleft * 0.020 + (gastroMed + gastroLat) * 0.022) * (-cosT);
-                sulc -= gastroCleft * 0.32 * (-cosT);
-              }
-              if (cosT > 0.18) {
-                const tibCrest = gauss(latOut, -0.12, 0.14) * calfEnv;
-                const tibAnt = gauss(latOut, 0.35, 0.26) * calfEnv;
-                rx += tibAnt * 0.014;
-                rz += (tibAnt * 0.015 + tibCrest * 0.008) * cosT;
-                sulc -= gauss(latOut, 0.05, 0.12) * calfEnv * 0.22;
-              }
-            }
-
-            const wx = pt.x + rx * sinT;
-            const wy = pt.y;
-            const wz = pt.z + rz * cosT;
-
-            // 세부 하지 근육 ID 할당 (햄스트링 4개 근육 정확 분리)
-            let mId = 55;
-            if (t <= 0.50) {
-              const sartLat = 0.55 - ((t - 0.06) / 0.42) * 1.35;
-              if (t < 0.18 && latOut > 0.55 && cosT > -0.25) {
-                mId = 52; // 넙다리근막긴장근
-              } else if (latOut > 0.62 && cosT >= -0.35) {
-                mId = 53; // 엉덩정강띠
-              } else if (cosT > 0.05 && Math.abs(latOut - sartLat) < 0.14) {
-                mId = 54; // 넙다리빗근
-              } else if (cosT >= -0.10) {
-                if (latOut < -0.45) {
-                  if (t < 0.14) mId = 58; // 두덩근
-                  else if (t < 0.30 && cosT > 0.15) mId = 59; // 긴모음근
-                  else if (latOut < -0.78) mId = 61; // 두덩정강근
-                  else mId = 60; // 큰모음근
-                } else if (latOut < -0.16) {
-                  mId = 57; // 안쪽넓은근
-                } else if (latOut > 0.24) {
-                  mId = 56; // 가쪽넓은근
-                } else {
-                  mId = 55; // 넙다리곧은근
-                }
-              } else {
-                // 후면: 햄스트링 4개 구성 근육 (62, 63, 64, 65)
-                if (latOut >= 0.0) {
-                  mId = (t > 0.24 && latOut > 0.46) ? 63 : 62; // 넙다리두갈래근 짧은갈래 / 긴갈래
-                } else {
-                  mId = (latOut < -0.42 || t > 0.33) ? 65 : 64; // 반막근 / 반힘줄근
-                }
-              }
-            } else {
-              if (cosT > 0.15) {
-                mId = latOut < 0.48 ? 66 : 67; // 앞정강근 / 긴발가락폄근
-              } else if (latOut > 0.55 && cosT >= -0.35) {
-                mId = 68; // 긴종아리근
-              } else if (t < 0.76) {
-                mId = latOut < 0.04 ? 69 : 70; // 장딴지근 안쪽갈래 / 가쪽갈래
-              } else if (t < 0.87) {
-                if (Math.abs(latOut) < 0.36) mId = 72; // 발꿈치힘줄(아킬레스건)
-                else mId = latOut < 0 ? 73 : 71; // 긴발가락굽힘근 / 가자미근
-              } else {
-                mId = Math.abs(latOut) < 0.45 ? 72 : 71; // 발꿈치힘줄 / 가자미근
-              }
-            }
-
-            rRow.push([wx, wy, wz]);
-            idRow.push(mId);
-            sRow.push(Math.max(0.45, Math.min(1.0, sulc)));
-          }
-          legRings.push(rRow);
-          legRegs.push(idRow);
-          legSulc.push(sRow);
-        }
-        B.addSculptedPart({ rings: legRings, regionGrid: legRegs, sulcusGrid: legSulc });
-
-        // 발몸체 + 5발가락 (순수 블랙 배경 바닥에 접지, 좌대 없음)
-        const footCurve = new THREE.CatmullRomCurve3([
-          new THREE.Vector3(s * 0.170, -2.025, -0.016),
-          new THREE.Vector3(s * 0.172, -2.125,  0.014),
-          new THREE.Vector3(s * 0.175, -2.150,  0.095),
-          new THREE.Vector3(s * 0.178, -2.160,  0.174)
-        ]);
-        const footRad = new THREE.CatmullRomCurve3([
-          new THREE.Vector3(0.056, 0, 0.064),
-          new THREE.Vector3(0.060, 0, 0.050),
-          new THREE.Vector3(0.070, 0, 0.032),
-          new THREE.Vector3(0.080, 0, 0.022)
-        ]);
-        const footRings = [], footRegs = [], footSulc = [];
-        for (let i = 0; i <= 26; i++) {
-          const t = i / 26;
-          const pt = footCurve.getPoint(t), rd = footRad.getPoint(t);
-          const tan = footCurve.getTangent(t).normalize();
-          const nrm = new THREE.Vector3().crossVectors(new THREE.Vector3(0, 1, 0), tan).normalize();
-          const bin = new THREE.Vector3().crossVectors(tan, nrm).normalize();
-          const rRow = [], idRow = [], sRow = [];
-          for (let j = 0; j < 28; j++) {
-            const th = (j / 28) * Math.PI * 2;
-            const lx = rd.x * Math.sin(th), lz = rd.z * Math.cos(th);
-            rRow.push([pt.x + nrm.x * lx + bin.x * lz, pt.y + nrm.y * lx + bin.y * lz, pt.z + nrm.z * lx + bin.z * lz]);
-            idRow.push(74);
-            sRow.push(0.88);
-          }
-          footRings.push(rRow);
-          footRegs.push(idRow);
-          footSulc.push(sRow);
-        }
-        B.addSculptedPart({ rings: footRings, regionGrid: footRegs, sulcusGrid: footSulc, capBottom: true, capTop: true });
-
-        [
-          { ctrl: [[s * 0.120, -2.162, 0.168], [s * 0.118, -2.164, 0.214], [s * 0.120, -2.166, 0.250]], rad: [[0.020, 0.016], [0.018, 0.014], [0.014, 0.011]] },
-          { ctrl: [[s * 0.153, -2.164, 0.172], [s * 0.153, -2.166, 0.216], [s * 0.154, -2.168, 0.248]], rad: [[0.013, 0.012], [0.012, 0.011], [0.009, 0.009]] },
-          { ctrl: [[s * 0.182, -2.165, 0.168], [s * 0.183, -2.167, 0.208], [s * 0.184, -2.169, 0.236]], rad: [[0.012, 0.011], [0.011, 0.010], [0.008, 0.008]] },
-          { ctrl: [[s * 0.210, -2.166, 0.162], [s * 0.212, -2.168, 0.198], [s * 0.213, -2.170, 0.222]], rad: [[0.011, 0.010], [0.010, 0.009], [0.008, 0.007]] },
-          { ctrl: [[s * 0.236, -2.167, 0.152], [s * 0.240, -2.169, 0.182], [s * 0.242, -2.171, 0.202]], rad: [[0.010, 0.009], [0.009, 0.008], [0.007, 0.006]] }
-        ].forEach(toe => {
-          const tc = new THREE.CatmullRomCurve3(toe.ctrl.map(p => new THREE.Vector3(...p)));
-          const tr = new THREE.CatmullRomCurve3(toe.rad.map(r => new THREE.Vector3(r[0], 0, r[1])));
-          const tRings = [], tRegs = [], tSulc = [];
-          for (let i = 0; i <= 14; i++) {
-            const t = i / 14;
-            const pt = tc.getPoint(t), rd = tr.getPoint(t);
-            const tan = tc.getTangent(t).normalize();
-            const nrm = new THREE.Vector3().crossVectors(new THREE.Vector3(0, 1, 0), tan).normalize();
-            const bin = new THREE.Vector3().crossVectors(tan, nrm).normalize();
-            const tip = t > 0.85 ? Math.cos(((t - 0.85) / 0.15) * Math.PI * 0.45) : 1.0;
-            const rRow = [], idRow = [], sRow = [];
-            for (let j = 0; j < 16; j++) {
-              const th = (j / 16) * Math.PI * 2;
-              const lx = rd.x * tip * Math.sin(th), lz = rd.z * tip * Math.cos(th);
-              rRow.push([pt.x + nrm.x * lx + bin.x * lz, pt.y + nrm.y * lx + bin.y * lz, pt.z + nrm.z * lx + bin.z * lz]);
-              idRow.push(74);
-              sRow.push(0.86);
-            }
-            tRings.push(rRow);
-            tRegs.push(idRow);
-            tSulc.push(sRow);
-          }
-          B.addSculptedPart({ rings: tRings, regionGrid: tRegs, sulcusGrid: tSulc, capTop: true });
-        });
-      });
-
-      return B.buildGeometry();
     }
 
-    // ---------------------------------------------------------
-    // 6-D. 초기 기본 모델: 삼엽 매듭 조형 (TORUS KNOT)
-    // ---------------------------------------------------------
-    function buildTorusKnotGeometry() {
-      const B = new UnifiedSculptureBuilder();
-      const segsU = 360, segsV = 56;
-      const p = 2, q = 3, scale = 0.76, tubeRadius = 0.39;
+    drawTypographyTexture(currentMode);
 
-      const centers = [];
-      for (let i = 0; i <= segsU; i++) {
-        const t = (i / segsU) * Math.PI * 2;
-        const r = Math.cos(q * t) + 2.0;
-        centers.push(new THREE.Vector3(
-          r * Math.cos(p * t) * scale,
-          -Math.sin(q * t) * scale * 1.15,
-          r * Math.sin(p * t) * scale
-        ));
-      }
+    const typoTexture = new THREE.CanvasTexture(texCanvas);
+    typoTexture.wrapS = THREE.RepeatWrapping;
+    typoTexture.wrapT = THREE.RepeatWrapping;
+    typoTexture.repeat.set(5, 2);
+    typoTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
 
-      const tangents = centers.map((_, i) => {
-        const prev = centers[(i - 1 + segsU) % segsU];
-        const next = centers[(i + 1) % segsU];
-        return new THREE.Vector3().subVectors(next, prev).normalize();
+    // Initial Proportions Torus Knot (radius: 1.38, tube: 0.42)
+    const knotGeometry = new THREE.TorusKnotGeometry(1.38, 0.42, 240, 48, 2, 3);
+    const knotMaterial = new THREE.MeshStandardMaterial({
+      map: typoTexture,
+      bumpMap: typoTexture,
+      bumpScale: 0.018,
+      roughness: 0.42,
+      metalness: 0.18,
+    });
+
+    const knotMesh = new THREE.Mesh(knotGeometry, knotMaterial);
+    scene.add(knotMesh);
+
+    // Subtle Inner Core Wireframe for Silhouette Definition
+    const coreGeometry = new THREE.TorusKnotGeometry(1.38, 0.416, 120, 24, 2, 3);
+    const coreMaterial = new THREE.MeshBasicMaterial({
+      color: 0x161616,
+      wireframe: true,
+      transparent: true,
+      opacity: 0.14,
+    });
+    const coreMesh = new THREE.Mesh(coreGeometry, coreMaterial);
+    knotMesh.add(coreMesh);
+
+    // --- UI Controls ---
+    const termButtons = document.querySelectorAll('#term-controls .ctrl-btn');
+    termButtons.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        termButtons.forEach((b) => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentMode = btn.dataset.mode;
+        drawTypographyTexture(currentMode);
+        typoTexture.needsUpdate = true;
       });
+    });
 
-      let normal = new THREE.Vector3(0, 1, 0);
-      normal.sub(tangents[0].clone().multiplyScalar(tangents[0].dot(normal))).normalize();
+    const btnRotate = document.getElementById('btn-rotate');
+    btnRotate.addEventListener('click', () => {
+      isRotating = !isRotating;
+      btnRotate.textContent = `ROTATE: ${isRotating ? 'ON' : 'OFF'}`;
+      btnRotate.classList.toggle('active', isRotating);
+    });
 
-      const rings = [], regs = [], sulcs = [];
-      for (let i = 0; i <= segsU; i++) {
-        if (i > 0) {
-          const axis = new THREE.Vector3().crossVectors(tangents[i - 1], tangents[i]);
-          if (axis.lengthSq() > 1e-10) {
-            axis.normalize();
-            const ang = Math.acos(Math.max(-1, Math.min(1, tangents[i - 1].dot(tangents[i]))));
-            normal.applyAxisAngle(axis, ang).normalize();
-          }
-        }
-        const binormal = new THREE.Vector3().crossVectors(tangents[i], normal).normalize();
-        const ring = [], idRow = [], sRow = [];
-        for (let j = 0; j < segsV; j++) {
-          const th = (j / segsV) * Math.PI * 2;
-          const pt = centers[i].clone()
-            .addScaledVector(normal, Math.cos(th) * tubeRadius)
-            .addScaledVector(binormal, Math.sin(th) * tubeRadius);
-          ring.push([pt.x, pt.y, pt.z]);
-          idRow.push(0);
-          sRow.push(1.0);
-        }
-        rings.push(ring);
-        regs.push(idRow);
-        sulcs.push(sRow);
-      }
+    const btnFlow = document.getElementById('btn-flow');
+    btnFlow.addEventListener('click', () => {
+      isFlowing = !isFlowing;
+      btnFlow.textContent = `FLOW: ${isFlowing ? 'ON' : 'OFF'}`;
+      btnFlow.classList.toggle('active', isFlowing);
+    });
 
-      B.addSculptedPart({ rings, regionGrid: regs, sulcusGrid: sulcs });
-      return B.buildGeometry();
-    }
+    const btnReset = document.getElementById('btn-reset');
+    btnReset.addEventListener('click', () => {
+      camera.position.copy(INITIAL_CAM_POS);
+      controls.target.set(0, 0, 0);
+      knotMesh.rotation.set(0, 0, 0);
+      controls.update();
+    });
 
-    // ---------------------------------------------------------
-    // 6-E. 1:1 비율 가변 자간 & 안티엘리어싱 딥-줌 셰이더
-    // ---------------------------------------------------------
-    function createEcorcheShaderMaterial() {
-      const cols = TYPO.cols;
-      const rows = TYPO.rows;
-
-      return new THREE.ShaderMaterial({
-        extensions: {
-          derivatives: true
-        },
-        uniforms: {
-          uAtlas: { value: TYPO.atlasTex },
-          uAsciiStrip: { value: TYPO.asciiStripTex },
-          uWordStrip: { value: TYPO.strips.en },
-          uAsciiMode: { value: 1.0 },
-          uMaxMuscles: { value: MAX_MUSCLE_ID },
-          uFlowPhase: { value: 0.0 },
-          uCharHeightWorld: { value: 0.095 },
-          uIsEcorche: { value: 0.0 }
-        },
-        vertexShader: `
-          attribute float aMuscleId;
-          attribute float aWordSpan;
-          attribute float aSulcus;
-
-          varying vec3 vNormalView;
-          varying vec3 vViewPos;
-          varying vec2 vWorldArc;
-          varying float vMuscleId;
-          varying float vWordSpan;
-          varying float vSulcus;
-
-          void main() {
-            vNormalView = normalize(normalMatrix * normal);
-            vec4 mvPos = modelViewMatrix * vec4(position, 1.0);
-            vViewPos = -mvPos.xyz;
-            vWorldArc = uv;
-            vMuscleId = aMuscleId;
-            vWordSpan = aWordSpan;
-            vSulcus = aSulcus;
-            gl_Position = projectionMatrix * mvPos;
-          }
-        `,
-        fragmentShader: `
-          uniform sampler2D uAtlas;
-          uniform sampler2D uAsciiStrip;
-          uniform sampler2D uWordStrip;
-          uniform float uAsciiMode;
-          uniform float uMaxMuscles;
-          uniform float uFlowPhase;
-          uniform float uCharHeightWorld;
-          uniform float uIsEcorche;
-
-          varying vec3 vNormalView;
-          varying vec3 vViewPos;
-          varying vec2 vWorldArc;
-          varying float vMuscleId;
-          varying float vWordSpan;
-          varying float vSulcus;
-
-          float hash12(vec2 p) {
-            vec3 p3 = fract(vec3(p.xyx) * 0.1031);
-            p3 += dot(p3, p3.yzx + 33.33);
-            return fract((p3.x + p3.y) * p3.z);
-          }
-
-          void main() {
-            vec3 n = normalize(vNormalView);
-            if (!gl_FrontFacing) n = -n;
-            vec3 viewDir = normalize(vViewPos);
-
-            // 근섬유 미세 굴곡 노말 섭동 (에코르셰 조각 질감)
-            float fiberPattern = sin(vWorldArc.x * 16.0 + sin(vWorldArc.y * 2.5) * 1.4) * 0.5 + 0.5;
-            float fiberShade = mix(1.0, mix(0.88, 1.05, fiberPattern), uIsEcorche);
-
-            // 근육과 근육 사이 경계선 검출 (근간구 음영 + 근육 ID 전환 경계)
-            float idDeriv = fwidth(vMuscleId);
-            float muscleSeam = mix(1.0, 1.0 - clamp(idDeriv * 1.6, 0.0, 0.55), uIsEcorche);
-            float grooveAO = mix(1.0, mix(0.28, 1.0, smoothstep(0.45, 0.98, vSulcus)), uIsEcorche);
-
-            // 레퍼런스와 동일한 3점 스튜디오 조각 조명
-            vec3 keyDir  = normalize(vec3(-0.56, 0.54, 0.72));
-            vec3 fillDir = normalize(vec3( 0.58, 0.16, 0.62));
-            vec3 rimDir  = normalize(vec3( 0.85, 0.25, -0.45));
-
-            float halfLambert = dot(n, keyDir) * 0.5 + 0.5;
-            float keyLight  = pow(clamp(halfLambert, 0.0, 1.0), 1.32) * 0.84;
-            float fillLight = max(dot(n, fillDir), 0.0) * 0.24;
-            float rimFactor = pow(1.0 - clamp(dot(n, viewDir), 0.0, 1.0), 2.3);
-            float rimLight  = rimFactor * max(dot(n, rimDir) * 0.5 + 0.5, 0.0) * 0.36;
-
-            float baseLum = (0.10 + keyLight + fillLight + rimLight) * grooveAO * muscleSeam * fiberShade;
-            baseLum = clamp(baseLum, 0.05, 0.98);
-
-            // ---------------------------------------------------------
-            // 물리적 호 길이 기반 1:1 종횡비 텍스트 좌표
-            // ---------------------------------------------------------
-            float rowCoord = vWorldArc.y / uCharHeightWorld;
-            float rowIndex = floor(rowCoord);
-            float rowFrac  = fract(rowCoord);
-
-            // 화면 픽셀당 글자 높이 계산 (안티엘리어싱 LOD 판정)
-            vec2 dRow = vec2(dFdx(rowCoord), dFdy(rowCoord));
-            float pixelsPerChar = 1.0 / max(length(dRow), 1e-5);
-
-            // 원경(pixelsPerChar < 5.0): 순수 매끄러운 점토 조각상
-            // 근경(pixelsPerChar > 11.0): 1:1 비율의 선명한 글자
-            float textReveal = smoothstep(5.0, 11.0, pixelsPerChar);
-
-            vec3 clayCool = vec3(0.84, 0.86, 0.89);
-            vec3 clayWarm = vec3(0.95, 0.88, 0.80);
-            float warmMask = clamp(rimFactor * max(n.x, 0.0) * 1.4 * uIsEcorche, 0.0, 1.0);
-            float microGrain = (hash12(floor(vWorldArc * 28.0)) - 0.5) * 0.04;
-            vec3 clayColor = mix(clayCool, clayWarm, warmMask) * clamp(baseLum + microGrain, 0.05, 1.0);
-
-            if (textReveal <= 0.002) {
-              gl_FragColor = vec4(clayColor, 1.0);
-              return;
-            }
-
-            float rowStagger = fract(rowIndex * 0.371) + uFlowPhase;
-            vec2 atlasUv;
-
-            if (uAsciiMode > 0.5) {
-              float colCoord = (vWorldArc.x / (uCharHeightWorld * 0.72)) + rowStagger * 4.0;
-              float cellFracX = fract(colCoord);
-              float lumIdx = clamp(floor(baseLum * 9.99), 0.0, 9.0);
-              vec4 aInfo = texture2D(uAsciiStrip, vec2((lumIdx + 0.5) / 10.0, 0.5));
-              float uSpan = aInfo.z;
-              float uLocal = 0.5 + (cellFracX - 0.5) * uSpan;
-              float vLocal = 0.5 + (rowFrac - 0.5) * 0.88;
-              atlasUv = vec2(
-                aInfo.x + (uLocal - 0.5) / ${cols.toFixed(1)},
-                1.0 - (1.0 - aInfo.y + (0.5 - vLocal) / ${rows.toFixed(1)})
-              );
-            } else {
-              // 단어 총 폭(vWordSpan * uCharHeightWorld)으로 나누어 모든 글자의 1:1 종횡비 보장
-              float wordWidthWorld = max(vWordSpan * uCharHeightWorld, uCharHeightWorld);
-              float uNorm = fract((vWorldArc.x / wordWidthWorld) + rowStagger);
-              float mRow = (floor(vMuscleId + 0.5) + 0.5) / uMaxMuscles;
-              vec4 wInfo = texture2D(uWordStrip, vec2(uNorm, mRow));
-              float uLocal = wInfo.z;
-              float uSpan  = wInfo.w;
-              float vLocal = 0.5 + (rowFrac - 0.5) * 0.88;
-              atlasUv = vec2(
-                wInfo.x + ((uLocal - 0.5) * uSpan) / ${cols.toFixed(1)},
-                1.0 - (1.0 - wInfo.y + (0.5 - vLocal) / ${rows.toFixed(1)})
-              );
-            }
-
-            float glyphAlpha = texture2D(uAtlas, atlasUv).a;
-            float aaWidth = clamp(1.15 / max(pixelsPerChar, 1.0), 0.04, 0.22);
-            float crispGlyph = smoothstep(0.42 - aaWidth, 0.42 + aaWidth, glyphAlpha);
-
-            vec3 textInk = vec3(mix(0.26, 1.0, pow(baseLum, 0.72))) * crispGlyph * muscleSeam;
-            vec3 finalColor = mix(clayColor, textInk, textReveal);
-            gl_FragColor = vec4(finalColor, 1.0);
-          }
-        `,
-        side: THREE.FrontSide
-      });
-    }
-
-    function updateGeometryWordSpans(geom, mode) {
-      if (!geom) return;
-      const idAttr = geom.getAttribute("aMuscleId");
-      const spanAttr = geom.getAttribute("aWordSpan");
-      if (!idAttr || !spanAttr) return;
-      const table = mode === "ascii" ? TYPO.totalSpans.en : TYPO.totalSpans[mode];
-      const count = idAttr.count;
-      for (let i = 0; i < count; i++) {
-        spanAttr.setX(i, table[Math.round(idAttr.getX(i))] || 10.0);
-      }
-      spanAttr.needsUpdate = true;
-    }
-
-    // ---------------------------------------------------------
-    // 6-F. Three.js 뷰포트 초기화, 230배 커서 중심 딥 줌, 정밀 호버
-    // ---------------------------------------------------------
-    let cachedGeometries = { knot: null, ecorche: null };
-
-    function initAnatomyEngine() {
-      const stage = document.getElementById("anatomy-stage");
-      scene = new THREE.Scene();
-      scene.background = new THREE.Color(0x000000);
-
-      camera = new THREE.PerspectiveCamera(34, stage.clientWidth / stage.clientHeight, 0.08, 600);
-      camera.position.set(0, DEFAULT_PAN_Y, DEFAULT_CAM_Z);
-
-      renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-      renderer.setSize(stage.clientWidth, stage.clientHeight);
-      TYPO.atlasTex.anisotropy = renderer.capabilities.getMaxAnisotropy();
-      stage.appendChild(renderer.domElement);
-
-      modelPivot = new THREE.Group();
-      modelPivot.rotation.order = "YXZ";
-      scene.add(modelPivot);
-
-      // 초기 로드 시 매듭 조형(TORUS KNOT) 먼저 출력
-      change3DModel("knot");
-
-      stage.addEventListener("mousedown", e => {
-        if (e.button === 2 || e.shiftKey) {
-          dragMode = "pan";
-        } else if (e.button === 0) {
-          dragMode = "rotate";
-        }
-        prevMouse = { x: e.clientX, y: e.clientY };
-      });
-
-      window.addEventListener("mouseup", () => {
-        dragMode = "none";
-      });
-
-      window.addEventListener("mousemove", e => {
-        const rect = stage.getBoundingClientRect();
-        if (e.clientX >= rect.left && e.clientX <= rect.right && e.clientY >= rect.top && e.clientY <= rect.bottom) {
-          pointerNDC.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-          pointerNDC.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-        } else {
-          pointerNDC.set(-99, -99);
-        }
-
-        if (dragMode === "none" || !modelPivot) return;
-        const dx = e.clientX - prevMouse.x;
-        const dy = e.clientY - prevMouse.y;
-
-        if (dragMode === "rotate") {
-          modelPivot.rotation.y += dx * 0.0085;
-          modelPivot.rotation.x = Math.max(-0.85, Math.min(0.85, modelPivot.rotation.x + dy * 0.006));
-        } else if (dragMode === "pan") {
-          const panSpeed = targetCamZ * 0.0014;
-          targetPan.x = Math.max(-34.0, Math.min(34.0, targetPan.x - dx * panSpeed));
-          targetPan.y = Math.max(-44.0, Math.min(44.0, targetPan.y + dy * panSpeed));
-        }
-        prevMouse = { x: e.clientX, y: e.clientY };
-      });
-
-      stage.addEventListener("wheel", e => {
-        e.preventDefault();
-        const rect = stage.getBoundingClientRect();
-        const ndcX = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-        const ndcY = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-
-        const oldZ = targetCamZ;
-        const zoomFactor = 1 + e.deltaY * 0.00125;
-        const newZ = Math.min(165.0, Math.max(0.65, oldZ * zoomFactor));
-        const ratio = newZ / oldZ;
-
-        let focusDepth = oldZ;
-        if (activeSculptureMesh) {
-          raycaster.setFromCamera(new THREE.Vector2(ndcX, ndcY), camera);
-          const hits = raycaster.intersectObject(activeSculptureMesh, false);
-          if (hits.length > 0) {
-            focusDepth = hits[0].distance;
-          }
-        }
-
-        const tanHalfFov = Math.tan((camera.fov * Math.PI) / 360);
-        const worldX = targetPan.x + ndcX * camera.aspect * tanHalfFov * focusDepth;
-        const worldY = targetPan.y + ndcY * tanHalfFov * focusDepth;
-
-        if (e.deltaY < 0) {
-          targetPan.x = worldX - ndcX * camera.aspect * tanHalfFov * (focusDepth * ratio);
-          targetPan.y = worldY - ndcY * tanHalfFov * (focusDepth * ratio);
-        } else {
-          targetPan.x += (0 - targetPan.x) * 0.22;
-          targetPan.y += (DEFAULT_PAN_Y - targetPan.y) * 0.22;
-        }
-
-        targetPan.x = Math.max(-34.0, Math.min(34.0, targetPan.x));
-        targetPan.y = Math.max(-44.0, Math.min(44.0, targetPan.y));
-        targetCamZ = newZ;
-      }, { passive: false });
-
-      window.addEventListener("resize", resizeAnatomyViewport);
-      resizeAnatomyViewport();
-      requestAnimationFrame(animateAnatomyScene);
-    }
-
-    function resizeAnatomyViewport() {
-      const stage = document.getElementById("anatomy-stage");
-      if (!stage || !renderer || stage.clientWidth === 0) return;
-      const w = stage.clientWidth;
-      const h = stage.clientHeight;
-      camera.aspect = w / h;
+    // Resize Handler
+    function onResize() {
+      if (!container.clientWidth || !container.clientHeight) return;
+      camera.aspect = container.clientWidth / container.clientHeight;
       camera.updateProjectionMatrix();
-      renderer.setSize(w, h);
+      renderer.setSize(container.clientWidth, container.clientHeight);
     }
+    window.addEventListener('resize', onResize);
 
-    function change3DModel(type) {
-      currentModelType = type;
-      document.getElementById("model-knot").classList.toggle("active", type === "knot");
-      document.getElementById("model-ecorche").classList.toggle("active", type === "ecorche");
+    // Animation Loop
+    const clock = new THREE.Clock();
+    function animate() {
+      requestAnimationFrame(animate);
+      const delta = clock.getDelta();
 
-      if (activeSculptureMesh) {
-        modelPivot.remove(activeSculptureMesh);
-        activeSculptureMesh.material.dispose();
-        activeSculptureMesh = null;
+      if (isRotating) {
+        knotMesh.rotation.y += delta * 0.28;
+        knotMesh.rotation.x = Math.sin(clock.elapsedTime * 0.35) * 0.14;
       }
 
-      modelPivot.rotation.set(0, 0, 0);
-      targetCamZ = DEFAULT_CAM_Z;
-      targetPan.set(0, DEFAULT_PAN_Y);
-
-      if (!cachedGeometries[type]) {
-        cachedGeometries[type] = type === "knot"
-          ? buildTorusKnotGeometry()
-          : buildRealisticEcorcheGeometry();
-      }
-      updateGeometryWordSpans(cachedGeometries[type], glyphMode);
-
-      const mat = createEcorcheShaderMaterial();
-      mat.uniforms.uAsciiMode.value = glyphMode === "ascii" ? 1.0 : 0.0;
-      mat.uniforms.uIsEcorche.value = type === "ecorche" ? 1.0 : 0.0;
-      mat.uniforms.uCharHeightWorld.value = type === "ecorche" ? 0.095 : 0.22;
-      if (glyphMode !== "ascii") {
-        mat.uniforms.uWordStrip.value = TYPO.strips[glyphMode];
+      if (isFlowing) {
+        typoTexture.offset.x -= delta * 0.065;
       }
 
-      activeSculptureMesh = new THREE.Mesh(cachedGeometries[type], mat);
-      modelPivot.add(activeSculptureMesh);
-
-      document.getElementById("hud-right").innerHTML = type === "ecorche"
-        ? `MUSCLE : <strong>HOVER OVER ANY MUSCLE</strong>`
-        : `TARGET : <strong>TORUS KNOT</strong>`;
-    }
-
-    function setGlyphMode(mode) {
-      glyphMode = mode;
-      ["ascii", "ko", "hj", "en"].forEach(m => {
-        document.getElementById("mode-" + m).classList.toggle("active", m === mode);
-      });
-
-      if (activeSculptureMesh) {
-        updateGeometryWordSpans(activeSculptureMesh.geometry, mode);
-        const mat = activeSculptureMesh.material;
-        if (mode === "ascii") {
-          mat.uniforms.uAsciiMode.value = 1.0;
-        } else {
-          mat.uniforms.uAsciiMode.value = 0.0;
-          mat.uniforms.uWordStrip.value = TYPO.strips[mode];
-        }
-      }
-    }
-
-    function toggleAutoRotate() {
-      autoRotate = !autoRotate;
-      document.getElementById("btn-autorotate").classList.toggle("active", autoRotate);
-      document.getElementById("btn-autorotate").innerText = `ROTATE : ${autoRotate ? "ON" : "OFF"}`;
-    }
-
-    function toggleFlow() {
-      flowEnabled = !flowEnabled;
-      document.getElementById("btn-flow").classList.toggle("active", flowEnabled);
-      document.getElementById("btn-flow").innerText = `FLOW : ${flowEnabled ? "ON" : "OFF"}`;
-    }
-
-    function resetAnatomyView() {
-      targetCamZ = DEFAULT_CAM_Z;
-      targetPan.set(0, DEFAULT_PAN_Y);
-      if (modelPivot) {
-        modelPivot.rotation.set(0, 0, 0);
-      }
-    }
-
-    function animateAnatomyScene() {
-      requestAnimationFrame(animateAnatomyScene);
-      if (!document.getElementById("sec-anatomy").classList.contains("active")) return;
-
-      camera.position.z += (targetCamZ - camera.position.z) * 0.16;
-      camera.position.x += (targetPan.x - camera.position.x) * 0.16;
-      camera.position.y += (targetPan.y - camera.position.y) * 0.16;
-
-      if (autoRotate && dragMode === "none" && modelPivot) {
-        modelPivot.rotation.y += 0.0065;
-      }
-
-      if (flowEnabled && activeSculptureMesh) {
-        flowPhase = (flowPhase + 0.0018) % 1.0;
-        activeSculptureMesh.material.uniforms.uFlowPhase.value = flowPhase;
-      }
-
-      if (activeSculptureMesh && pointerNDC.x > -2) {
-        modelPivot.updateMatrixWorld(true);
-        raycaster.setFromCamera(pointerNDC, camera);
-        const hits = raycaster.intersectObject(activeSculptureMesh, false);
-        const hudRight = document.getElementById("hud-right");
-
-        if (hits.length > 0 && hits[0].face && currentModelType === "ecorche") {
-          const idAttr = activeSculptureMesh.geometry.getAttribute("aMuscleId");
-          const mId = Math.round(idAttr.getX(hits[0].face.a));
-          const info = MUSCLE_CATALOG[mId] || MUSCLE_CATALOG[14];
-          hudRight.innerHTML = `MUSCLE : <strong>${info.label}</strong>`;
-        } else {
-          hudRight.innerHTML = currentModelType === "ecorche"
-            ? `MUSCLE : <strong>HOVER OVER ANY MUSCLE</strong>`
-            : `TARGET : <strong>TORUS KNOT</strong>`;
-        }
-      }
-
+      controls.update();
       renderer.render(scene, camera);
     }
 
-    // =========================================================
-    // 7. INITIALIZE ON LOAD
-    // =========================================================
-    window.addEventListener("DOMContentLoaded", async () => {
-      initAnatomyEngine();
-      const { data } = await sb.auth.getSession();
-      updateAuthUI(data?.session?.user || null);
-      loadArchives();
-      loadGuestbook();
-    });
+    animate();
   </script>
 </body>
 </html>
