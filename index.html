@@ -103,7 +103,7 @@
     /* MAIN CONTAINER */
     main {
       width: 100%;
-      max-width: 1200px;
+      max-width: 1240px;
       margin: 0 auto;
       padding: 28px 32px 80px;
       flex: 1;
@@ -261,7 +261,7 @@
 
     #anatomy-stage {
       width: 100%;
-      height: 780px;
+      height: 820px;
       border: 1px solid var(--line);
       background: #000000;
       position: relative;
@@ -289,13 +289,13 @@
       justify-content: space-between;
       flex-wrap: wrap;
       gap: 8px;
-      font-size: 0.71rem;
+      font-size: 0.72rem;
       letter-spacing: 0.08em;
       color: var(--muted);
       pointer-events: none;
-      background: rgba(0, 0, 0, 0.85);
-      padding: 5px 10px;
-      border: 1px solid #181818;
+      background: rgba(0, 0, 0, 0.88);
+      padding: 6px 12px;
+      border: 1px solid #1e1e1e;
     }
 
     .anatomy-hud strong {
@@ -438,7 +438,7 @@
     @media (max-width: 768px) {
       header, main, footer { padding-left: 18px; padding-right: 18px; }
       .form-row, .form-row-3, .bio-grid { grid-template-columns: 1fr; }
-      #anatomy-stage { height: 560px; }
+      #anatomy-stage { height: 580px; }
     }
   </style>
 </head>
@@ -456,20 +456,20 @@
   </header>
 
   <main>
-    <!-- 01. 3D SCULPTURE & SPATIAL TYPOGRAPHY VIEWER -->
+    <!-- 01. 3D ANATOMICAL ÉCORCHÉ & MICRO-TYPOGRAPHY SCULPTURE -->
     <section id="sec-anatomy" class="section active">
       <div class="box">
         <div class="anatomy-toolbar">
           <div class="toolbar-group">
-            <label>MODEL</label>
+            <label>SCULPTURE</label>
             <div class="toolbar-buttons">
-              <button class="btn-outline active" id="model-knot" onclick="change3DModel('knot')">TORUS KNOT (매듭 조형)</button>
-              <button class="btn-outline" id="model-ecorche" onclick="change3DModel('ecorche')">ÉCORCHÉ (에코르셰)</button>
+              <button class="btn-outline active" id="model-ecorche" onclick="change3DModel('ecorche')">ÉCORCHÉ (해부학 근육)</button>
+              <button class="btn-outline" id="model-knot" onclick="change3DModel('knot')">TORUS KNOT (매듭 조형)</button>
             </div>
           </div>
 
           <div class="toolbar-group">
-            <label>TERMINOLOGY</label>
+            <label>MICRO-TYPOGRAPHY</label>
             <div class="toolbar-buttons">
               <button class="btn-outline active" id="mode-ascii" onclick="setGlyphMode('ascii')">ASCII</button>
               <button class="btn-outline" id="mode-ko" onclick="setGlyphMode('ko')">한글 (우리말)</button>
@@ -481,7 +481,7 @@
           <div class="toolbar-group">
             <label>VIEW & CONTROL</label>
             <div class="toolbar-buttons">
-              <button class="btn-outline active" id="btn-autorotate" onclick="toggleAutoRotate()">ROTATE : ON</button>
+              <button class="btn-outline" id="btn-autorotate" onclick="toggleAutoRotate()">ROTATE : OFF</button>
               <button class="btn-outline" id="btn-flow" onclick="toggleFlow()">FLOW : OFF</button>
               <button class="btn-outline" onclick="resetAnatomyView()">RESET VIEW</button>
             </div>
@@ -490,8 +490,8 @@
 
         <div id="anatomy-stage" oncontextmenu="return false;">
           <div class="anatomy-hud">
-            <span id="hud-left">LEFT DRAG : ROTATE · RIGHT/SHIFT DRAG : PAN · WHEEL : DEEP ZOOM TO READ</span>
-            <span id="hud-right">TARGET : <strong>TORUS KNOT</strong></span>
+            <span id="hud-left">LEFT DRAG : ROTATE · RIGHT/SHIFT DRAG : PAN · WHEEL : DEEP ZOOM (230×) TO REVEAL TEXT</span>
+            <span id="hud-right">MUSCLE : <strong>HOVER OVER ANY MUSCLE</strong></span>
           </div>
         </div>
       </div>
@@ -956,92 +956,145 @@
     }
 
     // =========================================================
-    // 6. MONUMENTAL SCALE (5.5x) PROPORTIONAL-KERNING SCULPTURE ENGINE
-    //    - 글자별 실제 폭(measureText) 기반 가변 자간 패킹 (L·I 간격 문제 해결)
-    //    - 5.5배 대형 스케일 + ~180,000개 초소형 표면 인스턴스
-    //    - 8등신 실제 인체 해부학 비례 반영
+    // 6. MONUMENTAL SCALE (18x) ANATOMICAL ÉCORCHÉ ENGINE
+    //    - 72종 세부 해부학 근육·건(햄스트링 4분할 포함) 개별 3D 조형
+    //    - 18배 초대형 스케일(신장 81유닛) & 230배 딥 줌 LOD 전환
+    //    - 원경: 안티엘리어싱 스튜디오 점토 조각상 (글자 비노출)
+    //    - 근경: 근섬유 주행 방향을 따라 흐르는 가변 자간 타이포그래피
     // =========================================================
-    const MODEL_SCALE = 5.5;
-    const ASCII_CHARS = [".", ":", "-", "=", "+", "*", "#", "%", "@"];
+    const MODEL_SCALE = 18.0;
+    const ASCII_CHARS = [" ", ".", ":", "-", "=", "+", "*", "#", "%", "@"];
 
-    const MUSCLE_TERMS = {
-      1:  { label: "머리뼈 · 두개골 · CRANIUM",                 ko: "머리뼈",           hj: "두개골",       en: "CRANIUM" },
-      2:  { label: "관자근 · 측두근 · TEMPORALIS",              ko: "관자근",           hj: "측두근",       en: "TEMPORALIS" },
-      3:  { label: "깨물근 · 교근 · MASSETER",                  ko: "깨물근",           hj: "교근",         en: "MASSETER" },
-      4:  { label: "목빗근 · 흉쇄유돌근 · SCM",                 ko: "목빗근",           hj: "흉쇄유돌근",   en: "STERNOCLEIDOMASTOID" },
-      5:  { label: "등세모근 · 승모근 · TRAPEZIUS",             ko: "등세모근",         hj: "승모근",       en: "TRAPEZIUS" },
-      6:  { label: "어깨세모근 · 삼각근 · DELTOID",             ko: "어깨세모근",       hj: "삼각근",       en: "DELTOID" },
-      7:  { label: "큰가슴근 · 대흉근 · PECTORALIS MAJOR",      ko: "큰가슴근",         hj: "대흉근",       en: "PECTORALISMAJOR" },
-      8:  { label: "앞톱니근 · 전거근 · SERRATUS ANTERIOR",     ko: "앞톱니근",         hj: "전거근",       en: "SERRATUSANTERIOR" },
-      9:  { label: "위팔두갈래근 · 상완이두근 · BICEPS",        ko: "위팔두갈래근",     hj: "상완이두근",   en: "BICEPSBRACHII" },
-      10: { label: "위팔근 · 상완근 · BRACHIALIS",              ko: "위팔근",           hj: "상완근",       en: "BRACHIALIS" },
-      11: { label: "위팔세갈래근 · 상완삼두근 · TRICEPS",       ko: "위팔세갈래근",     hj: "상완삼두근",   en: "TRICEPSBRACHII" },
-      12: { label: "위팔노근 · 완요골근 · BRACHIORADIALIS",     ko: "위팔노근",         hj: "완요골근",     en: "BRACHIORADIALIS" },
-      13: { label: "손목굽힘근 · 수근굴근 · FLEXOR CARPI",      ko: "손목굽힘근",       hj: "수근굴근",     en: "FLEXORCARPI" },
-      14: { label: "손가락폄근 · 지신근 · EXTENSOR DIGITORUM",  ko: "손가락폄근",       hj: "지신근",       en: "EXTENSORDIGITORUM" },
-      15: { label: "손바닥근 · 수장근 · PALMARIS",              ko: "손바닥근",         hj: "수장근",       en: "PALMARIS" },
-      16: { label: "손가락뼈 · 지골 · PHALANGES",               ko: "손가락뼈",         hj: "지골",         en: "PHALANGES" },
-      17: { label: "배곧은근 · 복직근 · RECTUS ABDOMINIS",      ko: "배곧은근",         hj: "복직근",       en: "RECTUSABDOMINIS" },
-      18: { label: "배바깥빗근 · 외복사근 · EXTERNAL OBLIQUE",  ko: "배바깥빗근",       hj: "외복사근",     en: "EXTERNALOBLIQUE" },
-      19: { label: "넓은등근 · 광배근 · LATISSIMUS DORSI",      ko: "넓은등근",         hj: "광배근",       en: "LATISSIMUSDORSI" },
-      20: { label: "척추세움근 · 척추기립근 · ERECTOR SPINAE",  ko: "척추세움근",       hj: "척추기립근",   en: "ERECTORSPINAE" },
-      21: { label: "큰볼기근 · 대둔근 · GLUTEUS MAXIMUS",       ko: "큰볼기근",         hj: "대둔근",       en: "GLUTEUSMAXIMUS" },
-      22: { label: "중간볼기근 · 중둔근 · GLUTEUS MEDIUS",      ko: "중간볼기근",       hj: "중둔근",       en: "GLUTEUSMEDIUS" },
-      23: { label: "넙다리근막긴장근 · 대퇴근막장근 · TFL",     ko: "넙다리근막긴장근", hj: "대퇴근막장근", en: "TENSORFASCIAELATAE" },
-      24: { label: "넙다리빗근 · 봉공근 · SARTORIUS",           ko: "넙다리빗근",       hj: "봉공근",       en: "SARTORIUS" },
-      25: { label: "넙다리곧은근 · 대퇴직근 · RECTUS FEMORIS",  ko: "넙다리곧은근",     hj: "대퇴직근",     en: "RECTUSFEMORIS" },
-      26: { label: "가쪽넓은근 · 외측광근 · VASTUS LATERALIS",  ko: "가쪽넓은근",       hj: "외측광근",     en: "VASTUSLATERALIS" },
-      27: { label: "안쪽넓은근 · 내측광근 · VASTUS MEDIALIS",   ko: "안쪽넓은근",       hj: "내측광근",     en: "VASTUSMEDIALIS" },
-      28: { label: "두덩정강근 · 박근 · GRACILIS",              ko: "두덩정강근",       hj: "박근",         en: "GRACILIS" },
-      29: { label: "넙다리두갈래근 · 대퇴이두근 · BICEPS FEMORIS", ko: "넙다리두갈래근", hj: "대퇴이두근",   en: "BICEPSFEMORIS" },
-      30: { label: "앞정강근 · 전경골근 · TIBIALIS ANTERIOR",   ko: "앞정강근",         hj: "전경골근",     en: "TIBIALISANTERIOR" },
-      31: { label: "장딴지근 · 비복근 · GASTROCNEMIUS",         ko: "장딴지근",         hj: "비복근",       en: "GASTROCNEMIUS" },
-      32: { label: "가자미근 · 비목어근 · SOLEUS",              ko: "가자미근",         hj: "비목어근",     en: "SOLEUS" },
-      33: { label: "발등근육 · 족배근 · EXTENSOR BREVIS",       ko: "발등근육",         hj: "족배근",       en: "EXTENSORBREVIS" },
-      34: { label: "발가락뼈 · 족지골 · TOES",                  ko: "발가락뼈",         hj: "족지골",       en: "TOES" },
-      35: { label: "삼엽매듭 · TORUS KNOT",                     ko: "삼엽매듭",         hj: "삼엽매듭",     en: "TORUSKNOT" },
-      36: { label: "조각 받침대 · PEDESTAL",                    ko: "조각받침대",       hj: "조각좌대",     en: "PEDESTAL" }
+    const MUSCLE_CATALOG = {
+      0:  { label: "심부 근막 · 深部筋膜 · DEEP FASCIA", ko: "심부근막", hj: "深部筋膜", en: "DEEPFASCIA" },
+
+      // 두경부 (1 ~ 12)
+      1:  { label: "머리덮개근(전두근) · 額肌 · FRONTALIS", ko: "전두근", hj: "前頭肌", en: "FRONTALIS" },
+      2:  { label: "관자근 · 側頭肌 · TEMPORALIS", ko: "관자근", hj: "側頭肌", en: "TEMPORALIS" },
+      3:  { label: "눈둘레근 · 眼輪匝肌 · ORBICULARIS OCULI", ko: "눈둘레근", hj: "眼輪匝肌", en: "ORBICULARISOCULI" },
+      4:  { label: "코근 · 鼻肌 · NASALIS", ko: "코근", hj: "鼻肌", en: "NASALIS" },
+      5:  { label: "큰광대근 · 大顴骨肌 · ZYGOMATICUS MAJOR", ko: "큰광대근", hj: "大顴骨肌", en: "ZYGOMATICUSMAJOR" },
+      6:  { label: "입둘레근 · 口輪匝肌 · ORBICULARIS ORIS", ko: "입둘레근", hj: "口輪匝肌", en: "ORBICULARISORIS" },
+      7:  { label: "깨물근 · 咬肌 · MASSETER", ko: "깨물근", hj: "咬肌", en: "MASSETER" },
+      8:  { label: "볼근 · 頰肌 · BUCCINATOR", ko: "볼근", hj: "頰肌", en: "BUCCINATOR" },
+      9:  { label: "턱끝근 · 頦肌 · MENTALIS", ko: "턱끝근", hj: "頦肌", en: "MENTALIS" },
+      10: { label: "뒤통수근 · 枕肌 · OCCIPITALIS", ko: "뒤통수근", hj: "後頭肌", en: "OCCIPITALIS" },
+      11: { label: "목빗근 · 胸鎖乳突肌 · STERNOCLEIDOMASTOID", ko: "목빗근", hj: "胸鎖乳突肌", en: "STERNOCLEIDOMASTOID" },
+      12: { label: "목갈비근 · 斜角肌 · SCALENUS", ko: "목갈비근", hj: "斜角肌", en: "SCALENUS" },
+
+      // 체간 전면·측면 (13 ~ 20)
+      13: { label: "큰가슴근(빗장갈래) · 大胸肌鎖骨部 · PECTORALIS MAJOR CLAVICULAR", ko: "큰가슴근빗장갈래", hj: "大胸肌鎖骨部", en: "PECTORALISMAJORCLAVICULAR" },
+      14: { label: "큰가슴근(복장갈비갈래) · 大胸肌胸肋部 · PECTORALIS MAJOR STERNOCOSTAL", ko: "큰가슴근복장갈비갈래", hj: "大胸肌胸肋部", en: "PECTORALISMAJORSTERNOCOSTAL" },
+      15: { label: "작은가슴근 · 小胸肌 · PECTORALIS MINOR", ko: "작은가슴근", hj: "小胸肌", en: "PECTORALISMINOR" },
+      16: { label: "앞톱니근 · 前鋸肌 · SERRATUS ANTERIOR", ko: "앞톱니근", hj: "前鋸肌", en: "SERRATUSANTERIOR" },
+      17: { label: "배곧은근 · 腹直肌 · RECTUS ABDOMINIS", ko: "배곧은근", hj: "腹直肌", en: "RECTUSABDOMINIS" },
+      18: { label: "배바깥빗근 · 外腹斜肌 · EXTERNAL OBLIQUE", ko: "배바깥빗근", hj: "外腹斜肌", en: "EXTERNALOBLIQUE" },
+      19: { label: "배속빗근 · 內腹斜肌 · INTERNAL OBLIQUE", ko: "배속빗근", hj: "內腹斜肌", en: "INTERNALOBLIQUE" },
+      20: { label: "배가로근 · 腹橫肌 · TRANSVERSUS ABDOMINIS", ko: "배가로근", hj: "腹橫肌", en: "TRANSVERSUSABDOMINIS" },
+
+      // 체간 후면 (21 ~ 30)
+      21: { label: "등세모근(상부) · 上部斜方肌 · TRAPEZIUS UPPER", ko: "상부등세모근", hj: "上部斜方肌", en: "TRAPEZIUSUPPER" },
+      22: { label: "등세모근(중부) · 中部斜方肌 · TRAPEZIUS MIDDLE", ko: "중부등세모근", hj: "中部斜方肌", en: "TRAPEZIUSMIDDLE" },
+      23: { label: "등세모근(하부) · 下部斜方肌 · TRAPEZIUS LOWER", ko: "하부등세모근", hj: "下部斜方肌", en: "TRAPEZIUSLOWER" },
+      24: { label: "가시아래근 · 棘下肌 · INFRASPINATUS", ko: "가시아래근", hj: "棘下肌", en: "INFRASPINATUS" },
+      25: { label: "작은원근 · 小圓肌 · TERES MINOR", ko: "작은원근", hj: "小圓肌", en: "TERESMINOR" },
+      26: { label: "큰원근 · 大圓肌 · TERES MAJOR", ko: "큰원근", hj: "大圓肌", en: "TERESMAJOR" },
+      27: { label: "큰마름근 · 大菱形肌 · RHOMBOID MAJOR", ko: "큰마름근", hj: "大菱形肌", en: "RHOMBOIDMAJOR" },
+      28: { label: "넓은등근 · 闊背肌 · LATISSIMUS DORSI", ko: "넓은등근", hj: "闊背肌", en: "LATISSIMUSDORSI" },
+      29: { label: "척추세움근 · 豎脊肌 · ERECTOR SPINAE", ko: "척추세움근", hj: "豎脊肌", en: "ERECTORSPINAE" },
+      30: { label: "등허리근막 · 胸腰筋膜 · THORACOLUMBAR FASCIA", ko: "등허리근막", hj: "胸腰筋膜", en: "THORACOLUMBARFASCIA" },
+
+      // 어깨 및 상지 (31 ~ 49)
+      31: { label: "앞어깨세모근 · 前三角肌 · ANTERIOR DELTOID", ko: "앞어깨세모근", hj: "前三角肌", en: "ANTERIORDELTOID" },
+      32: { label: "가쪽어깨세모근 · 中三角肌 · LATERAL DELTOID", ko: "가쪽어깨세모근", hj: "中三角肌", en: "LATERALDELTOID" },
+      33: { label: "뒤어깨세모근 · 後三角肌 · POSTERIOR DELTOID", ko: "뒤어깨세모근", hj: "後三角肌", en: "POSTERIORDELTOID" },
+      34: { label: "부리위팔근 · 喙肱肌 · CORACOBRACHIALIS", ko: "부리위팔근", hj: "喙肱肌", en: "CORACOBRACHIALIS" },
+      35: { label: "위팔두갈래근(긴갈래) · 肱二頭肌長頭 · BICEPS BRACHII LONG HEAD", ko: "위팔두갈래근긴갈래", hj: "肱二頭肌長頭", en: "BICEPSBRACHIILONGHEAD" },
+      36: { label: "위팔두갈래근(짧은갈래) · 肱二頭肌短頭 · BICEPS BRACHII SHORT HEAD", ko: "위팔두갈래근짧은갈래", hj: "肱二頭肌短頭", en: "BICEPSBRACHIISHORTHEAD" },
+      37: { label: "위팔근 · 肱肌 · BRACHIALIS", ko: "위팔근", hj: "肱肌", en: "BRACHIALIS" },
+      38: { label: "위팔세갈래근(긴갈래) · 肱三頭肌長頭 · TRICEPS BRACHII LONG HEAD", ko: "위팔세갈래근긴갈래", hj: "肱三頭肌長頭", en: "TRICEPSBRACHIILONGHEAD" },
+      39: { label: "위팔세갈래근(가쪽갈래) · 肱三頭肌外側頭 · TRICEPS BRACHII LATERAL HEAD", ko: "위팔세갈래근가쪽갈래", hj: "肱三頭肌外側頭", en: "TRICEPSBRACHIILATERALHEAD" },
+      40: { label: "위팔세갈래근(안쪽갈래) · 肱三頭肌內側頭 · TRICEPS BRACHII MEDIAL HEAD", ko: "위팔세갈래근안쪽갈래", hj: "肱三頭肌內側頭", en: "TRICEPSBRACHIIMEDIALHEAD" },
+      41: { label: "위팔노근 · 肱橈肌 · BRACHIORADIALIS", ko: "위팔노근", hj: "肱橈肌", en: "BRACHIORADIALIS" },
+      42: { label: "원엎침근 · 旋前圓肌 · PRONATOR TERES", ko: "원엎침근", hj: "旋前圓肌", en: "PRONATORTERES" },
+      43: { label: "노쪽손목굽힘근 · 橈側腕屈肌 · FLEXOR CARPI RADIALIS", ko: "노쪽손목굽힘근", hj: "橈側腕屈肌", en: "FLEXORCARPIRADIALIS" },
+      44: { label: "긴손바닥근 · 掌長肌 · PALMARIS LONGUS", ko: "긴손바닥근", hj: "掌長肌", en: "PALMARISLONGUS" },
+      45: { label: "자쪽손목굽힘근 · 尺側腕屈肌 · FLEXOR CARPI ULNARIS", ko: "자쪽손목굽힘근", hj: "尺側腕屈肌", en: "FLEXORCARPIULNARIS" },
+      46: { label: "손가락폄근 · 指伸肌 · EXTENSOR DIGITORUM", ko: "손가락폄근", hj: "指伸肌", en: "EXTENSORDIGITORUM" },
+      47: { label: "엄지두덩근 · 魚際肌 · THENAR EMINENCE", ko: "엄지두덩근", hj: "魚際肌", en: "THENAREMINENCE" },
+      48: { label: "새끼두덩근 · 小魚際肌 · HYPOTHENAR EMINENCE", ko: "새끼두덩근", hj: "小魚際肌", en: "HYPOTHENAREMINENCE" },
+      49: { label: "손가락뼈 · 指骨 · PHALANGES OF HAND", ko: "손가락뼈", hj: "指骨", en: "PHALANGES" },
+
+      // 골반·대퇴·햄스트링 4분할 (50 ~ 65)
+      50: { label: "중간볼기근 · 中臀肌 · GLUTEUS MEDIUS", ko: "중간볼기근", hj: "中臀肌", en: "GLUTEUSMEDIUS" },
+      51: { label: "큰볼기근 · 大臀肌 · GLUTEUS MAXIMUS", ko: "큰볼기근", hj: "大臀肌", en: "GLUTEUSMAXIMUS" },
+      52: { label: "넙다리근막긴장근 · 闊筋膜張肌 · TENSOR FASCIAE LATAE", ko: "넙다리근막긴장근", hj: "闊筋膜張肌", en: "TENSORFASCIAELATAE" },
+      53: { label: "엉덩정강띠 · 髂脛束 · ILIOTIBIAL TRACT", ko: "엉덩정강띠", hj: "髂脛束", en: "ILIOTIBIALTRACT" },
+      54: { label: "넙다리빗근 · 縫匠肌 · SARTORIUS", ko: "넙다리빗근", hj: "縫匠肌", en: "SARTORIUS" },
+      55: { label: "넙다리곧은근 · 股直肌 · RECTUS FEMORIS", ko: "넙다리곧은근", hj: "股直肌", en: "RECTUSFEMORIS" },
+      56: { label: "가쪽넓은근 · 股外側肌 · VASTUS LATERALIS", ko: "가쪽넓은근", hj: "股外側肌", en: "VASTUSLATERALIS" },
+      57: { label: "안쪽넓은근 · 股內側肌 · VASTUS MEDIALIS", ko: "안쪽넓은근", hj: "股內側肌", en: "VASTUSMEDIALIS" },
+      58: { label: "두덩근 · 恥骨肌 · PECTINEUS", ko: "두덩근", hj: "恥骨肌", en: "PECTINEUS" },
+      59: { label: "긴모음근 · 長收肌 · ADDUCTOR LONGUS", ko: "긴모음근", hj: "長收肌", en: "ADDUCTORLONGUS" },
+      60: { label: "큰모음근 · 大收肌 · ADDUCTOR MAGNUS", ko: "큰모음근", hj: "大收肌", en: "ADDUCTORMAGNUS" },
+      61: { label: "두덩정강근 · 股薄肌 · GRACILIS", ko: "두덩정강근", hj: "股薄肌", en: "GRACILIS" },
+      // 햄스트링 4개 구성 근육 세부 분리
+      62: { label: "넙다리두갈래근(긴갈래) · 股二頭肌長頭 · BICEPS FEMORIS LONG HEAD", ko: "넙다리두갈래근긴갈래", hj: "股二頭肌長頭", en: "BICEPSFEMORISLONGHEAD" },
+      63: { label: "넙다리두갈래근(짧은갈래) · 股二頭肌短頭 · BICEPS FEMORIS SHORT HEAD", ko: "넙다리두갈래근짧은갈래", hj: "股二頭肌短頭", en: "BICEPSFEMORISSHORTHEAD" },
+      64: { label: "반힘줄근 · 半腱肌 · SEMITENDINOSUS", ko: "반힘줄근", hj: "半腱肌", en: "SEMITENDINOSUS" },
+      65: { label: "반막근 · 半膜肌 · SEMIMEMBRANOSUS", ko: "반막근", hj: "半膜肌", en: "SEMIMEMBRANOSUS" },
+
+      // 하퇴·족부 및 조형 (66 ~ 75)
+      66: { label: "앞정강근 · 脛骨前肌 · TIBIALIS ANTERIOR", ko: "앞정강근", hj: "脛骨前肌", en: "TIBIALISANTERIOR" },
+      67: { label: "긴발가락폄근 · 趾長伸肌 · EXTENSOR DIGITORUM LONGUS", ko: "긴발가락폄근", hj: "趾長伸肌", en: "EXTENSORDIGITORUMLONGUS" },
+      68: { label: "긴종아리근 · 腓骨長肌 · FIBULARIS LONGUS", ko: "긴종아리근", hj: "腓骨長肌", en: "FIBULARISLONGUS" },
+      69: { label: "장딴지근(안쪽갈래) · 腓腸肌內側頭 · GASTROCNEMIUS MEDIAL HEAD", ko: "장딴지근안쪽갈래", hj: "腓腸肌內側頭", en: "GASTROCNEMIUSMEDIALHEAD" },
+      70: { label: "장딴지근(가쪽갈래) · 腓腸肌外側頭 · GASTROCNEMIUS LATERAL HEAD", ko: "장딴지근가쪽갈래", hj: "腓腸肌外側頭", en: "GASTROCNEMIUSLATERALHEAD" },
+      71: { label: "가자미근 · 比目魚肌 · SOLEUS", ko: "가자미근", hj: "比目魚肌", en: "SOLEUS" },
+      72: { label: "발꿈치힘줄 · 跟腱 · ACHILLES TENDON", ko: "발꿈치힘줄", hj: "跟腱", en: "ACHILLESTENDON" },
+      73: { label: "발등근육 및 발가락뼈 · 趾骨 · FOOT & TOES", ko: "발가락뼈", hj: "足趾骨", en: "PHALANGESOFFOOT" },
+      74: { label: "삼엽매듭 · 三葉結 · TREFOIL TORUS KNOT", ko: "삼엽매듭", hj: "三葉結", en: "TREFOILTORUSKNOT" },
+      75: { label: "조각 좌대 · 雕塑底座 · SCULPTURE PLINTH", ko: "조각좌대", hj: "雕塑底座", en: "SCULPTUREPLINTH" }
     };
 
+    const MAX_MUSCLE_ID = 76;
+    const STRIP_W = 512;
+
     let glyphMode = "ascii";
-    let currentModelType = "knot";
-    let autoRotate = true;
+    let currentModelType = "ecorche";
+    let autoRotate = false;
     let flowEnabled = false;
-    let flowOffset = 0;
+    let flowPhase = 0;
 
     let scene, camera, renderer, modelPivot;
-    let glyphInstancedMesh = null;
-    let occlusionGroup = null;
-    let surfaceRows = [];
-    let maxInstanceCapacity = 0;
+    let activeSculptureMesh = null;
     let raycaster = new THREE.Raycaster();
     let pointerNDC = new THREE.Vector2(-99, -99);
 
     let dragMode = "none";
     let prevMouse = { x: 0, y: 0 };
-    const DEFAULT_CAM_Z = 44.5;
-    const DEFAULT_PAN_Y = 0.25;
+    const DEFAULT_CAM_Z = 142.0;
+    const DEFAULT_PAN_Y = 1.2;
     let targetCamZ = DEFAULT_CAM_Z;
     let targetPan = new THREE.Vector2(0, DEFAULT_PAN_Y);
 
     // ---------------------------------------------------------
-    // 6-A. 고선명 아틀라스 + 글자별 실제 폭(Proportional Advance) 측정기
+    // 6-A. 2048x2048 초고해상도 아틀라스 & 가변 자간 스트립 텍스처
     // ---------------------------------------------------------
-    function buildGlyphAtlas() {
+    function buildProportionalTypographySystem() {
       const charSet = new Set(ASCII_CHARS);
-      Object.values(MUSCLE_TERMS).forEach(entry => {
+      Object.values(MUSCLE_CATALOG).forEach(entry => {
         for (const ch of entry.ko) charSet.add(ch);
         for (const ch of entry.hj) charSet.add(ch);
         for (const ch of entry.en) charSet.add(ch);
       });
 
       const chars = Array.from(charSet);
-      const charInfo = {};
-
-      const cols = 12;
+      const cols = 14;
       const rows = Math.ceil(chars.length / cols);
-      const cellSize = 128;
-      const fontSize = 84;
+      const cellSize = 144;
+      const fontSize = 96;
+
       const canvas = document.createElement("canvas");
       canvas.width = cols * cellSize;
       canvas.height = rows * cellSize;
@@ -1053,1336 +1106,1620 @@
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
 
+      const charInfo = {};
       chars.forEach((ch, idx) => {
         const c = idx % cols;
         const r = Math.floor(idx / cols);
         ctx.fillText(ch, c * cellSize + cellSize / 2, r * cellSize + cellSize / 2 + 2);
 
-        // 글자별 실제 잉크 폭 측정 후 균일한 자간 여백(+14px)을 더한 정규화 폭(uSpan) 산출
-        const inkPx = ctx.measureText(ch).width;
-        const advPx = Math.min(cellSize * 0.92, Math.max(36, inkPx + 14));
-        const uSpan = advPx / cellSize;
-
+        const inkPx = ch === " " ? 42 : ctx.measureText(ch).width;
+        const advPx = Math.min(cellSize * 0.92, Math.max(40, inkPx + 18));
         charInfo[ch] = {
           col: c,
           row: r,
-          uSpan
+          uSpan: advPx / cellSize
         };
       });
 
-      const texture = new THREE.CanvasTexture(canvas);
-      texture.generateMipmaps = true;
-      texture.minFilter = THREE.LinearMipmapLinearFilter;
-      texture.magFilter = THREE.LinearFilter;
-      texture.needsUpdate = true;
+      const atlasTex = new THREE.CanvasTexture(canvas);
+      atlasTex.generateMipmaps = true;
+      atlasTex.minFilter = THREE.LinearMipmapLinearFilter;
+      atlasTex.magFilter = THREE.LinearFilter;
+      atlasTex.needsUpdate = true;
 
-      return { texture, charInfo, cols, rows };
-    }
-
-    const ATLAS = buildGlyphAtlas();
-    const ASCII_INFO = ASCII_CHARS.map(ch => ATLAS.charInfo[ch]);
-
-    // ---------------------------------------------------------
-    // 6-B. 36개 세부 근육 판별 함수 (정규화 인체 8등신 좌표계 기준)
-    // ---------------------------------------------------------
-    function resolveAnatomicalRegion(partName, x, y, z) {
-      if (partName === "knot") return 35;
-      if (partName === "pedestal") return 36;
-      if (partName === "hand") return 15;
-      if (partName === "finger") return 16;
-      if (partName === "foot") return 33;
-      if (partName === "toe") return 34;
-
-      if (partName === "head") {
-        if (y < 1.98 && Math.abs(x) > 0.10 && z > -0.04) return 3; // 깨물근
-        if (y >= 1.98 && y < 2.16 && Math.abs(x) > 0.125) return 2; // 관자근
-        return 1; // 머리뼈
-      }
-
-      if (partName === "torso") {
-        if (y > 1.50) {
-          return z > -0.04 ? 4 : 5; // 목빗근 vs 등세모근
-        }
-        if (z < -0.04) {
-          if (y > 1.04) return 5; // 등세모근
-          if (y >= 0.42 && y <= 1.04) {
-            return Math.abs(x) <= 0.13 ? 20 : 19; // 척추세움근 vs 넓은등근
+      // 언어 모드별 가변 자간 1D 스트립 생성 (width = 512, height = MAX_MUSCLE_ID)
+      function createLanguageStrip(langKey) {
+        const data = new Uint8Array(STRIP_W * MAX_MUSCLE_ID * 4);
+        for (let mId = 0; mId < MAX_MUSCLE_ID; mId++) {
+          const entry = MUSCLE_CATALOG[mId] || MUSCLE_CATALOG[0];
+          const word = entry[langKey] || "MUSCLE";
+          const glyphs = [];
+          let totalSpan = 0;
+          for (const ch of word) {
+            const info = charInfo[ch] || charInfo["#"];
+            glyphs.push(info);
+            totalSpan += info.uSpan;
           }
-          if (y < 0.16) {
-            return Math.abs(x) > 0.27 ? 22 : 21; // 중간볼기근 vs 큰볼기근
+
+          let curIdx = 0;
+          let accSpan = 0;
+          for (let x = 0; x < STRIP_W; x++) {
+            const uNorm = (x + 0.5) / STRIP_W;
+            const targetSpan = uNorm * totalSpan;
+            while (curIdx < glyphs.length - 1 && accSpan + glyphs[curIdx].uSpan < targetSpan) {
+              accSpan += glyphs[curIdx].uSpan;
+              curIdx++;
+            }
+            const g = glyphs[curIdx];
+            const localFrac = Math.max(0, Math.min(1, (targetSpan - accSpan) / g.uSpan));
+
+            const offset = (mId * STRIP_W + x) * 4;
+            data[offset]     = Math.round(((g.col + 0.5) / cols) * 255);
+            data[offset + 1] = Math.round(((g.row + 0.5) / rows) * 255);
+            data[offset + 2] = Math.round(localFrac * 255);
+            data[offset + 3] = Math.round(g.uSpan * 255);
           }
-          return 18; // 배바깥빗근
         }
-        if (y >= 0.94 && y <= 1.44) return 7; // 큰가슴근
-        if (y >= 0.56 && y < 0.94 && Math.abs(x) > 0.21) return 8; // 앞톱니근
-        if (y >= 0.15 && y < 0.94 && Math.abs(x) <= 0.18 && z > 0.02) return 17; // 배곧은근
-        if (y < 0.15 && Math.abs(x) > 0.27) return 22; // 중간볼기근
-        return 18; // 배바깥빗근
+        const tex = new THREE.DataTexture(data, STRIP_W, MAX_MUSCLE_ID, THREE.RGBAFormat);
+        tex.minFilter = THREE.NearestFilter;
+        tex.magFilter = THREE.NearestFilter;
+        tex.needsUpdate = true;
+        return tex;
       }
 
-      if (partName === "arm") {
-        if (y > 1.12) return 6; // 어깨세모근
-        if (y > 0.78) {
-          if (z > 0.025) return 9; // 위팔두갈래근
-          if (z < -0.025) return 11; // 위팔세갈래근
-          return 10; // 위팔근
-        }
-        if (z > 0.035) return 12; // 위팔노근
-        if (Math.abs(x) < 0.86) return 13; // 손목굽힘근
-        return 14; // 손가락폄근
-      }
-
-      if (partName === "leg") {
-        if (y > -1.02) {
-          if (y > -0.32 && Math.abs(x) > 0.28) return 23; // 넙다리근막긴장근
-          if (z < -0.025) return 29; // 넙다리두갈래근
-          const medOffset = Math.abs(x) - 0.19;
-          if (medOffset < -0.085 && y > -0.76) return 28; // 두덩정강근
-          if (medOffset < -0.042) return 27; // 안쪽넓은근
-          if (medOffset > 0.042) return 26; // 가쪽넓은근
-          const sartX = 0.26 - ((y + 0.10) / -0.82) * 0.14;
-          if (Math.abs(Math.abs(x) - sartX) < 0.022 && z > 0.04) return 24; // 넙다리빗근
-          return 25; // 넙다리곧은근
-        }
-        if (z > 0.015) return 30; // 앞정강근
-        if (y < -1.66) return 32; // 가자미근
-        return 31; // 장딴지근
-      }
-
-      return 7;
-    }
-
-    // ---------------------------------------------------------
-    // 6-C. 표면 행(Surface Row) 폴리라인 추출기
-    //      - 각 행의 3D 곡선과 누적 호 길이(uArc)를 보존해,
-    //        글자별 가변 폭(uSpan)에 맞춰 실시간 재패킹 가능
-    // ---------------------------------------------------------
-    function addCurvedSurfaceRows({
-      rings,
-      partName,
-      stepRow,
-      outRows,
-      occGroup,
-      creaseGrid = null
-    }) {
-      const M = rings.length;
-      const N = rings[0].length;
-      if (M < 2 || N < 3) return;
-
-      const scaledRings = rings.map(ring =>
-        ring.map(pt => [pt[0] * MODEL_SCALE, pt[1] * MODEL_SCALE, pt[2] * MODEL_SCALE])
-      );
-
-      const ringCenters = scaledRings.map(ring => {
-        let cx = 0, cy = 0, cz = 0;
-        for (let j = 0; j < N; j++) {
-          cx += ring[j][0];
-          cy += ring[j][1];
-          cz += ring[j][2];
-        }
-        return new THREE.Vector3(cx / N, cy / N, cz / N);
+      const asciiData = new Uint8Array(ASCII_CHARS.length * 4);
+      ASCII_CHARS.forEach((ch, idx) => {
+        const g = charInfo[ch];
+        asciiData[idx * 4]     = Math.round(((g.col + 0.5) / cols) * 255);
+        asciiData[idx * 4 + 1] = Math.round(((g.row + 0.5) / rows) * 255);
+        asciiData[idx * 4 + 2] = Math.round(g.uSpan * 255);
+        asciiData[idx * 4 + 3] = 255;
       });
+      const asciiStripTex = new THREE.DataTexture(asciiData, ASCII_CHARS.length, 1, THREE.RGBAFormat);
+      asciiStripTex.minFilter = THREE.NearestFilter;
+      asciiStripTex.magFilter = THREE.NearestFilter;
+      asciiStripTex.needsUpdate = true;
 
-      const normals = Array.from({ length: M }, () => Array.from({ length: N }, () => new THREE.Vector3()));
-      const p0 = new THREE.Vector3(), pU1 = new THREE.Vector3(), pU2 = new THREE.Vector3();
-      const pV1 = new THREE.Vector3(), pV2 = new THREE.Vector3();
-      const dU = new THREE.Vector3(), dV = new THREE.Vector3();
-      let outwardScore = 0;
+      return {
+        atlasTex,
+        asciiStripTex,
+        strips: {
+          ko: createLanguageStrip("ko"),
+          hj: createLanguageStrip("hj"),
+          en: createLanguageStrip("en")
+        }
+      };
+    }
 
-      for (let i = 0; i < M; i++) {
-        const iPrev = Math.max(0, i - 1);
-        const iNext = Math.min(M - 1, i + 1);
-        for (let j = 0; j < N; j++) {
-          const jPrev = (j - 1 + N) % N;
-          const jNext = (j + 1) % N;
+    const TYPO = buildProportionalTypographySystem();
 
-          pU1.set(...scaledRings[i][jPrev]);
-          pU2.set(...scaledRings[i][jNext]);
-          pV1.set(...scaledRings[iPrev][j]);
-          pV2.set(...scaledRings[iNext][j]);
+    // ---------------------------------------------------------
+    // 6-B. 개별 근육 3D 스컬프팅 빌더 (기시 → 근복 → 정지 + 근간 윤곽 분리)
+    // ---------------------------------------------------------
+    class SculptureBufferBuilder {
+      constructor() {
+        this.positions = [];
+        this.normals = [];
+        this.uvs = [];
+        this.muscleIds = [];
+        this.edgeFactors = [];
+        this.indices = [];
+      }
 
-          dU.subVectors(pU2, pU1);
-          dV.subVectors(pV2, pV1);
-          const n = new THREE.Vector3().crossVectors(dU, dV);
-          p0.set(...scaledRings[i][j]);
+      /**
+       * 개별 근육(Muscle Belly + Tendons)을 기시점에서 정지점까지 3D 볼륨으로 조각
+       */
+      addMuscle({
+        id,
+        spine,         // [[x,y,z], ...] 기시 -> 정지 경로
+        widths,        // [w0, w1, ...] 각 지점에서의 근육 폭
+        heights,       // [h0, h1, ...] 각 지점에서의 근복 돌출 높이
+        outwardDir,    // [ox, oy, oz] 골격에서 바깥쪽으로 향하는 기준 법선 벡터
+        striations = 8,// 근섬유 결 개수
+        striationAmp = 0.0022,
+        repeatU = 2.0,
+        repeatV = 24.0,
+        uSegs = 18,
+        vSegs = 36,
+        domePower = 0.68,
+        skew = 0.0     // 근복 비대칭 치우침 (-0.4 ~ +0.4)
+      }) {
+        const curve = new THREE.CatmullRomCurve3(spine.map(p => new THREE.Vector3(p[0], p[1], p[2])));
+        const wCurve = new THREE.CatmullRomCurve3(widths.map((w, i) => new THREE.Vector3(w, i / (widths.length - 1), 0)));
+        const hCurve = new THREE.CatmullRomCurve3(heights.map((h, i) => new THREE.Vector3(h, i / (heights.length - 1), 0)));
 
-          if (n.lengthSq() < 1e-12) {
-            n.subVectors(p0, ringCenters[i]).normalize();
-          } else {
-            n.normalize();
+        const outVec = new THREE.Vector3(outwardDir[0], outwardDir[1], outwardDir[2]).normalize();
+        const baseVertex = this.positions.length / 3;
+        const ringVerts = [];
+
+        for (let iv = 0; iv <= vSegs; iv++) {
+          const v = iv / vSegs;
+          const pt = curve.getPoint(v);
+          const tan = curve.getTangent(v).normalize();
+
+          // 근복 양 끝단(기시/정지 건)은 자연스럽게 심부 근막 속으로 매립
+          const endTaper = Math.sin(Math.pow(v, 0.85) * Math.PI);
+          const wVal = wCurve.getPoint(v).x * (0.28 + 0.72 * Math.pow(endTaper, 0.45));
+          const hVal = hCurve.getPoint(v).x * Math.pow(endTaper, 0.55);
+
+          // 로컬 직교 프레임 (sideVec = 근육 폭 방향, liftVec = 바깥 돌출 방향)
+          let sideVec = new THREE.Vector3().crossVectors(outVec, tan);
+          if (sideVec.lengthSq() < 1e-6) {
+            sideVec = new THREE.Vector3().crossVectors(new THREE.Vector3(1, 0, 0), tan);
           }
+          sideVec.normalize();
+          const liftVec = new THREE.Vector3().crossVectors(tan, sideVec).normalize();
 
-          const radial = p0.clone().sub(ringCenters[i]);
-          outwardScore += n.dot(radial);
-          normals[i][j] = n;
-        }
-      }
+          const rowVerts = [];
+          for (let iu = 0; iu <= uSegs; iu++) {
+            const u = iu / uSegs;
+            const s = (u - 0.5) * 2.0; // -1 .. +1
+            const sShifted = Math.max(-1, Math.min(1, s + skew * (1 - s * s)));
+            const arch = Math.pow(Math.max(0, 1 - sShifted * sShifted), domePower);
 
-      if (outwardScore < 0) {
-        for (let i = 0; i < M; i++) {
-          for (let j = 0; j < N; j++) {
-            normals[i][j].negate();
+            // 근섬유 결(Striation) 미세 굴곡
+            const fiberWave = Math.sin(u * Math.PI * striations) * striationAmp * arch * endTaper;
+            // 근육 테두리(s = ±1)는 심부 근막 안쪽으로 깊게 파고들어 인접 근육과 명확한 윤곽선(근간구) 형성
+            const borderTuck = -0.0085 * (1 - arch);
+            const lift = hVal * arch + fiberWave + borderTuck;
+
+            const vx = (pt.x + sideVec.x * (s * wVal * 0.5) + liftVec.x * lift) * MODEL_SCALE;
+            const vy = (pt.y + sideVec.y * (s * wVal * 0.5) + liftVec.y * lift) * MODEL_SCALE;
+            const vz = (pt.z + sideVec.z * (s * wVal * 0.5) + liftVec.z * lift) * MODEL_SCALE;
+
+            // 근육 경계 윤곽선 강도 (0 = 경계 테두리 어두운 홈, 1 = 근복 중앙)
+            const edgeU = Math.sin(u * Math.PI);
+            const edgeV = Math.sin(v * Math.PI);
+            const edgeFactor = Math.pow(edgeU, 0.42) * Math.pow(edgeV, 0.25);
+
+            rowVerts.push(new THREE.Vector3(vx, vy, vz));
+            this.positions.push(vx, vy, vz);
+            this.normals.push(liftVec.x, liftVec.y, liftVec.z);
+            this.uvs.push(u * repeatU, v * repeatV);
+            this.muscleIds.push(id);
+            this.edgeFactors.push(edgeFactor);
           }
+          ringVerts.push(rowVerts);
         }
-      }
 
-      // 솔리드 블랙 내부 코어 (후면 투과 차단 + 레이캐스팅)
-      const occPositions = [];
-      for (let i = 0; i < M - 1; i++) {
-        for (let j = 0; j < N; j++) {
-          const jNext = (j + 1) % N;
-          const a = scaledRings[i][j], b = scaledRings[i + 1][j];
-          const c = scaledRings[i + 1][jNext], d = scaledRings[i][jNext];
-          occPositions.push(...a, ...b, ...d, ...b, ...c, ...d);
-        }
-      }
-
-      const botCenter = [ringCenters[0].x, ringCenters[0].y, ringCenters[0].z];
-      const topCenter = [ringCenters[M - 1].x, ringCenters[M - 1].y, ringCenters[M - 1].z];
-      for (let j = 0; j < N; j++) {
-        const jNext = (j + 1) % N;
-        occPositions.push(...botCenter, ...scaledRings[0][j], ...scaledRings[0][jNext]);
-        occPositions.push(...topCenter, ...scaledRings[M - 1][jNext], ...scaledRings[M - 1][j]);
-      }
-
-      const occGeom = new THREE.BufferGeometry();
-      occGeom.setAttribute("position", new THREE.Float32BufferAttribute(occPositions, 3));
-      const occMesh = new THREE.Mesh(occGeom);
-      occMesh.userData.partName = partName;
-      occGroup.add(occMesh);
-
-      // 수직 누적 호 길이(vArc) 기준 행 폴리라인 추출
-      const vArc = new Float64Array(M);
-      vArc[0] = 0;
-      for (let i = 1; i < M; i++) {
-        let sumDist = 0;
-        for (let j = 0; j < N; j++) {
-          const a = scaledRings[i - 1][j], b = scaledRings[i][j];
-          sumDist += Math.hypot(b[0] - a[0], b[1] - a[1], b[2] - a[2]);
-        }
-        vArc[i] = vArc[i - 1] + sumDist / N;
-      }
-
-      const totalVLen = vArc[M - 1];
-      if (totalVLen < 1e-5) return;
-
-      const numRows = Math.max(2, Math.round(totalVLen / stepRow));
-      let curI = 0;
-
-      for (let r = 0; r <= numRows; r++) {
-        const targetArc = (r / numRows) * totalVLen;
-        while (curI < M - 2 && vArc[curI + 1] < targetArc) curI++;
-        const segArc = vArc[curI + 1] - vArc[curI];
-        const alphaV = segArc > 1e-7 ? (targetArc - vArc[curI]) / segArc : 0;
-
-        const loopCount = N + 1;
-        const pts = new Float32Array(loopCount * 3);
-        const nms = new Float32Array(loopCount * 3);
-        const crs = new Float32Array(loopCount);
-        const uArc = new Float32Array(loopCount);
-
-        for (let j = 0; j < loopCount; j++) {
-          const jj = j % N;
-          const pA = scaledRings[curI][jj], pB = scaledRings[curI + 1][jj];
-          const nA = normals[curI][jj], nB = normals[curI + 1][jj];
-
-          const px = pA[0] + (pB[0] - pA[0]) * alphaV;
-          const py = pA[1] + (pB[1] - pA[1]) * alphaV;
-          const pz = pA[2] + (pB[2] - pA[2]) * alphaV;
-          pts[j * 3] = px;
-          pts[j * 3 + 1] = py;
-          pts[j * 3 + 2] = pz;
-
-          const nx = nA.x + (nB.x - nA.x) * alphaV;
-          const ny = nA.y + (nB.y - nA.y) * alphaV;
-          const nz = nA.z + (nB.z - nA.z) * alphaV;
-          const nl = Math.hypot(nx, ny, nz) || 1;
-          nms[j * 3] = nx / nl;
-          nms[j * 3 + 1] = ny / nl;
-          nms[j * 3 + 2] = nz / nl;
-
-          if (creaseGrid) {
-            const cA = creaseGrid[curI][jj];
-            const cB = creaseGrid[curI + 1][jj];
-            crs[j] = cA + (cB - cA) * alphaV;
-          } else {
-            crs[j] = 1.0;
-          }
-
-          if (j === 0) {
-            uArc[0] = 0;
-          } else {
-            const prevIdx = (j - 1) * 3;
-            uArc[j] = uArc[j - 1] + Math.hypot(
-              px - pts[prevIdx],
-              py - pts[prevIdx + 1],
-              pz - pts[prevIdx + 2]
-            );
+        // 정밀 표면 법선(Normal) 재계산
+        for (let iv = 0; iv <= vSegs; iv++) {
+          const iv0 = Math.max(0, iv - 1);
+          const iv1 = Math.min(vSegs, iv + 1);
+          for (let iu = 0; iu <= uSegs; iu++) {
+            const iu0 = Math.max(0, iu - 1);
+            const iu1 = Math.min(uSegs, iu + 1);
+            const dU = new THREE.Vector3().subVectors(ringVerts[iv][iu1], ringVerts[iv][iu0]);
+            const dV = new THREE.Vector3().subVectors(ringVerts[iv1][iu], ringVerts[iv0][iu]);
+            const n = new THREE.Vector3().crossVectors(dV, dU);
+            if (n.lengthSq() > 1e-10) {
+              n.normalize();
+              const idx3 = (baseVertex + iv * (uSegs + 1) + iu) * 3;
+              this.normals[idx3]     = n.x;
+              this.normals[idx3 + 1] = n.y;
+              this.normals[idx3 + 2] = n.z;
+            }
           }
         }
 
-        const totalULen = uArc[loopCount - 1];
-        if (totalULen < stepRow * 0.45) continue;
+        for (let iv = 0; iv < vSegs; iv++) {
+          for (let iu = 0; iu < uSegs; iu++) {
+            const a = baseVertex + iv * (uSegs + 1) + iu;
+            const b = baseVertex + (iv + 1) * (uSegs + 1) + iu;
+            const c = baseVertex + (iv + 1) * (uSegs + 1) + (iu + 1);
+            const d = baseVertex + iv * (uSegs + 1) + (iu + 1);
+            this.indices.push(a, b, d, b, c, d);
+          }
+        }
+      }
 
-        outRows.push({
-          partName,
-          stepRow,
-          loopCount,
-          pts,
-          nms,
-          crs,
-          uArc,
-          totalULen
+      /**
+       * 닫힌 입체 부위(두개골, 심부 코어, 수지/족지, 매듭, 좌대) 생성
+       */
+      addClosedLoft({
+        id,
+        rings,
+        repeatU = 6.0,
+        repeatV = 28.0,
+        edgeBase = 0.72
+      }) {
+        const M = rings.length;
+        const N = rings[0].length;
+        const baseVertex = this.positions.length / 3;
+
+        const scaled = rings.map(ring =>
+          ring.map(p => new THREE.Vector3(p[0] * MODEL_SCALE, p[1] * MODEL_SCALE, p[2] * MODEL_SCALE))
+        );
+
+        const centers = scaled.map(ring => {
+          const c = new THREE.Vector3();
+          ring.forEach(p => c.add(p));
+          return c.divideScalar(N);
         });
-      }
-    }
 
-    // ---------------------------------------------------------
-    // 6-D. 튜브 스플라인 헬퍼 (손가락·발가락 정밀 곡면용)
-    // ---------------------------------------------------------
-    function addTubularPart({
-      ctrlPoints,
-      radii,
-      partName,
-      stepRow,
-      outRows,
-      occGroup,
-      steps = 28,
-      radial = 22,
-      refVec = null
-    }) {
-      const posCurve = new THREE.CatmullRomCurve3(
-        ctrlPoints.map(p => new THREE.Vector3(p[0], p[1], p[2]))
-      );
-      const radCurve = new THREE.CatmullRomCurve3(
-        radii.map(r => new THREE.Vector3(r[0], 0, r[1]))
-      );
-
-      const rings = [];
-      for (let i = 0; i <= steps; i++) {
-        const t = i / steps;
-        const pt = posCurve.getPoint(t);
-        const rd = radCurve.getPoint(t);
-        const tan = posCurve.getTangent(t).normalize();
-
-        let ref = refVec ? refVec.clone() : new THREE.Vector3(0, 0, 1);
-        if (Math.abs(tan.dot(ref)) > 0.92) ref.set(1, 0, 0);
-        const nrm = new THREE.Vector3().crossVectors(ref, tan).normalize();
-        const bin = new THREE.Vector3().crossVectors(tan, nrm).normalize();
-
-        const tipTaper = t > 0.85 ? Math.cos(((t - 0.85) / 0.15) * (Math.PI * 0.42)) : 1.0;
-
-        const ring = [];
-        for (let j = 0; j < radial; j++) {
-          const theta = ((j / radial) - 0.25) * Math.PI * 2;
-          const sinT = Math.sin(theta), cosT = Math.cos(theta);
-          const lx = rd.x * tipTaper * sinT;
-          const lz = rd.z * tipTaper * cosT;
-          ring.push([
-            pt.x + nrm.x * lx + bin.x * lz,
-            pt.y + nrm.y * lx + bin.y * lz,
-            pt.z + nrm.z * lx + bin.z * lz
-          ]);
-        }
-        rings.push(ring);
-      }
-
-      addCurvedSurfaceRows({
-        rings,
-        partName,
-        stepRow,
-        outRows,
-        occGroup
-      });
-    }
-
-    // ---------------------------------------------------------
-    // 6-E. 초기 모델: 유려한 3차원 매듭 조형 (TORUS KNOT)
-    // ---------------------------------------------------------
-    function buildTorusKnotData(outRows, occGroup) {
-      const segsU = 300;
-      const segsV = 42;
-      const p = 2, q = 3;
-      const scale = 0.75;
-      const tubeRadius = 0.40;
-
-      const centers = [];
-      for (let i = 0; i <= segsU; i++) {
-        const t = (i / segsU) * Math.PI * 2;
-        const r = Math.cos(q * t) + 2.0;
-        const x = r * Math.cos(p * t) * scale;
-        const y = -Math.sin(q * t) * scale * 1.15;
-        const z = r * Math.sin(p * t) * scale;
-        centers.push(new THREE.Vector3(x, y, z));
-      }
-
-      const tangents = [];
-      for (let i = 0; i <= segsU; i++) {
-        const prev = centers[(i - 1 + segsU) % segsU];
-        const next = centers[(i + 1) % segsU];
-        tangents.push(new THREE.Vector3().subVectors(next, prev).normalize());
-      }
-
-      let normal = new THREE.Vector3(0, 1, 0);
-      if (Math.abs(tangents[0].dot(normal)) > 0.9) normal.set(1, 0, 0);
-      normal.sub(tangents[0].clone().multiplyScalar(tangents[0].dot(normal))).normalize();
-
-      const rings = [];
-      for (let i = 0; i <= segsU; i++) {
-        if (i > 0) {
-          const rotAxis = new THREE.Vector3().crossVectors(tangents[i - 1], tangents[i]);
-          if (rotAxis.lengthSq() > 1e-10) {
-            rotAxis.normalize();
-            const angle = Math.acos(Math.max(-1, Math.min(1, tangents[i - 1].dot(tangents[i]))));
-            normal.applyAxisAngle(rotAxis, angle).normalize();
+        let outwardSign = 0;
+        for (let i = 0; i < M; i++) {
+          const i0 = Math.max(0, i - 1), i1 = Math.min(M - 1, i + 1);
+          for (let j = 0; j < N; j++) {
+            const j0 = (j - 1 + N) % N, j1 = (j + 1) % N;
+            const dU = new THREE.Vector3().subVectors(scaled[i][j1], scaled[i][j0]);
+            const dV = new THREE.Vector3().subVectors(scaled[i1][j], scaled[i0][j]);
+            const n = new THREE.Vector3().crossVectors(dU, dV);
+            outwardSign += n.dot(new THREE.Vector3().subVectors(scaled[i][j], centers[i]));
           }
         }
-        const binormal = new THREE.Vector3().crossVectors(tangents[i], normal).normalize();
-        const ring = [];
-        for (let j = 0; j < segsV; j++) {
-          const theta = (j / segsV) * Math.PI * 2;
-          const cosT = Math.cos(theta), sinT = Math.sin(theta);
-          const pt = centers[i].clone()
-            .addScaledVector(normal, cosT * tubeRadius)
-            .addScaledVector(binormal, sinT * tubeRadius);
-          ring.push([pt.x, pt.y, pt.z]);
-        }
-        rings.push(ring);
-      }
+        const flip = outwardSign < 0 ? -1 : 1;
 
-      addCurvedSurfaceRows({
-        rings,
-        partName: "knot",
-        stepRow: 0.032,
-        outRows,
-        occGroup
-      });
-    }
+        for (let i = 0; i < M; i++) {
+          const v = i / (M - 1);
+          const i0 = Math.max(0, i - 1), i1 = Math.min(M - 1, i + 1);
+          for (let j = 0; j <= N; j++) {
+            const jj = j % N;
+            const j0 = (jj - 1 + N) % N, j1 = (jj + 1) % N;
+            const p = scaled[i][jj];
+            const dU = new THREE.Vector3().subVectors(scaled[i][j1], scaled[i][j0]);
+            const dV = new THREE.Vector3().subVectors(scaled[i1][jj], scaled[i0][jj]);
+            const n = new THREE.Vector3().crossVectors(dU, dV).multiplyScalar(flip);
+            if (n.lengthSq() < 1e-10) n.subVectors(p, centers[i]);
+            n.normalize();
 
-    // ---------------------------------------------------------
-    // 6-F. 실제 인체 8등신 해부학 비례 에코르셰 (ÉCORCHÉ)
-    //      - 두정융기·관자놀이·눈썹활·광대뼈·하악각·후두골이 살아있는 두개골
-    //      - 고전 8등신 정밀 신장 비례 (머리 1 : 어깨너비 1.95 : 골반 1.42 : 하지 4)
-    // ---------------------------------------------------------
-    function buildCurvedEcorcheData(outRows, occGroup) {
-      const stepRow = 0.0265;
-
-      // 1) 실제 인간 두개골 및 안면 골격·근육 비례 (총 신장의 1/8 = 0.56단위 높이)
-      //    상단 정수리 y=2.34 ~ 턱끝 y=1.78
-      const headRings = [];
-      const headCreases = [];
-      const hLat = 56, hLon = 72;
-      for (let i = 0; i <= hLat; i++) {
-        const v = i / hLat; // 0 = 턱밑/목 접합부, 1 = 정수리
-        const phi = (v - 0.5) * Math.PI;
-        const cosP = Math.cos(phi);
-        const sinP = Math.sin(phi);
-        const ring = [];
-        const cRow = [];
-
-        for (let j = 0; j < hLon; j++) {
-          const theta = ((j / hLon) - 0.25) * Math.PI * 2;
-          const sinT = Math.sin(theta); // 좌우 (-1 ~ +1)
-          const cosT = Math.cos(theta); // 전후 (+1 = 정면, -1 = 후두부)
-
-          // 실제 성인 두개골 폭(0.36) : 높이(0.56) : 깊이(0.45) 비례
-          let x = 0.178 * cosP * sinT;
-          let y = 0.280 * sinP;
-          let z = 0.222 * cosP * cosT;
-          let cr = 1.0;
-
-          // 상부 두정융기(Parietal boss) 확장으로 둥근 공 느낌 탈피
-          if (y > 0.02) {
-            const upT = Math.min(1, y / 0.28);
-            const parietal = Math.exp(-Math.pow((upT - 0.42) / 0.26, 2));
-            x *= (1.0 + parietal * 0.08);
-            if (cosT < 0) {
-              // 뒤통수(Occipital overhang) 돌출
-              z -= parietal * (-cosT) * 0.028;
-            }
+            this.positions.push(p.x, p.y, p.z);
+            this.normals.push(n.x, n.y, n.z);
+            this.uvs.push((j / N) * repeatU, v * repeatV);
+            this.muscleIds.push(id);
+            this.edgeFactors.push(edgeBase);
           }
+        }
 
-          // 하안면(광대 -> 턱선 -> 하악각 -> 턱끝) 골격 테이퍼
-          if (y < 0) {
-            const jawT = Math.min(1, Math.abs(y) / 0.280);
-
-            // 후두부 아래 목덜미선(Nuchal undercut) 급격한 후퇴
-            if (cosT < 0) {
-              z *= (1.0 - Math.pow(jawT, 1.15) * 0.62);
+        const stride = N + 1;
+        for (let i = 0; i < M - 1; i++) {
+          for (let j = 0; j < N; j++) {
+            const a = baseVertex + i * stride + j;
+            const b = baseVertex + (i + 1) * stride + j;
+            const c = baseVertex + (i + 1) * stride + (j + 1);
+            const d = baseVertex + i * stride + (j + 1);
+            if (flip > 0) {
+              this.indices.push(a, b, d, b, c, d);
             } else {
-              // 전방 턱 돌출 유지
-              z += Math.sin(jawT * Math.PI) * 0.018 * cosT;
+              this.indices.push(a, d, b, b, d, c);
             }
-
-            // 하악각(Gonial angle — 귀 아래 각진 턱 모서리) & 턱끝 테이퍼
-            const gonialAngle = Math.exp(-Math.pow((jawT - 0.52) / 0.16, 2)) *
-                                Math.exp(-Math.pow((cosT + 0.08) / 0.36, 2));
-            const chinNarrow = Math.pow(jawT, 1.45) * 0.46;
-            x *= (1.0 - chinNarrow + gonialAngle * 0.14);
           }
-
-          // 관자놀이(Temporal fossa) 평탄화 & 깨물근(Masseter) 볼륨
-          const temple = Math.exp(-Math.pow((y - 0.035) / 0.068, 2)) *
-                         Math.exp(-Math.pow((Math.abs(sinT) - 0.88) / 0.22, 2));
-          const masseter = Math.exp(-Math.pow((y + 0.115) / 0.048, 2)) *
-                           Math.exp(-Math.pow((Math.abs(sinT) - 0.78) / 0.24, 2)) *
-                           Math.max(0, cosT + 0.3);
-          x += Math.sign(sinT) * (-temple * 0.016 + masseter * 0.011);
-          cr -= temple * 0.18;
-
-          // 전면 안면 골격 디테일 (눈썹활 · 안와 · 광대뼈 · 콧날 · 입둘레 · 턱끝)
-          if (cosT > 0.05) {
-            const brow = Math.exp(-Math.pow((y - 0.032) / 0.026, 2)) *
-                         Math.exp(-Math.pow(x / 0.125, 2));
-            const eyeSocket = Math.exp(-Math.pow((y + 0.008) / 0.026, 2)) *
-                              Math.exp(-Math.pow((Math.abs(x) - 0.056) / 0.030, 2));
-            const cheekBone = Math.exp(-Math.pow((y + 0.042) / 0.034, 2)) *
-                              Math.exp(-Math.pow((Math.abs(x) - 0.092) / 0.038, 2));
-            const buccalHollow = Math.exp(-Math.pow((y + 0.105) / 0.040, 2)) *
-                                 Math.exp(-Math.pow((Math.abs(x) - 0.076) / 0.034, 2));
-            const noseBridge = Math.exp(-Math.pow((y + 0.042) / 0.056, 2)) *
-                               Math.exp(-Math.pow(x / 0.017, 2));
-            const mouthMound = Math.exp(-Math.pow((y + 0.132) / 0.034, 2)) *
-                               Math.exp(-Math.pow(x / 0.044, 2));
-            const chin = Math.exp(-Math.pow((y + 0.215) / 0.036, 2)) *
-                         Math.exp(-Math.pow(x / 0.036, 2));
-
-            z += (
-              brow * 0.024 -
-              eyeSocket * 0.028 +
-              cheekBone * 0.024 -
-              buccalHollow * 0.014 +
-              noseBridge * 0.044 +
-              mouthMound * 0.020 +
-              chin * 0.026
-            ) * cosT;
-
-            cr -= (eyeSocket * 0.30 + buccalHollow * 0.16) * cosT;
-          }
-
-          ring.push([x, y + 2.06, z + 0.024]);
-          cRow.push(Math.max(0.55, Math.min(1.0, cr)));
         }
-        headRings.push(ring);
-        headCreases.push(cRow);
       }
 
-      addCurvedSurfaceRows({
-        rings: headRings,
-        partName: "head",
-        stepRow,
-        outRows,
-        occGroup,
-        creaseGrid: headCreases
-      });
-
-      // 2) 체간 (8등신 기준: 턱밑 1.78 -> 어깨 1.44 -> 유두선 1.22 -> 허리 0.66 -> 고관절 0.10)
-      const torsoControl = [
-        { y: -0.18, rx: 0.155, rz: 0.125, cz: -0.008 },
-        { y: -0.06, rx: 0.310, rz: 0.180, cz: -0.012 },
-        { y:  0.08, rx: 0.395, rz: 0.215, cz: -0.014 }, // 골반 대전자 폭 (1.42 heads)
-        { y:  0.22, rx: 0.388, rz: 0.212, cz: -0.010 }, // 장골능
-        { y:  0.42, rx: 0.348, rz: 0.196, cz: -0.002 },
-        { y:  0.64, rx: 0.335, rz: 0.192, cz:  0.006 }, // 배꼽/허리선 (1.20 heads)
-        { y:  0.84, rx: 0.405, rz: 0.222, cz:  0.006 }, // 흉곽 하부 & 전거근
-        { y:  1.04, rx: 0.475, rz: 0.252, cz:  0.002 }, // 광배근 V-테이퍼
-        { y:  1.22, rx: 0.500, rz: 0.270, cz: -0.002 }, // 유두선 / 대흉근 최대 폭
-        { y:  1.36, rx: 0.445, rz: 0.232, cz: -0.008 }, // 쇄골선
-        { y:  1.45, rx: 0.345, rz: 0.192, cz: -0.012 }, // 승모근 경사
-        { y:  1.54, rx: 0.210, rz: 0.162, cz: -0.010 }, // 목 기저부
-        { y:  1.68, rx: 0.145, rz: 0.148, cz: -0.002 }, // 경추 전만
-        { y:  1.86, rx: 0.136, rz: 0.138, cz:  0.012 }  // 두개저 접합
-      ];
-
-      const yCurve = new THREE.CatmullRomCurve3(torsoControl.map(c => new THREE.Vector3(c.rx, c.y, c.rz)));
-      const czCurve = new THREE.CatmullRomCurve3(torsoControl.map(c => new THREE.Vector3(0, c.y, c.cz)));
-      const tSamples = 124;
-      const tRadial = 92;
-      const torsoRings = [];
-      const torsoCreases = [];
-
-      for (let i = 0; i <= tSamples; i++) {
-        const u = i / tSamples;
-        const pDim = yCurve.getPoint(u);
-        const pCenter = czCurve.getPoint(u);
-        const rx = pDim.x, y = pDim.y, rz = pDim.z, cz = pCenter.z;
-
-        const ring = [];
-        const cRow = [];
-        for (let j = 0; j < tRadial; j++) {
-          const theta = ((j / tRadial) - 0.25) * Math.PI * 2;
-          const sinT = Math.sin(theta);
-          const cosT = Math.cos(theta);
-
-          let x = rx * sinT;
-          let z = cz + rz * cosT;
-          let cr = 1.0;
-
-          if (cosT > -0.15) {
-            if (y > 0.08 && y < 1.38) {
-              const midGroove = Math.exp(-Math.pow(x / 0.022, 2));
-              z -= midGroove * 0.024;
-              cr -= midGroove * 0.32;
-            }
-
-            // 큰가슴근
-            if (y > 0.96 && y < 1.40) {
-              const pecNormY = (y - 0.96) / 0.44;
-              const pecY = Math.pow(Math.sin(pecNormY * Math.PI), 0.72);
-              const pecX = Math.exp(-Math.pow((Math.abs(x) - 0.215) / 0.195, 2));
-              const clavGroove = Math.exp(-Math.pow((y - 1.26) / 0.016, 2)) * pecX;
-              const underPec = Math.exp(-Math.pow((y - 0.98) / 0.024, 2)) * pecX;
-              z += pecY * pecX * 0.064 - clavGroove * 0.008 - underPec * 0.020;
-              cr -= (clavGroove * 0.16 + underPec * 0.30);
-            }
-
-            // 배곧은근
-            if (y > 0.16 && y < 0.96 && Math.abs(x) < 0.185) {
-              const abX = Math.sin((Math.abs(x) / 0.168) * Math.PI);
-              const abPhase = ((y - 0.16) / 0.80) * Math.PI * 3;
-              const abSeg = Math.max(0, Math.sin(abPhase));
-              const abGroove = Math.pow(Math.cos(abPhase), 8);
-              const lineaSemilunaris = Math.exp(-Math.pow((Math.abs(x) - 0.168) / 0.020, 2));
-              z += (abX > 0 ? abX * abSeg * 0.028 : 0) - lineaSemilunaris * 0.018;
-              cr -= (lineaSemilunaris * 0.28 + (abX > 0 ? abGroove * 0.20 : 0));
-            }
-
-            // 서혜부 V-라인
-            const vLineY = 0.25 - Math.abs(x) * 0.54;
-            if (y > -0.06 && y < 0.28 && Math.abs(x) < 0.36) {
-              const vGroove = Math.exp(-Math.pow((y - vLineY) / 0.026, 2));
-              z -= vGroove * 0.018;
-              cr -= vGroove * 0.26;
-            }
-
-            // 목빗근 & 흉골패임
-            if (y > 1.44 && y < 1.84) {
-              const scmX = 0.028 + ((y - 1.44) / 0.40) * 0.086;
-              const scmRidge = Math.exp(-Math.pow((Math.abs(x) - scmX) / 0.024, 2));
-              const scmShadow = Math.exp(-Math.pow((Math.abs(x) - (scmX + 0.036)) / 0.022, 2));
-              z += scmRidge * 0.022 - scmShadow * 0.011;
-              cr -= scmShadow * 0.24;
-            }
-          }
-
-          // 측면 앞톱니근
-          if (Math.abs(sinT) > 0.42 && y > 0.58 && y < 0.96) {
-            const serrWave = Math.sin(((y - 0.58) / 0.38) * Math.PI * 3.5);
-            const serrMask = Math.exp(-Math.pow((cosT - 0.15) / 0.44, 2));
-            x += Math.sign(sinT) * Math.max(0, serrWave) * serrMask * 0.019;
-            if (serrWave < 0) cr -= Math.abs(serrWave) * serrMask * 0.22;
-          }
-
-          // 후면(-Z) 척추세움근, 등세모근, 넓은등근, 볼기근
-          if (cosT < 0.15) {
-            if (y > 0.08 && y < 1.52) {
-              const spineGroove = Math.exp(-Math.pow(x / 0.025, 2));
-              const erectorBulge = Math.exp(-Math.pow((Math.abs(x) - 0.072) / 0.044, 2));
-              z += spineGroove * 0.030 - erectorBulge * 0.016;
-              cr -= spineGroove * 0.30;
-            }
-            if (y > 0.72 && y < 1.44) {
-              const latBulge = Math.sin(((y - 0.72) / 0.72) * Math.PI) * Math.exp(-Math.pow((Math.abs(x) - 0.25) / 0.18, 2));
-              z -= latBulge * 0.038;
-              const trapEdgeY = 0.86 + Math.abs(x) * 1.45;
-              const trapEdge = Math.exp(-Math.pow((y - trapEdgeY) / 0.028, 2));
-              z += trapEdge * 0.015;
-              cr -= trapEdge * 0.24;
-            }
-            if (y > -0.16 && y < 0.16) {
-              const gluteY = Math.sin(((y + 0.16) / 0.32) * Math.PI);
-              const gluteX = Math.exp(-Math.pow((Math.abs(x) - 0.17) / 0.15, 2));
-              const gluteFold = Math.exp(-Math.pow((y + 0.14) / 0.024, 2)) * gluteX;
-              z -= gluteY * gluteX * 0.042 - gluteFold * 0.015;
-              cr -= gluteFold * 0.28;
-            }
-          }
-
-          ring.push([x, y, z]);
-          cRow.push(Math.max(0.55, Math.min(1.0, cr)));
-        }
-        torsoRings.push(ring);
-        torsoCreases.push(cRow);
-      }
-
-      addCurvedSurfaceRows({
-        rings: torsoRings,
-        partName: "torso",
-        stepRow,
-        outRows,
-        occGroup,
-        creaseGrid: torsoCreases
-      });
-
-      // 3) 상지 + 양손(손바닥근 + 5손가락)
-      [-1, 1].forEach(side => {
-        const armCtrl = [
-          { x: side * 0.34, y: 1.38, z: -0.010, rx: 0.130, rz: 0.150 },
-          { x: side * 0.44, y: 1.35, z: -0.008, rx: 0.158, rz: 0.168 },
-          { x: side * 0.54, y: 1.24, z: -0.006, rx: 0.166, rz: 0.170 }, // 양 어깨 총 폭 1.95 heads
-          { x: side * 0.60, y: 1.10, z: -0.002, rx: 0.140, rz: 0.146 },
-          { x: side * 0.65, y: 0.93, z:  0.004, rx: 0.130, rz: 0.142 },
-          { x: side * 0.70, y: 0.77, z:  0.010, rx: 0.104, rz: 0.108 }, // 팔꿈치 (배꼽 높이)
-          { x: side * 0.76, y: 0.60, z:  0.026, rx: 0.120, rz: 0.114 },
-          { x: side * 0.83, y: 0.40, z:  0.048, rx: 0.092, rz: 0.082 },
-          { x: side * 0.89, y: 0.20, z:  0.070, rx: 0.058, rz: 0.042 }  // 손목 (고관절 높이)
-        ];
-
-        const posCurve = new THREE.CatmullRomCurve3(armCtrl.map(p => new THREE.Vector3(p.x, p.y, p.z)));
-        const radCurve = new THREE.CatmullRomCurve3(armCtrl.map(p => new THREE.Vector3(p.rx, 0, p.rz)));
-        const aSteps = 92;
-        const aRadial = 44;
-        const armRings = [];
-        const armCreases = [];
-
-        for (let i = 0; i <= aSteps; i++) {
-          const t = i / aSteps;
+      addTube({ id, ctrl, radii, repeatU = 2.0, repeatV = 16.0, steps = 24, radial = 20, refVec = null }) {
+        const posCurve = new THREE.CatmullRomCurve3(ctrl.map(p => new THREE.Vector3(p[0], p[1], p[2])));
+        const radCurve = new THREE.CatmullRomCurve3(radii.map(r => new THREE.Vector3(r[0], 0, r[1])));
+        const rings = [];
+        for (let i = 0; i <= steps; i++) {
+          const t = i / steps;
           const pt = posCurve.getPoint(t);
           const rd = radCurve.getPoint(t);
           const tan = posCurve.getTangent(t).normalize();
-          const ref = new THREE.Vector3(0, 0, 1);
+          const ref = refVec ? refVec.clone() : new THREE.Vector3(0, 0, 1);
+          if (Math.abs(tan.dot(ref)) > 0.92) ref.set(1, 0, 0);
           const nrm = new THREE.Vector3().crossVectors(ref, tan).normalize();
           const bin = new THREE.Vector3().crossVectors(tan, nrm).normalize();
+          const tip = t > 0.86 ? Math.cos(((t - 0.86) / 0.14) * Math.PI * 0.45) : 1.0;
 
           const ring = [];
-          const cRow = [];
-          for (let j = 0; j < aRadial; j++) {
-            const theta = ((j / aRadial) - 0.25) * Math.PI * 2;
-            const sinT = Math.sin(theta), cosT = Math.cos(theta);
-            let rx = rd.x, rz = rd.z, cr = 1.0;
-
-            if (t > 0.14 && t < 0.39) {
-              const vDipT = 0.32 + Math.abs(sinT) * 0.03;
-              const deltSulcus = Math.exp(-Math.pow((t - vDipT) / 0.028, 2)) * 0.45;
-              rx -= deltSulcus * 0.012;
-              rz -= deltSulcus * 0.012;
-              cr -= deltSulcus * 0.24;
-            }
-
-            if (t > 0.30 && t < 0.64) {
-              const armEnv = Math.sin(((t - 0.30) / 0.34) * Math.PI);
-              if (cosT > 0.15) rz += armEnv * Math.pow(cosT, 1.4) * 0.020;
-              if (cosT < -0.15) rz += armEnv * Math.pow(-cosT, 1.3) * 0.022;
-              const bicipitalSulcus = Math.exp(-Math.pow(cosT / 0.26, 2)) * armEnv;
-              rx -= bicipitalSulcus * 0.013;
-              cr -= bicipitalSulcus * 0.26;
-            }
-
-            if (t > 0.62 && t < 0.92) {
-              const foreEnv = Math.sin(((t - 0.62) / 0.30) * Math.PI);
-              const foreGroove = Math.exp(-Math.pow((cosT - 0.18) / 0.28, 2)) * foreEnv;
-              rx -= foreGroove * 0.009;
-              rz -= foreGroove * 0.009;
-              cr -= foreGroove * 0.20;
-            }
-
-            const lx = rx * sinT;
-            const lz = rz * cosT;
+          for (let j = 0; j < radial; j++) {
+            const th = (j / radial) * Math.PI * 2;
+            const lx = rd.x * tip * Math.sin(th);
+            const lz = rd.z * tip * Math.cos(th);
             ring.push([
               pt.x + nrm.x * lx + bin.x * lz,
               pt.y + nrm.y * lx + bin.y * lz,
               pt.z + nrm.z * lx + bin.z * lz
             ]);
-            cRow.push(Math.max(0.58, cr));
           }
-          armRings.push(ring);
-          armCreases.push(cRow);
+          rings.push(ring);
         }
+        this.addClosedLoft({ id, rings, repeatU, repeatV, edgeBase: 0.78 });
+      }
 
-        addCurvedSurfaceRows({
-          rings: armRings,
-          partName: "arm",
-          stepRow,
-          outRows,
-          occGroup,
-          creaseGrid: armCreases
-        });
+      buildGeometry() {
+        const geom = new THREE.BufferGeometry();
+        geom.setAttribute("position", new THREE.Float32BufferAttribute(this.positions, 3));
+        geom.setAttribute("normal", new THREE.Float32BufferAttribute(this.normals, 3));
+        geom.setAttribute("uv", new THREE.Float32BufferAttribute(this.uvs, 2));
+        geom.setAttribute("aMuscleId", new THREE.Float32BufferAttribute(this.muscleIds, 1));
+        geom.setAttribute("aEdgeFactor", new THREE.Float32BufferAttribute(this.edgeFactors, 1));
+        geom.setIndex(this.indices);
+        return geom;
+      }
+    }
 
-        // 손바닥 (Hand Palm — 손목에서 자연스럽게 이어짐)
-        addTubularPart({
-          ctrlPoints: [
-            [side * 0.888, 0.212, 0.069],
-            [side * 0.905, 0.148, 0.080],
-            [side * 0.920, 0.085, 0.090],
-            [side * 0.926, 0.054, 0.094]
-          ],
-          radii: [
-            [0.054, 0.038],
-            [0.034, 0.068],
-            [0.026, 0.074],
-            [0.020, 0.068]
-          ],
-          partName: "hand",
-          stepRow: 0.022,
-          outRows,
-          occGroup,
-          steps: 26,
-          radial: 28,
-          refVec: new THREE.Vector3(1, 0, 0)
-        });
+    // ---------------------------------------------------------
+    // 6-C. 레퍼런스 기반 8등신 해부학적 에코르셰 (72종 개별 근육 적층)
+    // ---------------------------------------------------------
+    function buildFullAnatomicalEcorcheGeometry() {
+      const B = new SculptureBufferBuilder();
 
-        // 다섯 손가락 (엄지·검지·중지·약지·새끼)
-        const fingers = [
-          {
-            ctrl: [
-              [side * 0.898, 0.145, 0.114],
-              [side * 0.886, 0.088, 0.142],
-              [side * 0.866, 0.038, 0.156],
-              [side * 0.844, -0.002, 0.160]
-            ],
-            rad: [[0.021, 0.021], [0.018, 0.018], [0.015, 0.015], [0.012, 0.012]]
-          },
-          {
-            ctrl: [
-              [side * 0.922, 0.062, 0.136],
-              [side * 0.913, -0.005, 0.142],
-              [side * 0.888, -0.062, 0.142],
-              [side * 0.862, -0.106, 0.138]
-            ],
-            rad: [[0.016, 0.016], [0.014, 0.014], [0.012, 0.012], [0.009, 0.009]]
-          },
-          {
-            ctrl: [
-              [side * 0.926, 0.056, 0.105],
-              [side * 0.918, -0.018, 0.109],
-              [side * 0.892, -0.080, 0.109],
-              [side * 0.864, -0.128, 0.105]
-            ],
-            rad: [[0.017, 0.017], [0.015, 0.015], [0.012, 0.012], [0.009, 0.009]]
-          },
-          {
-            ctrl: [
-              [side * 0.923, 0.060, 0.074],
-              [side * 0.913, -0.010, 0.076],
-              [side * 0.886, -0.068, 0.076],
-              [side * 0.860, -0.112, 0.072]
-            ],
-            rad: [[0.016, 0.016], [0.013, 0.013], [0.011, 0.011], [0.008, 0.008]]
-          },
-          {
-            ctrl: [
-              [side * 0.916, 0.068, 0.045],
-              [side * 0.904, 0.010, 0.045],
-              [side * 0.878, -0.038, 0.043],
-              [side * 0.854, -0.074, 0.040]
-            ],
-            rad: [[0.013, 0.013], [0.011, 0.011], [0.009, 0.009], [0.007, 0.007]]
+      // =======================================================
+      // [A] 두개골 및 안면 골격 베이스 + 안면 근육 10종
+      // =======================================================
+      const headRings = [];
+      for (let i = 0; i <= 48; i++) {
+        const v = i / 48;
+        const phi = (v - 0.5) * Math.PI;
+        const cosP = Math.cos(phi), sinP = Math.sin(phi);
+        const ring = [];
+        for (let j = 0; j < 64; j++) {
+          const th = ((j / 64) - 0.25) * Math.PI * 2;
+          const sinT = Math.sin(th), cosT = Math.cos(th);
+          let x = 0.168 * cosP * sinT;
+          let y = 0.268 * sinP;
+          let z = 0.212 * cosP * cosT;
+
+          if (y > 0.02) {
+            const upT = Math.min(1, y / 0.268);
+            const parietal = Math.exp(-Math.pow((upT - 0.42) / 0.26, 2));
+            x *= (1.0 + parietal * 0.075);
+            if (cosT < 0) z -= parietal * (-cosT) * 0.026;
           }
-        ];
+          if (y < 0) {
+            const jawT = Math.min(1, Math.abs(y) / 0.268);
+            if (cosT < 0) z *= (1.0 - Math.pow(jawT, 1.15) * 0.64);
+            else z += Math.sin(jawT * Math.PI) * 0.018 * cosT;
+            const gonial = Math.exp(-Math.pow((jawT - 0.52) / 0.16, 2)) * Math.exp(-Math.pow((cosT + 0.08) / 0.36, 2));
+            x *= (1.0 - Math.pow(jawT, 1.45) * 0.46 + gonial * 0.14);
+          }
+          // 관자놀이 오목함
+          const temple = Math.exp(-Math.pow((y - 0.03) / 0.065, 2)) * Math.exp(-Math.pow((Math.abs(sinT) - 0.88) / 0.22, 2));
+          x -= Math.sign(sinT) * temple * 0.015;
 
-        fingers.forEach(f => {
-          addTubularPart({
-            ctrlPoints: f.ctrl,
-            radii: f.rad,
-            partName: "finger",
-            stepRow: 0.019,
-            outRows,
-            occGroup,
-            steps: 24,
-            radial: 18
-          });
+          if (cosT > 0.05) {
+            const brow = Math.exp(-Math.pow((y - 0.032) / 0.024, 2)) * Math.exp(-Math.pow(x / 0.12, 2));
+            const socket = Math.exp(-Math.pow((y + 0.008) / 0.024, 2)) * Math.exp(-Math.pow((Math.abs(x) - 0.055) / 0.028, 2));
+            const cheek = Math.exp(-Math.pow((y + 0.042) / 0.032, 2)) * Math.exp(-Math.pow((Math.abs(x) - 0.088) / 0.036, 2));
+            const nose = Math.exp(-Math.pow((y + 0.042) / 0.054, 2)) * Math.exp(-Math.pow(x / 0.016, 2));
+            const chin = Math.exp(-Math.pow((y + 0.205) / 0.034, 2)) * Math.exp(-Math.pow(x / 0.035, 2));
+            z += (brow * 0.022 - socket * 0.026 + cheek * 0.020 + nose * 0.042 + chin * 0.024) * cosT;
+          }
+          ring.push([x, y + 2.05, z + 0.022]);
+        }
+        headRings.push(ring);
+      }
+      B.addClosedLoft({ id: 1, rings: headRings, repeatU: 4.5, repeatV: 18.0, edgeBase: 0.72 });
+
+      // 뒤통수근 (Occipitalis)
+      B.addMuscle({
+        id: 10,
+        spine: [[0, 1.88, -0.175], [0, 1.98, -0.205], [0, 2.08, -0.195]],
+        widths: [0.16, 0.21, 0.18],
+        heights: [0.006, 0.014, 0.006],
+        outwardDir: [0, 0, -1],
+        striations: 10, repeatU: 2.0, repeatV: 8.0
+      });
+
+      // 입둘레근 (Orbicularis Oris) & 턱끝근 (Mentalis)
+      B.addMuscle({
+        id: 6,
+        spine: [[-0.048, 1.915, 0.212], [0, 1.922, 0.238], [0.048, 1.915, 0.212]],
+        widths: [0.028, 0.046, 0.028],
+        heights: [0.008, 0.016, 0.008],
+        outwardDir: [0, 0, 1],
+        striations: 8, repeatU: 2.0, repeatV: 7.0
+      });
+      B.addMuscle({
+        id: 9,
+        spine: [[0, 1.835, 0.214], [0, 1.868, 0.228], [0, 1.892, 0.226]],
+        widths: [0.045, 0.056, 0.040],
+        heights: [0.008, 0.014, 0.006],
+        outwardDir: [0, -0.2, 1],
+        striations: 6, repeatU: 1.5, repeatV: 6.0
+      });
+
+      [-1, 1].forEach(s => {
+        // 전두근 (Frontalis)
+        B.addMuscle({
+          id: 1,
+          spine: [[s * 0.052, 2.095, 0.212], [s * 0.054, 2.165, 0.194], [s * 0.048, 2.235, 0.155]],
+          widths: [0.088, 0.096, 0.082],
+          heights: [0.007, 0.012, 0.005],
+          outwardDir: [s * 0.2, 0.35, 0.9],
+          striations: 8, repeatU: 1.8, repeatV: 8.0
+        });
+        // 관자근 (Temporalis)
+        B.addMuscle({
+          id: 2,
+          spine: [[s * 0.132, 1.995, 0.045], [s * 0.152, 2.065, 0.015], [s * 0.145, 2.135, -0.025]],
+          widths: [0.058, 0.115, 0.125],
+          heights: [0.008, 0.016, 0.007],
+          outwardDir: [s, 0.1, 0],
+          striations: 10, repeatU: 2.0, repeatV: 9.0
+        });
+        // 눈둘레근 (Orbicularis Oculi)
+        B.addMuscle({
+          id: 3,
+          spine: [[s * 0.024, 2.042, 0.218], [s * 0.056, 2.052, 0.212], [s * 0.088, 2.038, 0.192]],
+          widths: [0.036, 0.048, 0.034],
+          heights: [0.007, 0.013, 0.007],
+          outwardDir: [s * 0.25, 0.1, 0.95],
+          striations: 6, repeatU: 1.8, repeatV: 6.0
+        });
+        // 큰광대근 (Zygomaticus Major)
+        B.addMuscle({
+          id: 5,
+          spine: [[s * 0.042, 1.918, 0.214], [s * 0.078, 1.962, 0.192], [s * 0.114, 2.002, 0.148]],
+          widths: [0.022, 0.030, 0.026],
+          heights: [0.007, 0.015, 0.008],
+          outwardDir: [s * 0.55, 0.1, 0.82],
+          striations: 5, repeatU: 1.4, repeatV: 8.0
+        });
+        // 볼근 (Buccinator)
+        B.addMuscle({
+          id: 8,
+          spine: [[s * 0.045, 1.912, 0.205], [s * 0.075, 1.918, 0.172], [s * 0.098, 1.925, 0.125]],
+          widths: [0.044, 0.054, 0.046],
+          heights: [0.006, 0.012, 0.006],
+          outwardDir: [s * 0.72, -0.1, 0.68],
+          striations: 6, repeatU: 1.5, repeatV: 7.0
+        });
+        // 깨물근 (Masseter)
+        B.addMuscle({
+          id: 7,
+          spine: [[s * 0.098, 1.872, 0.095], [s * 0.116, 1.928, 0.098], [s * 0.122, 1.982, 0.102]],
+          widths: [0.052, 0.062, 0.054],
+          heights: [0.010, 0.022, 0.010],
+          outwardDir: [s * 0.88, -0.1, 0.45],
+          striations: 7, repeatU: 1.6, repeatV: 8.0
         });
       });
 
-      // 4) 하지 + 양발(발등근육 + 5발가락) (8등신 기준: 고관절 0.10 -> 무릎 -1.02 -> 발바닥 -2.14)
-      [-1, 1].forEach(side => {
-        const legCtrl = [
-          { x: side * 0.192, y:  0.10, z: -0.005, rx: 0.186, rz: 0.186 }, // 고관절 (4등신)
-          { x: side * 0.204, y: -0.22, z:  0.016, rx: 0.202, rz: 0.202 },
-          { x: side * 0.190, y: -0.56, z:  0.024, rx: 0.184, rz: 0.190 }, // 대퇴 중앙 (5등신)
-          { x: side * 0.178, y: -0.86, z:  0.020, rx: 0.146, rz: 0.152 },
-          { x: side * 0.174, y: -1.02, z:  0.016, rx: 0.118, rz: 0.124 }, // 무릎 (6등신)
-          { x: side * 0.176, y: -1.24, z: -0.010, rx: 0.135, rz: 0.144 },
-          { x: side * 0.176, y: -1.46, z: -0.026, rx: 0.148, rz: 0.162 }, // 장딴지 최대 볼륨 (7등신)
-          { x: side * 0.173, y: -1.76, z: -0.022, rx: 0.096, rz: 0.106 }, // 아킬레스건
-          { x: side * 0.172, y: -2.01, z: -0.010, rx: 0.065, rz: 0.075 }  // 복사뼈 / 발목
-        ];
-
-        const posCurve = new THREE.CatmullRomCurve3(legCtrl.map(p => new THREE.Vector3(p.x, p.y, p.z)));
-        const radCurve = new THREE.CatmullRomCurve3(legCtrl.map(p => new THREE.Vector3(p.rx, 0, p.rz)));
-        const lSteps = 104;
-        const lRadial = 46;
-        const legRings = [];
-        const legCreases = [];
-
-        for (let i = 0; i <= lSteps; i++) {
-          const t = i / lSteps;
-          const pt = posCurve.getPoint(t);
-          const rd = radCurve.getPoint(t);
-          const ring = [];
-          const cRow = [];
-
-          for (let j = 0; j < lRadial; j++) {
-            const theta = ((j / lRadial) - 0.25) * Math.PI * 2;
-            const sinT = Math.sin(theta), cosT = Math.cos(theta);
-            let rx = rd.x, rz = rd.z, cr = 1.0;
-
-            if (t > 0.08 && t < 0.49) {
-              const thighEnv = Math.sin(((t - 0.08) / 0.41) * Math.PI);
-              if (cosT > 0.15) {
-                const latSulcus = Math.exp(-Math.pow((sinT * side - 0.38) / 0.18, 2));
-                const medSulcus = Math.exp(-Math.pow((sinT * side + 0.34) / 0.18, 2));
-                const sulcus = (latSulcus + medSulcus) * thighEnv;
-                rx -= sulcus * 0.016;
-                rz -= sulcus * 0.018;
-                cr -= sulcus * 0.26;
-              }
-              if (sinT * side < -0.15 && cosT > 0.05) {
-                const vmo = Math.exp(-Math.pow((t - 0.39) / 0.07, 2)) * (-sinT * side);
-                rx += vmo * 0.022;
-                rz += vmo * 0.018;
-              }
-              if (cosT < -0.20) {
-                const hamCleft = Math.exp(-Math.pow(sinT / 0.24, 2)) * thighEnv * (-cosT);
-                rz -= hamCleft * 0.018;
-                cr -= hamCleft * 0.26;
-              }
-            }
-
-            if (cosT > 0.35) {
-              rz += Math.exp(-Math.pow((t - 0.51) / 0.032, 2)) * 0.016 * cosT;
-            }
-
-            if (t > 0.56 && t < 0.86) {
-              const calfEnv = Math.sin(((t - 0.56) / 0.30) * Math.PI);
-              if (cosT < -0.22) {
-                const calfCleft = Math.exp(-Math.pow(sinT / 0.24, 2)) * calfEnv;
-                const gastroHead = Math.exp(-Math.pow((Math.abs(sinT) - 0.52) / 0.28, 2)) * calfEnv;
-                rz += (-calfCleft * 0.020 + gastroHead * 0.024) * (-cosT);
-                cr -= calfCleft * 0.26 * (-cosT);
-              }
-              if (cosT > 0.22) {
-                const tibialis = Math.exp(-Math.pow((sinT * side - 0.35) / 0.28, 2)) * calfEnv;
-                rx += tibialis * 0.014;
-                rz += tibialis * 0.015;
-              }
-            }
-
-            ring.push([pt.x + rx * sinT, pt.y, pt.z + rz * cosT]);
-            cRow.push(Math.max(0.58, cr));
-          }
-          legRings.push(ring);
-          legCreases.push(cRow);
+      // =======================================================
+      // [B] 심부 근막 체간 코어 (Deep Fascia Core — 근육 간 깊은 골 형성용)
+      // =======================================================
+      const coreCtrl = [
+        { y: -0.16, rx: 0.145, rz: 0.118, cz: -0.008 },
+        { y:  0.06, rx: 0.345, rz: 0.188, cz: -0.010 },
+        { y:  0.26, rx: 0.340, rz: 0.184, cz: -0.006 },
+        { y:  0.58, rx: 0.295, rz: 0.168, cz:  0.004 },
+        { y:  0.88, rx: 0.365, rz: 0.198, cz:  0.004 },
+        { y:  1.18, rx: 0.435, rz: 0.222, cz: -0.002 },
+        { y:  1.40, rx: 0.385, rz: 0.192, cz: -0.008 },
+        { y:  1.54, rx: 0.175, rz: 0.145, cz: -0.006 },
+        { y:  1.84, rx: 0.122, rz: 0.124, cz:  0.010 }
+      ];
+      const cDimCurve = new THREE.CatmullRomCurve3(coreCtrl.map(c => new THREE.Vector3(c.rx, c.y, c.rz)));
+      const cPosCurve = new THREE.CatmullRomCurve3(coreCtrl.map(c => new THREE.Vector3(0, c.y, c.cz)));
+      const coreRings = [];
+      for (let i = 0; i <= 64; i++) {
+        const u = i / 64;
+        const d = cDimCurve.getPoint(u), p = cPosCurve.getPoint(u);
+        const ring = [];
+        for (let j = 0; j < 56; j++) {
+          const th = ((j / 56) - 0.25) * Math.PI * 2;
+          ring.push([d.x * Math.sin(th), d.y, p.z + d.z * Math.cos(th)]);
         }
+        coreRings.push(ring);
+      }
+      B.addClosedLoft({ id: 0, rings: coreRings, repeatU: 6.0, repeatV: 28.0, edgeBase: 0.42 });
 
-        addCurvedSurfaceRows({
-          rings: legRings,
-          partName: "leg",
-          stepRow,
-          outRows,
-          occGroup,
-          creaseGrid: legCreases
+      // =======================================================
+      // [C] 경부 및 체간 전면·측면 근육 (11 ~ 20)
+      // =======================================================
+      [-1, 1].forEach(s => {
+        // 목빗근 (Sternocleidomastoid — 유양돌기에서 흉골패임까지 사선)
+        B.addMuscle({
+          id: 11,
+          spine: [
+            [s * 0.022, 1.455, 0.142],
+            [s * 0.068, 1.625, 0.105],
+            [s * 0.115, 1.815, 0.018]
+          ],
+          widths: [0.042, 0.056, 0.048],
+          heights: [0.012, 0.026, 0.012],
+          outwardDir: [s * 0.65, 0, 0.75],
+          striations: 6, repeatU: 1.5, repeatV: 14.0
         });
 
-        // 발 몸체 (발뒤꿈치 · 발등 · 중족부 — 받침대 y=-2.14 위에 밀착)
-        addTubularPart({
-          ctrlPoints: [
-            [side * 0.172, -1.995, -0.014],
-            [side * 0.174, -2.088,  0.012],
-            [side * 0.176, -2.112,  0.092],
-            [side * 0.178, -2.122,  0.172]
+        // 목갈비근 (Scalenus)
+        B.addMuscle({
+          id: 12,
+          spine: [
+            [s * 0.135, 1.445, 0.045],
+            [s * 0.125, 1.585, 0.025],
+            [s * 0.105, 1.725, 0.005]
+          ],
+          widths: [0.055, 0.052, 0.038],
+          heights: [0.008, 0.018, 0.008],
+          outwardDir: [s * 0.92, 0.1, 0.35],
+          striations: 6, repeatU: 1.5, repeatV: 11.0
+        });
+
+        // 큰가슴근 - 빗장갈래 (Pectoralis Major Clavicular Head)
+        B.addMuscle({
+          id: 13,
+          spine: [
+            [s * 0.045, 1.415, 0.165],
+            [s * 0.225, 1.385, 0.185],
+            [s * 0.415, 1.315, 0.115]
+          ],
+          widths: [0.085, 0.095, 0.058],
+          heights: [0.012, 0.036, 0.014],
+          outwardDir: [s * 0.28, 0.22, 0.93],
+          striations: 9, repeatU: 2.0, repeatV: 16.0
+        });
+
+        // 큰가슴근 - 복장갈비갈래 (Pectoralis Major Sternocostal Head — 부채꼴 근섬유)
+        B.addMuscle({
+          id: 14,
+          spine: [
+            [s * 0.026, 1.155, 0.215],
+            [s * 0.215, 1.175, 0.228],
+            [s * 0.415, 1.275, 0.118]
+          ],
+          widths: [0.275, 0.255, 0.075],
+          heights: [0.018, 0.056, 0.018],
+          outwardDir: [s * 0.25, -0.05, 0.96],
+          striations: 16, repeatU: 3.2, repeatV: 18.0,
+          skew: -0.18
+        });
+
+        // 앞톱니근 (Serratus Anterior — 늑골 위 4개의 톱니 모양 근다발)
+        [0, 1, 2, 3].forEach(rib => {
+          const ry = 0.94 - rib * 0.088;
+          B.addMuscle({
+            id: 16,
+            spine: [
+              [s * 0.365, ry + 0.045, -0.055],
+              [s * 0.355, ry + 0.012,  0.065],
+              [s * 0.235, ry - 0.028,  0.165]
+            ],
+            widths: [0.054, 0.064, 0.042],
+            heights: [0.010, 0.024, 0.008],
+            outwardDir: [s * 0.85, -0.1, 0.52],
+            striations: 5, repeatU: 1.4, repeatV: 11.0
+          });
+        });
+
+        // 배곧은근 (Rectus Abdominis — 4단 건획 식스팩 구조)
+        [
+          { y0: 0.79, y1: 0.98, z: 0.205, w: 0.128, h: 0.032 },
+          { y0: 0.61, y1: 0.78, z: 0.202, w: 0.126, h: 0.034 },
+          { y0: 0.43, y1: 0.60, z: 0.196, w: 0.118, h: 0.032 },
+          { y0: 0.14, y1: 0.42, z: 0.186, w: 0.095, h: 0.026 }
+        ].forEach(seg => {
+          B.addMuscle({
+            id: 17,
+            spine: [
+              [s * 0.076, seg.y0, seg.z - 0.006],
+              [s * 0.078, (seg.y0 + seg.y1) * 0.5, seg.z],
+              [s * 0.076, seg.y1, seg.z - 0.004]
+            ],
+            widths: [seg.w * 0.92, seg.w, seg.w * 0.92],
+            heights: [0.008, seg.h, 0.008],
+            outwardDir: [s * 0.18, 0, 0.98],
+            striations: 7, repeatU: 1.8, repeatV: 9.0
+          });
+        });
+
+        // 배바깥빗근 (External Oblique)
+        B.addMuscle({
+          id: 18,
+          spine: [
+            [s * 0.345, 0.72, 0.02],
+            [s * 0.315, 0.48, 0.09],
+            [s * 0.255, 0.24, 0.14]
+          ],
+          widths: [0.165, 0.195, 0.155],
+          heights: [0.014, 0.034, 0.012],
+          outwardDir: [s * 0.78, -0.1, 0.62],
+          striations: 11, repeatU: 2.4, repeatV: 16.0
+        });
+      });
+
+      // =======================================================
+      // [D] 체간 후면 근육 (21 ~ 30)
+      // =======================================================
+      [-1, 1].forEach(s => {
+        // 등세모근 상부 (Trapezius Upper)
+        B.addMuscle({
+          id: 21,
+          spine: [
+            [s * 0.035, 1.82, -0.115],
+            [s * 0.185, 1.56, -0.105],
+            [s * 0.445, 1.42, -0.045]
+          ],
+          widths: [0.075, 0.135, 0.085],
+          heights: [0.010, 0.032, 0.012],
+          outwardDir: [s * 0.45, 0.42, -0.78],
+          striations: 9, repeatU: 2.0, repeatV: 16.0
+        });
+
+        // 등세모근 중부 (Trapezius Middle)
+        B.addMuscle({
+          id: 22,
+          spine: [
+            [s * 0.025, 1.32, -0.195],
+            [s * 0.215, 1.34, -0.195],
+            [s * 0.425, 1.36, -0.115]
+          ],
+          widths: [0.155, 0.145, 0.085],
+          heights: [0.012, 0.032, 0.012],
+          outwardDir: [s * 0.25, 0, -0.96],
+          striations: 10, repeatU: 2.2, repeatV: 15.0
+        });
+
+        // 등세모근 하부 (Trapezius Lower)
+        B.addMuscle({
+          id: 23,
+          spine: [
+            [s * 0.022, 0.84, -0.188],
+            [s * 0.165, 1.06, -0.205],
+            [s * 0.345, 1.28, -0.165]
+          ],
+          widths: [0.055, 0.145, 0.115],
+          heights: [0.010, 0.030, 0.010],
+          outwardDir: [s * 0.28, -0.1, -0.95],
+          striations: 9, repeatU: 2.0, repeatV: 16.0
+        });
+
+        // 가시아래근 (Infraspinatus)
+        B.addMuscle({
+          id: 24,
+          spine: [
+            [s * 0.165, 1.18, -0.198],
+            [s * 0.295, 1.21, -0.185],
+            [s * 0.455, 1.26, -0.105]
+          ],
+          widths: [0.135, 0.125, 0.055],
+          heights: [0.010, 0.028, 0.010],
+          outwardDir: [s * 0.42, 0, -0.90],
+          striations: 8, repeatU: 1.8, repeatV: 12.0
+        });
+
+        // 작은원근 (Teres Minor) & 큰원근 (Teres Major)
+        B.addMuscle({
+          id: 25,
+          spine: [
+            [s * 0.245, 1.09, -0.192],
+            [s * 0.355, 1.15, -0.162],
+            [s * 0.465, 1.22, -0.095]
+          ],
+          widths: [0.048, 0.052, 0.036],
+          heights: [0.008, 0.022, 0.008],
+          outwardDir: [s * 0.55, -0.1, -0.82],
+          striations: 5, repeatU: 1.4, repeatV: 10.0
+        });
+        B.addMuscle({
+          id: 26,
+          spine: [
+            [s * 0.225, 1.02, -0.195],
+            [s * 0.355, 1.09, -0.155],
+            [s * 0.465, 1.18, -0.065]
+          ],
+          widths: [0.062, 0.068, 0.044],
+          heights: [0.010, 0.026, 0.010],
+          outwardDir: [s * 0.62, -0.12, -0.77],
+          striations: 6, repeatU: 1.5, repeatV: 11.0
+        });
+
+        // 넓은등근 (Latissimus Dorsi — 흉요근막에서 상완골까지 V-테이퍼)
+        B.addMuscle({
+          id: 28,
+          spine: [
+            [s * 0.145, 0.46, -0.165],
+            [s * 0.315, 0.82, -0.145],
+            [s * 0.455, 1.14, -0.045]
+          ],
+          widths: [0.225, 0.265, 0.075],
+          heights: [0.012, 0.038, 0.014],
+          outwardDir: [s * 0.65, -0.08, -0.75],
+          striations: 14, repeatU: 3.0, repeatV: 22.0
+        });
+
+        // 척추세움근 (Erector Spinae)
+        B.addMuscle({
+          id: 29,
+          spine: [
+            [s * 0.075, 0.22, -0.172],
+            [s * 0.082, 0.58, -0.178],
+            [s * 0.088, 0.96, -0.188]
+          ],
+          widths: [0.085, 0.105, 0.095],
+          heights: [0.012, 0.032, 0.012],
+          outwardDir: [s * 0.22, 0, -0.97],
+          striations: 8, repeatU: 1.8, repeatV: 20.0
+        });
+      });
+
+      // =======================================================
+      // [E] 어깨 및 상지 (31 ~ 49) — 회외 해부학적 자세 (손바닥 정면 +Z, 엄지 가쪽)
+      // =======================================================
+      [-1, 1].forEach(s => {
+        // 심부 상지 코어
+        B.addTube({
+          id: 0,
+          ctrl: [
+            [s * 0.46, 1.32, -0.01],
+            [s * 0.59, 1.10,  0.00],
+            [s * 0.71, 0.77,  0.01],
+            [s * 0.82, 0.48,  0.035],
+            [s * 0.92, 0.20,  0.062]
           ],
           radii: [
-            [0.062, 0.070],
-            [0.064, 0.054],
-            [0.074, 0.034],
-            [0.084, 0.023]
+            [0.115, 0.115],
+            [0.105, 0.108],
+            [0.085, 0.085],
+            [0.088, 0.072],
+            [0.052, 0.035]
           ],
-          partName: "foot",
-          stepRow: 0.022,
-          outRows,
-          occGroup,
-          steps: 28,
-          radial: 28,
+          repeatU: 4.0, repeatV: 24.0, steps: 36, radial: 24
+        });
+
+        // 1. 앞어깨세모근 (Anterior Deltoid)
+        B.addMuscle({
+          id: 31,
+          spine: [
+            [s * 0.345, 1.395, 0.095],
+            [s * 0.475, 1.305, 0.115],
+            [s * 0.585, 1.075, 0.055]
+          ],
+          widths: [0.095, 0.105, 0.042],
+          heights: [0.012, 0.034, 0.010],
+          outwardDir: [s * 0.55, 0.15, 0.82],
+          striations: 7, repeatU: 1.6, repeatV: 14.0
+        });
+
+        // 2. 가쪽어깨세모근 (Lateral Deltoid)
+        B.addMuscle({
+          id: 32,
+          spine: [
+            [s * 0.505, 1.425, -0.015],
+            [s * 0.575, 1.265, -0.005],
+            [s * 0.605, 1.055,  0.005]
+          ],
+          widths: [0.115, 0.145, 0.046],
+          heights: [0.014, 0.042, 0.012],
+          outwardDir: [s * 0.96, 0.22, 0],
+          striations: 9, repeatU: 2.0, repeatV: 15.0
+        });
+
+        // 3. 뒤어깨세모근 (Posterior Deltoid)
+        B.addMuscle({
+          id: 33,
+          spine: [
+            [s * 0.385, 1.345, -0.115],
+            [s * 0.515, 1.255, -0.115],
+            [s * 0.595, 1.075, -0.045]
+          ],
+          widths: [0.095, 0.105, 0.042],
+          heights: [0.012, 0.034, 0.010],
+          outwardDir: [s * 0.62, 0.12, -0.78],
+          striations: 7, repeatU: 1.6, repeatV: 14.0
+        });
+
+        // 4. 위팔두갈래근 긴갈래 & 짧은갈래 (Biceps Brachii Long & Short Heads)
+        B.addMuscle({
+          id: 35,
+          spine: [
+            [s * 0.555, 1.225, 0.068],
+            [s * 0.635, 0.985, 0.092],
+            [s * 0.705, 0.745, 0.075]
+          ],
+          widths: [0.048, 0.072, 0.036],
+          heights: [0.010, 0.034, 0.008],
+          outwardDir: [s * 0.45, 0, 0.89],
+          striations: 6, repeatU: 1.5, repeatV: 16.0
+        });
+        B.addMuscle({
+          id: 36,
+          spine: [
+            [s * 0.485, 1.215, 0.065],
+            [s * 0.575, 0.985, 0.088],
+            [s * 0.675, 0.745, 0.072]
+          ],
+          widths: [0.046, 0.068, 0.034],
+          heights: [0.010, 0.032, 0.008],
+          outwardDir: [s * 0.15, 0, 0.98],
+          striations: 6, repeatU: 1.5, repeatV: 16.0
+        });
+
+        // 5. 위팔근 (Brachialis)
+        B.addMuscle({
+          id: 37,
+          spine: [
+            [s * 0.615, 1.035, 0.015],
+            [s * 0.665, 0.885, 0.025],
+            [s * 0.715, 0.735, 0.035]
+          ],
+          widths: [0.055, 0.068, 0.045],
+          heights: [0.008, 0.024, 0.008],
+          outwardDir: [s * 0.92, 0, 0.38],
+          striations: 6, repeatU: 1.4, repeatV: 12.0
+        });
+
+        // 6. 위팔세갈래근 긴갈래 · 가쪽갈래 · 안쪽갈래 (Triceps 3 Heads)
+        B.addMuscle({
+          id: 38,
+          spine: [
+            [s * 0.485, 1.185, -0.068],
+            [s * 0.565, 0.975, -0.088],
+            [s * 0.665, 0.765, -0.068]
+          ],
+          widths: [0.054, 0.076, 0.045],
+          heights: [0.010, 0.034, 0.010],
+          outwardDir: [s * 0.18, 0, -0.98],
+          striations: 6, repeatU: 1.5, repeatV: 16.0
+        });
+        B.addMuscle({
+          id: 39,
+          spine: [
+            [s * 0.565, 1.165, -0.065],
+            [s * 0.645, 0.975, -0.082],
+            [s * 0.715, 0.765, -0.062]
+          ],
+          widths: [0.052, 0.074, 0.044],
+          heights: [0.010, 0.034, 0.010],
+          outwardDir: [s * 0.65, 0, -0.76],
+          striations: 6, repeatU: 1.5, repeatV: 16.0
+        });
+        B.addMuscle({
+          id: 40,
+          spine: [
+            [s * 0.525, 0.945, -0.058],
+            [s * 0.615, 0.835, -0.068],
+            [s * 0.695, 0.735, -0.058]
+          ],
+          widths: [0.055, 0.068, 0.046],
+          heights: [0.008, 0.022, 0.008],
+          outwardDir: [s * 0.35, 0, -0.93],
+          striations: 5, repeatU: 1.4, repeatV: 11.0
+        });
+
+        // 7. 위팔노근 (Brachioradialis — 회외 전완 외측 능선)
+        B.addMuscle({
+          id: 41,
+          spine: [
+            [s * 0.675, 0.865, 0.025],
+            [s * 0.795, 0.585, 0.058],
+            [s * 0.945, 0.225, 0.072]
+          ],
+          widths: [0.044, 0.068, 0.026],
+          heights: [0.008, 0.028, 0.006],
+          outwardDir: [s * 0.85, 0, 0.52],
+          striations: 6, repeatU: 1.4, repeatV: 20.0
+        });
+
+        // 8. 노쪽손목굽힘근 · 긴손바닥근 · 자쪽손목굽힘근 (전완 굴근군)
+        B.addMuscle({
+          id: 43,
+          spine: [
+            [s * 0.655, 0.745, 0.032],
+            [s * 0.785, 0.515, 0.088],
+            [s * 0.925, 0.205, 0.088]
+          ],
+          widths: [0.038, 0.054, 0.022],
+          heights: [0.008, 0.024, 0.006],
+          outwardDir: [s * 0.35, 0, 0.93],
+          striations: 5, repeatU: 1.3, repeatV: 18.0
+        });
+        B.addMuscle({
+          id: 44,
+          spine: [
+            [s * 0.648, 0.745, 0.022],
+            [s * 0.755, 0.505, 0.082],
+            [s * 0.895, 0.205, 0.085]
+          ],
+          widths: [0.034, 0.044, 0.018],
+          heights: [0.007, 0.020, 0.005],
+          outwardDir: [0, 0, 1],
+          striations: 4, repeatU: 1.2, repeatV: 18.0
+        });
+        B.addMuscle({
+          id: 45,
+          spine: [
+            [s * 0.642, 0.745, -0.005],
+            [s * 0.735, 0.495,  0.045],
+            [s * 0.868, 0.205,  0.068]
+          ],
+          widths: [0.042, 0.056, 0.024],
+          heights: [0.008, 0.024, 0.006],
+          outwardDir: [-s * 0.55, 0, 0.82],
+          striations: 5, repeatU: 1.3, repeatV: 18.0
+        });
+
+        // 9. 손가락폄근 (Extensor Digitorum — 전완 후면)
+        B.addMuscle({
+          id: 46,
+          spine: [
+            [s * 0.715, 0.745, -0.035],
+            [s * 0.815, 0.505, -0.025],
+            [s * 0.915, 0.205,  0.032]
+          ],
+          widths: [0.055, 0.072, 0.035],
+          heights: [0.008, 0.024, 0.006],
+          outwardDir: [s * 0.35, 0, -0.93],
+          striations: 6, repeatU: 1.5, repeatV: 18.0
+        });
+
+        // 10. 회외 손바닥(엄지두덩근 + 새끼두덩근) 및 5손가락
+        B.addTube({
+          id: 47,
+          ctrl: [
+            [s * 0.915, 0.205, 0.068],
+            [s * 0.945, 0.135, 0.082],
+            [s * 0.968, 0.065, 0.092],
+            [s * 0.975, 0.032, 0.094]
+          ],
+          radii: [
+            [0.048, 0.030],
+            [0.066, 0.028],
+            [0.072, 0.022],
+            [0.064, 0.017]
+          ],
+          repeatU: 2.2, repeatV: 10.0, steps: 20, radial: 22
+        });
+
+        // 엄지(가쪽/외측), 검지, 중지, 약지, 새끼(안쪽/내측) — 손바닥 정면(+Z) 기준
+        [
+          { // 엄지 (가쪽 외측으로 자연스럽게 벌어진 자세)
+            ctrl: [[s * 0.962, 0.132, 0.085], [s * 1.005, 0.075, 0.105], [s * 1.038, 0.025, 0.118], [s * 1.058, -0.015, 0.125]],
+            rad: [[0.020, 0.018], [0.016, 0.015], [0.013, 0.012], [0.010, 0.010]]
+          },
+          { // 검지
+            ctrl: [[s * 1.012, 0.045, 0.092], [s * 1.028, -0.022, 0.102], [s * 1.032, -0.082, 0.106], [s * 1.028, -0.128, 0.106]],
+            rad: [[0.014, 0.014], [0.012, 0.012], [0.010, 0.010], [0.008, 0.008]]
+          },
+          { // 중지
+            ctrl: [[s * 0.982, 0.038, 0.094], [s * 0.994, -0.035, 0.104], [s * 0.996, -0.102, 0.108], [s * 0.992, -0.152, 0.108]],
+            rad: [[0.015, 0.015], [0.013, 0.013], [0.011, 0.011], [0.008, 0.008]]
+          },
+          { // 약지
+            ctrl: [[s * 0.952, 0.042, 0.092], [s * 0.962, -0.026, 0.102], [s * 0.962, -0.088, 0.105], [s * 0.958, -0.134, 0.105]],
+            rad: [[0.014, 0.014], [0.012, 0.012], [0.010, 0.010], [0.008, 0.008]]
+          },
+          { // 새끼
+            ctrl: [[s * 0.924, 0.052, 0.088], [s * 0.932, -0.008, 0.096], [s * 0.930, -0.058, 0.098], [s * 0.925, -0.096, 0.098]],
+            rad: [[0.012, 0.012], [0.010, 0.010], [0.008, 0.008], [0.006, 0.006]]
+          }
+        ].forEach(f => {
+          B.addTube({ id: 49, ctrl: f.ctrl, radii: f.rad, repeatU: 1.5, repeatV: 10.0, steps: 18, radial: 16 });
+        });
+      });
+
+      // =======================================================
+      // [F] 골반 · 대퇴(햄스트링 4분할 포함) · 하퇴 · 족부 (50 ~ 73)
+      // =======================================================
+      [-1, 1].forEach(s => {
+        // 심부 하지 코어 (Deep Leg Fascia Core)
+        B.addTube({
+          id: 0,
+          ctrl: [
+            [s * 0.195,  0.12, -0.005],
+            [s * 0.198, -0.25,  0.014],
+            [s * 0.185, -0.62,  0.020],
+            [s * 0.174, -1.02,  0.014],
+            [s * 0.175, -1.42, -0.018],
+            [s * 0.172, -1.78, -0.016],
+            [s * 0.170, -2.04, -0.008]
+          ],
+          radii: [
+            [0.165, 0.165],
+            [0.168, 0.168],
+            [0.145, 0.148],
+            [0.106, 0.112],
+            [0.118, 0.124],
+            [0.078, 0.084],
+            [0.056, 0.064]
+          ],
+          repeatU: 4.5, repeatV: 32.0, steps: 48, radial: 28
+        });
+
+        // 1. 중간볼기근 (Gluteus Medius)
+        B.addMuscle({
+          id: 50,
+          spine: [
+            [s * 0.285, 0.305, -0.065],
+            [s * 0.365, 0.185, -0.045],
+            [s * 0.365, 0.035, -0.015]
+          ],
+          widths: [0.145, 0.165, 0.075],
+          heights: [0.012, 0.036, 0.012],
+          outwardDir: [s * 0.88, 0.1, -0.46],
+          striations: 8, repeatU: 1.8, repeatV: 12.0
+        });
+
+        // 2. 큰볼기근 (Gluteus Maximus)
+        B.addMuscle({
+          id: 51,
+          spine: [
+            [s * 0.075,  0.195, -0.178],
+            [s * 0.215,  0.035, -0.188],
+            [s * 0.325, -0.165, -0.115]
+          ],
+          widths: [0.195, 0.245, 0.115],
+          heights: [0.016, 0.054, 0.014],
+          outwardDir: [s * 0.35, -0.15, -0.92],
+          striations: 12, repeatU: 2.5, repeatV: 16.0
+        });
+
+        // 3. 넙다리근막긴장근 (Tensor Fasciae Latae) & 엉덩정강띠 (Iliotibial Tract)
+        B.addMuscle({
+          id: 52,
+          spine: [
+            [s * 0.325,  0.255, 0.068],
+            [s * 0.348,  0.075, 0.052],
+            [s * 0.335, -0.145, 0.025]
+          ],
+          widths: [0.055, 0.078, 0.052],
+          heights: [0.010, 0.030, 0.010],
+          outwardDir: [s * 0.92, 0, 0.38],
+          striations: 6, repeatU: 1.5, repeatV: 14.0
+        });
+        B.addMuscle({
+          id: 53,
+          spine: [
+            [s * 0.335, -0.145, 0.025],
+            [s * 0.305, -0.585, 0.018],
+            [s * 0.255, -1.035, 0.015]
+          ],
+          widths: [0.055, 0.062, 0.044],
+          heights: [0.008, 0.018, 0.008],
+          outwardDir: [s, 0, 0.1],
+          striations: 5, repeatU: 1.3, repeatV: 22.0
+        });
+
+        // 4. 넙다리빗근 (Sartorius — ASIS에서 무릎 안쪽까지 대각선으로 가로지르는 리본 근육)
+        B.addMuscle({
+          id: 54,
+          spine: [
+            [s * 0.305,  0.245, 0.095],
+            [s * 0.175, -0.355, 0.145],
+            [s * 0.085, -1.015, 0.025]
+          ],
+          widths: [0.036, 0.044, 0.032],
+          heights: [0.008, 0.020, 0.008],
+          outwardDir: [s * 0.15, 0, 0.98],
+          striations: 4, repeatU: 1.2, repeatV: 28.0
+        });
+
+        // 5. 대퇴사두근: 넙다리곧은근(Rectus Femoris), 가쪽넓은근(Vastus Lateralis), 안쪽넓은근(Vastus Medialis)
+        B.addMuscle({
+          id: 55,
+          spine: [
+            [s * 0.215,  0.085, 0.135],
+            [s * 0.195, -0.445, 0.168],
+            [s * 0.175, -0.955, 0.125]
+          ],
+          widths: [0.068, 0.118, 0.054],
+          heights: [0.012, 0.042, 0.012],
+          outwardDir: [s * 0.08, 0, 0.99],
+          striations: 9, repeatU: 2.0, repeatV: 24.0
+        });
+        B.addMuscle({
+          id: 56,
+          spine: [
+            [s * 0.295, -0.125, 0.075],
+            [s * 0.285, -0.525, 0.085],
+            [s * 0.235, -0.935, 0.065]
+          ],
+          widths: [0.095, 0.145, 0.072],
+          heights: [0.014, 0.044, 0.012],
+          outwardDir: [s * 0.78, 0, 0.62],
+          striations: 10, repeatU: 2.2, repeatV: 22.0
+        });
+        B.addMuscle({
+          id: 57,
+          spine: [
+            [s * 0.135, -0.365, 0.115],
+            [s * 0.115, -0.685, 0.118],
+            [s * 0.118, -0.945, 0.095]
+          ],
+          widths: [0.068, 0.118, 0.085],
+          heights: [0.012, 0.042, 0.014],
+          outwardDir: [-s * 0.55, 0, 0.83],
+          striations: 8, repeatU: 1.8, repeatV: 18.0
+        });
+
+        // 6. 내전근군: 두덩근(Pectineus), 긴모음근(Adductor Longus), 큰모음근(Adductor Magnus), 두덩정강근(Gracilis)
+        B.addMuscle({
+          id: 58,
+          spine: [
+            [s * 0.075,  0.075, 0.125],
+            [s * 0.135, -0.055, 0.105],
+            [s * 0.175, -0.185, 0.065]
+          ],
+          widths: [0.048, 0.056, 0.042],
+          heights: [0.008, 0.022, 0.008],
+          outwardDir: [-s * 0.35, 0, 0.93],
+          striations: 5, repeatU: 1.4, repeatV: 10.0
+        });
+        B.addMuscle({
+          id: 59,
+          spine: [
+            [s * 0.055,  0.025, 0.105],
+            [s * 0.095, -0.265, 0.085],
+            [s * 0.135, -0.565, 0.045]
+          ],
+          widths: [0.046, 0.078, 0.048],
+          heights: [0.010, 0.030, 0.010],
+          outwardDir: [-s * 0.68, 0, 0.73],
+          striations: 6, repeatU: 1.5, repeatV: 16.0
+        });
+        B.addMuscle({
+          id: 60,
+          spine: [
+            [s * 0.065, -0.145, -0.025],
+            [s * 0.085, -0.485, -0.025],
+            [s * 0.105, -0.845, -0.015]
+          ],
+          widths: [0.075, 0.095, 0.065],
+          heights: [0.010, 0.028, 0.010],
+          outwardDir: [-s * 0.95, 0, -0.25],
+          striations: 7, repeatU: 1.6, repeatV: 18.0
+        });
+        B.addMuscle({
+          id: 61,
+          spine: [
+            [s * 0.045, -0.045, 0.035],
+            [s * 0.058, -0.525, 0.015],
+            [s * 0.085, -1.015, 0.005]
+          ],
+          widths: [0.038, 0.048, 0.028],
+          heights: [0.008, 0.022, 0.008],
+          outwardDir: [-s, 0, 0],
+          striations: 4, repeatU: 1.2, repeatV: 24.0
+        });
+
+        // 7. 햄스트링 4개 구성 근육 세부 분리 (62, 63, 64, 65)
+        // [62] 넙다리두갈래근 긴갈래 (Biceps Femoris Long Head — 후외측 표층)
+        B.addMuscle({
+          id: 62,
+          spine: [
+            [s * 0.155, -0.125, -0.125],
+            [s * 0.225, -0.525, -0.122],
+            [s * 0.255, -1.025, -0.055]
+          ],
+          widths: [0.058, 0.088, 0.038],
+          heights: [0.012, 0.038, 0.010],
+          outwardDir: [s * 0.45, 0, -0.89],
+          striations: 7, repeatU: 1.6, repeatV: 22.0
+        });
+        // [63] 넙다리두갈래근 짧은갈래 (Biceps Femoris Short Head — 원위 외측 심층)
+        B.addMuscle({
+          id: 63,
+          spine: [
+            [s * 0.245, -0.465, -0.075],
+            [s * 0.275, -0.745, -0.068],
+            [s * 0.262, -1.025, -0.045]
+          ],
+          widths: [0.048, 0.066, 0.036],
+          heights: [0.010, 0.028, 0.008],
+          outwardDir: [s * 0.82, 0, -0.57],
+          striations: 6, repeatU: 1.4, repeatV: 16.0
+        });
+        // [64] 반힘줄근 (Semitendinosus — 후내측 표층 근복 -> 긴 원통형 힘줄)
+        B.addMuscle({
+          id: 64,
+          spine: [
+            [s * 0.145, -0.135, -0.125],
+            [s * 0.135, -0.505, -0.125],
+            [s * 0.105, -1.015, -0.045]
+          ],
+          widths: [0.054, 0.078, 0.026],
+          heights: [0.012, 0.036, 0.008],
+          outwardDir: [-s * 0.22, 0, -0.97],
+          striations: 6, repeatU: 1.5, repeatV: 22.0
+        });
+        // [65] 반막근 (Semimembranosus — 후내측 심층/광폭 근복)
+        B.addMuscle({
+          id: 65,
+          spine: [
+            [s * 0.115, -0.225, -0.095],
+            [s * 0.098, -0.625, -0.098],
+            [s * 0.102, -0.995, -0.055]
+          ],
+          widths: [0.062, 0.094, 0.052],
+          heights: [0.010, 0.032, 0.010],
+          outwardDir: [-s * 0.62, 0, -0.78],
+          striations: 7, repeatU: 1.6, repeatV: 20.0
+        });
+
+        // 8. 하퇴 근육군: 앞정강근, 긴발가락폄근, 긴종아리근, 장딴지근(내/외측두), 가자미근, 아킬레스건
+        // 앞정강근 (Tibialis Anterior)
+        B.addMuscle({
+          id: 66,
+          spine: [
+            [s * 0.195, -1.085, 0.065],
+            [s * 0.188, -1.445, 0.088],
+            [s * 0.145, -1.985, 0.068]
+          ],
+          widths: [0.048, 0.068, 0.026],
+          heights: [0.010, 0.032, 0.008],
+          outwardDir: [s * 0.25, 0, 0.96],
+          striations: 6, repeatU: 1.4, repeatV: 22.0
+        });
+        // 긴발가락폄근 (Extensor Digitorum Longus)
+        B.addMuscle({
+          id: 67,
+          spine: [
+            [s * 0.225, -1.125, 0.035],
+            [s * 0.225, -1.485, 0.052],
+            [s * 0.185, -1.995, 0.062]
+          ],
+          widths: [0.038, 0.052, 0.024],
+          heights: [0.008, 0.024, 0.006],
+          outwardDir: [s * 0.68, 0, 0.73],
+          striations: 5, repeatU: 1.3, repeatV: 20.0
+        });
+        // 긴종아리근 (Fibularis Longus)
+        B.addMuscle({
+          id: 68,
+          spine: [
+            [s * 0.245, -1.105, -0.015],
+            [s * 0.248, -1.465, -0.015],
+            [s * 0.222, -1.995, -0.025]
+          ],
+          widths: [0.044, 0.058, 0.024],
+          heights: [0.010, 0.028, 0.006],
+          outwardDir: [s * 0.98, 0, -0.15],
+          striations: 5, repeatU: 1.3, repeatV: 20.0
+        });
+        // 장딴지근 안쪽갈래 & 가쪽갈래 (Gastrocnemius Medial & Lateral Heads)
+        B.addMuscle({
+          id: 69,
+          spine: [
+            [s * 0.135, -1.035, -0.065],
+            [s * 0.125, -1.345, -0.115],
+            [s * 0.152, -1.625, -0.088]
+          ],
+          widths: [0.052, 0.088, 0.046],
+          heights: [0.012, 0.044, 0.012],
+          outwardDir: [-s * 0.35, 0, -0.93],
+          striations: 7, repeatU: 1.6, repeatV: 16.0
+        });
+        B.addMuscle({
+          id: 70,
+          spine: [
+            [s * 0.215, -1.035, -0.065],
+            [s * 0.225, -1.325, -0.108],
+            [s * 0.195, -1.605, -0.085]
+          ],
+          widths: [0.048, 0.082, 0.042],
+          heights: [0.012, 0.040, 0.012],
+          outwardDir: [s * 0.42, 0, -0.90],
+          striations: 7, repeatU: 1.6, repeatV: 16.0
+        });
+        // 가자미근 (Soleus)
+        B.addMuscle({
+          id: 71,
+          spine: [
+            [s * 0.175, -1.345, -0.065],
+            [s * 0.175, -1.625, -0.072],
+            [s * 0.172, -1.865, -0.055]
+          ],
+          widths: [0.088, 0.105, 0.052],
+          heights: [0.010, 0.028, 0.008],
+          outwardDir: [0, 0, -1],
+          striations: 7, repeatU: 1.6, repeatV: 14.0
+        });
+        // 발꿈치힘줄 (Achilles Tendon)
+        B.addMuscle({
+          id: 72,
+          spine: [
+            [s * 0.172, -1.585, -0.082],
+            [s * 0.172, -1.855, -0.068],
+            [s * 0.172, -2.115, -0.062]
+          ],
+          widths: [0.046, 0.028, 0.034],
+          heights: [0.008, 0.022, 0.012],
+          outwardDir: [0, 0, -1],
+          striations: 4, repeatU: 1.2, repeatV: 14.0
+        });
+
+        // 9. 발등 및 발가락뼈 (Foot & Toes — 좌대 y = -2.18 위에 밀착)
+        B.addTube({
+          id: 73,
+          ctrl: [
+            [s * 0.172, -2.025, -0.018],
+            [s * 0.174, -2.125,  0.012],
+            [s * 0.176, -2.152,  0.095],
+            [s * 0.178, -2.162,  0.175]
+          ],
+          radii: [
+            [0.058, 0.066],
+            [0.062, 0.052],
+            [0.072, 0.032],
+            [0.082, 0.022]
+          ],
+          repeatU: 2.2, repeatV: 12.0, steps: 24, radial: 24,
           refVec: new THREE.Vector3(0, 1, 0)
         });
 
-        // 다섯 발가락 (엄지발가락 ~ 새끼발가락)
-        const toes = [
-          {
-            ctrl: [
-              [side * 0.120, -2.124, 0.166],
-              [side * 0.118, -2.126, 0.212],
-              [side * 0.120, -2.128, 0.248]
-            ],
-            rad: [[0.021, 0.017], [0.019, 0.015], [0.015, 0.012]]
-          },
-          {
-            ctrl: [
-              [side * 0.153, -2.126, 0.170],
-              [side * 0.153, -2.128, 0.214],
-              [side * 0.154, -2.130, 0.246]
-            ],
-            rad: [[0.013, 0.012], [0.012, 0.011], [0.009, 0.009]]
-          },
-          {
-            ctrl: [
-              [side * 0.182, -2.127, 0.166],
-              [side * 0.183, -2.129, 0.206],
-              [side * 0.184, -2.131, 0.235]
-            ],
-            rad: [[0.012, 0.011], [0.011, 0.010], [0.008, 0.008]]
-          },
-          {
-            ctrl: [
-              [side * 0.210, -2.128, 0.160],
-              [side * 0.212, -2.130, 0.196],
-              [side * 0.213, -2.132, 0.220]
-            ],
-            rad: [[0.011, 0.010], [0.010, 0.009], [0.008, 0.007]]
-          },
-          {
-            ctrl: [
-              [side * 0.236, -2.129, 0.150],
-              [side * 0.240, -2.131, 0.180],
-              [side * 0.242, -2.133, 0.200]
-            ],
-            rad: [[0.010, 0.009], [0.009, 0.008], [0.007, 0.006]]
-          }
-        ];
-
-        toes.forEach(toe => {
-          addTubularPart({
-            ctrlPoints: toe.ctrl,
-            radii: toe.rad,
-            partName: "toe",
-            stepRow: 0.019,
-            outRows,
-            occGroup,
-            steps: 20,
-            radial: 18,
-            refVec: new THREE.Vector3(0, 1, 0)
-          });
+        [
+          { ctrl: [[s * 0.120, -2.164, 0.168], [s * 0.118, -2.166, 0.214], [s * 0.120, -2.168, 0.250]], rad: [[0.020, 0.016], [0.018, 0.014], [0.014, 0.011]] },
+          { ctrl: [[s * 0.153, -2.166, 0.172], [s * 0.153, -2.168, 0.216], [s * 0.154, -2.170, 0.248]], rad: [[0.013, 0.012], [0.012, 0.011], [0.009, 0.009]] },
+          { ctrl: [[s * 0.182, -2.167, 0.168], [s * 0.183, -2.169, 0.208], [s * 0.184, -2.171, 0.236]], rad: [[0.012, 0.011], [0.011, 0.010], [0.008, 0.008]] },
+          { ctrl: [[s * 0.210, -2.168, 0.162], [s * 0.212, -2.170, 0.198], [s * 0.213, -2.172, 0.222]], rad: [[0.011, 0.010], [0.010, 0.009], [0.008, 0.007]] },
+          { ctrl: [[s * 0.236, -2.169, 0.152], [s * 0.240, -2.171, 0.182], [s * 0.242, -2.173, 0.202]], rad: [[0.010, 0.009], [0.009, 0.008], [0.007, 0.006]] }
+        ].forEach(toe => {
+          B.addTube({ id: 73, ctrl: toe.ctrl, radii: toe.rad, repeatU: 1.4, repeatV: 8.0, steps: 14, radial: 14, refVec: new THREE.Vector3(0, 1, 0) });
         });
       });
 
-      // 5) 하단 원형 조각 받침대 (Pedestal — 발바닥 y=-2.14 바로 아래 접합)
-      const pedCtrl = [
-        { y: -2.26, rx: 0.86, rz: 0.86 },
-        { y: -2.22, rx: 0.88, rz: 0.88 },
-        { y: -2.18, rx: 0.85, rz: 0.85 },
-        { y: -2.145, rx: 0.78, rz: 0.78 }
-      ];
-      const pedRings = pedCtrl.map(c => {
+      // =======================================================
+      // [G] 하단 조각 좌대 (Plinth)
+      // =======================================================
+      const pedRings = [
+        { y: -2.28, rx: 0.84, rz: 0.84 },
+        { y: -2.24, rx: 0.86, rz: 0.86 },
+        { y: -2.20, rx: 0.84, rz: 0.84 },
+        { y: -2.18, rx: 0.76, rz: 0.76 }
+      ].map(c => {
         const ring = [];
         for (let j = 0; j < 72; j++) {
-          const theta = ((j / 72) - 0.25) * Math.PI * 2;
-          ring.push([c.rx * Math.sin(theta), c.y, 0.02 + c.rz * Math.cos(theta)]);
+          const th = ((j / 72) - 0.25) * Math.PI * 2;
+          ring.push([c.rx * Math.sin(th), c.y, 0.02 + c.rz * Math.cos(th)]);
         }
         return ring;
       });
-      addCurvedSurfaceRows({
-        rings: pedRings,
-        partName: "pedestal",
-        stepRow: 0.030,
-        outRows,
-        occGroup
+      B.addClosedLoft({ id: 75, rings: pedRings, repeatU: 10.0, repeatV: 5.0, edgeBase: 0.72 });
+
+      return B.buildGeometry();
+    }
+
+    // ---------------------------------------------------------
+    // 6-D. 비교용 삼엽 매듭 조형 (TORUS KNOT)
+    // ---------------------------------------------------------
+    function buildTorusKnotGeometry() {
+      const B = new SculptureBufferBuilder();
+      const segsU = 360, segsV = 56;
+      const p = 2, q = 3, scale = 0.76, tubeRadius = 0.39;
+
+      const centers = [];
+      for (let i = 0; i <= segsU; i++) {
+        const t = (i / segsU) * Math.PI * 2;
+        const r = Math.cos(q * t) + 2.0;
+        centers.push(new THREE.Vector3(
+          r * Math.cos(p * t) * scale,
+          -Math.sin(q * t) * scale * 1.15,
+          r * Math.sin(p * t) * scale
+        ));
+      }
+
+      const tangents = centers.map((_, i) => {
+        const prev = centers[(i - 1 + segsU) % segsU];
+        const next = centers[(i + 1) % segsU];
+        return new THREE.Vector3().subVectors(next, prev).normalize();
       });
+
+      let normal = new THREE.Vector3(0, 1, 0);
+      normal.sub(tangents[0].clone().multiplyScalar(tangents[0].dot(normal))).normalize();
+
+      const rings = [];
+      for (let i = 0; i <= segsU; i++) {
+        if (i > 0) {
+          const axis = new THREE.Vector3().crossVectors(tangents[i - 1], tangents[i]);
+          if (axis.lengthSq() > 1e-10) {
+            axis.normalize();
+            const ang = Math.acos(Math.max(-1, Math.min(1, tangents[i - 1].dot(tangents[i]))));
+            normal.applyAxisAngle(axis, ang).normalize();
+          }
+        }
+        const binormal = new THREE.Vector3().crossVectors(tangents[i], normal).normalize();
+        const ring = [];
+        for (let j = 0; j < segsV; j++) {
+          const th = (j / segsV) * Math.PI * 2;
+          const pt = centers[i].clone()
+            .addScaledVector(normal, Math.cos(th) * tubeRadius)
+            .addScaledVector(binormal, Math.sin(th) * tubeRadius);
+          ring.push([pt.x, pt.y, pt.z]);
+        }
+        rings.push(ring);
+      }
+
+      B.addClosedLoft({ id: 74, rings, repeatU: 16.0, repeatV: 110.0, edgeBase: 0.85 });
+      return B.buildGeometry();
     }
 
     // ---------------------------------------------------------
-    // 6-G. 가변 폭 자간 패커 & InstancedBufferGeometry 생성기
-    //      - 각 행(Row)을 따라 글자별 실제 너비(uSpan)만큼 전진하며 배치
-    //      - L·I, T·I, M·A 등 모든 글자 쌍이 1:1 비율과 균일 자간 유지
+    // 6-E. 안티엘리어싱 딥-줌 LOD 셰이더 머티리얼
+    //      - 원경(전신 뷰): 매끄러운 스튜디오 점토 조각상 + 근육 간 경계 윤곽선
+    //      - 근경(230x 줌): 근섬유 방향을 따라 흐르는 가변 자간 타이포그래피
     // ---------------------------------------------------------
-    function estimateMaxGlyphCapacity(rows) {
-      let total = 0;
-      const minUSpan = 0.28; // 가장 좁은 문자 기준 여유 버퍼 확보
-      for (let r = 0; r < rows.length; r++) {
-        const row = rows[r];
-        const minAdvance = row.stepRow * (minUSpan / 0.92);
-        total += Math.ceil(row.totalULen / minAdvance) + 4;
-      }
-      return total;
-    }
-
-    function createInstancedQuadGeometry(capacity) {
-      const baseGeom = new THREE.PlaneBufferGeometry(1, 1);
-      const instGeom = new THREE.InstancedBufferGeometry();
-      instGeom.index = baseGeom.index;
-      instGeom.attributes.position = baseGeom.attributes.position;
-      instGeom.attributes.uv = baseGeom.attributes.uv;
-
-      instGeom.setAttribute("iCenter", new THREE.InstancedBufferAttribute(new Float32Array(capacity * 3), 3));
-      instGeom.setAttribute("iAxisU", new THREE.InstancedBufferAttribute(new Float32Array(capacity * 3), 3));
-      instGeom.setAttribute("iAxisV", new THREE.InstancedBufferAttribute(new Float32Array(capacity * 3), 3));
-      instGeom.setAttribute("iNormal", new THREE.InstancedBufferAttribute(new Float32Array(capacity * 3), 3));
-      instGeom.setAttribute("iGlyphData", new THREE.InstancedBufferAttribute(new Float32Array(capacity * 4), 4));
-      instGeom.instanceCount = 0;
-
-      return instGeom;
-    }
-
-    function packProportionalGlyphInstances(geom) {
-      const centerArr = geom.getAttribute("iCenter").array;
-      const axisUArr = geom.getAttribute("iAxisU").array;
-      const axisVArr = geom.getAttribute("iAxisV").array;
-      const normalArr = geom.getAttribute("iNormal").array;
-      const dataArr = geom.getAttribute("iGlyphData").array;
-
-      const vSpan = 0.92;
-      const lift = 0.0045;
-      let instIdx = 0;
-
-      const avgAsciiSpan = ASCII_INFO.reduce((acc, g) => acc + g.uSpan, 0) / ASCII_INFO.length;
-
-      for (let r = 0; r < surfaceRows.length; r++) {
-        const row = surfaceRows[r];
-        const { partName, stepRow, loopCount, pts, nms, crs, uArc, totalULen } = row;
-        const quadHeight = stepRow * 0.95;
-
-        // 1단계: 현재 행에서 배치될 문자 시퀀스 및 가변 너비(advances) 사전 계산
-        const planned = [];
-        let cursorU = 0;
-        let segIdx = 0;
-        let prevReg = null;
-        let seq = flowOffset;
-
-        while (cursorU < totalULen && instIdx + planned.length < maxInstanceCapacity) {
-          while (segIdx < loopCount - 2 && uArc[segIdx + 1] < cursorU) segIdx++;
-          const s0 = segIdx * 3;
-          const px = pts[s0], py = pts[s0 + 1], pz = pts[s0 + 2];
-
-          const regId = resolveAnatomicalRegion(
-            partName,
-            px / MODEL_SCALE,
-            py / MODEL_SCALE,
-            pz / MODEL_SCALE
-          );
-          if (regId !== prevReg) {
-            seq = flowOffset;
-            prevReg = regId;
-          }
-
-          let info;
-          if (glyphMode === "ascii") {
-            // ASCII는 셰이더에서 밝기별로 글자가 바뀌므로 균형 잡힌 기준 폭 사용
-            info = { col: 0, row: 0, uSpan: avgAsciiSpan };
-          } else {
-            const entry = MUSCLE_TERMS[regId] || MUSCLE_TERMS[7];
-            const word = entry[glyphMode];
-            const ch = word[((seq % word.length) + word.length) % word.length];
-            info = ATLAS.charInfo[ch] || ASCII_INFO[0];
-          }
-
-          // 1:1 종횡비 일치 너비 계산: quadWidth = quadHeight * (uSpan / vSpan)
-          const rawAdvance = quadHeight * (info.uSpan / vSpan);
-          if (cursorU + rawAdvance * 0.5 > totalULen) break;
-
-          planned.push({ info, rawAdvance });
-          cursorU += rawAdvance;
-          seq++;
-        }
-
-        if (planned.length === 0) continue;
-
-        // 링 둘레(totalULen)에 딱 맞게 미세 보정 스케일 적용 (이음새 틈/겹침 0%)
-        const fitScale = totalULen / cursorU;
-        let packedU = 0;
-        let curJ = 0;
-
-        for (let k = 0; k < planned.length; k++) {
-          const item = planned[k];
-          const actualWidth = item.rawAdvance * fitScale;
-          const centerU = packedU + actualWidth * 0.5;
-          packedU += actualWidth;
-
-          while (curJ < loopCount - 2 && uArc[curJ + 1] < centerU) curJ++;
-          const segLen = uArc[curJ + 1] - uArc[curJ];
-          const alphaU = segLen > 1e-7 ? (centerU - uArc[curJ]) / segLen : 0;
-
-          const j0 = curJ * 3;
-          const j1 = (curJ + 1) * 3;
-
-          const px = pts[j0] + (pts[j1] - pts[j0]) * alphaU;
-          const py = pts[j0 + 1] + (pts[j1 + 1] - pts[j0 + 1]) * alphaU;
-          const pz = pts[j0 + 2] + (pts[j1 + 2] - pts[j0 + 2]) * alphaU;
-
-          let nx = nms[j0] + (nms[j1] - nms[j0]) * alphaU;
-          let ny = nms[j0 + 1] + (nms[j1 + 1] - nms[j0 + 1]) * alphaU;
-          let nz = nms[j0 + 2] + (nms[j1 + 2] - nms[j0 + 2]) * alphaU;
-          const nl = Math.hypot(nx, ny, nz) || 1;
-          nx /= nl; ny /= nl; nz /= nl;
-
-          // 접선 U 벡터 계산
-          let ux = pts[j1] - pts[j0];
-          let uy = pts[j1 + 1] - pts[j0 + 1];
-          let uz = pts[j1 + 2] - pts[j0 + 2];
-          const uDotN = ux * nx + uy * ny + uz * nz;
-          ux -= nx * uDotN;
-          uy -= ny * uDotN;
-          uz -= nz * uDotN;
-          const ul = Math.hypot(ux, uy, uz);
-          if (ul < 1e-7) continue;
-          ux /= ul; uy /= ul; uz /= ul;
-
-          // 수직 접선 V = N x U
-          const vx = ny * uz - nz * uy;
-          const vy = nz * ux - nx * uz;
-          const vz = nx * uy - ny * ux;
-
-          const crease = crs[curJ] + (crs[curJ + 1] - crs[curJ]) * alphaU;
-
-          const b3 = instIdx * 3;
-          centerArr[b3]     = px + nx * lift;
-          centerArr[b3 + 1] = py + ny * lift;
-          centerArr[b3 + 2] = pz + nz * lift;
-
-          axisUArr[b3]      = ux * actualWidth;
-          axisUArr[b3 + 1]  = uy * actualWidth;
-          axisUArr[b3 + 2]  = uz * actualWidth;
-
-          axisVArr[b3]      = vx * quadHeight;
-          axisVArr[b3 + 1]  = vy * quadHeight;
-          axisVArr[b3 + 2]  = vz * quadHeight;
-
-          normalArr[b3]     = nx;
-          normalArr[b3 + 1] = ny;
-          normalArr[b3 + 2] = nz;
-
-          const b4 = instIdx * 4;
-          dataArr[b4]       = item.info.col;
-          dataArr[b4 + 1]   = item.info.row;
-          dataArr[b4 + 2]   = item.info.uSpan;
-          dataArr[b4 + 3]   = crease;
-
-          instIdx++;
-        }
-      }
-
-      geom.instanceCount = instIdx;
-      geom.getAttribute("iCenter").needsUpdate = true;
-      geom.getAttribute("iAxisU").needsUpdate = true;
-      geom.getAttribute("iAxisV").needsUpdate = true;
-      geom.getAttribute("iNormal").needsUpdate = true;
-      geom.getAttribute("iGlyphData").needsUpdate = true;
-    }
-
-    function createInstancedQuadMaterial() {
-      const asciiCols = ASCII_INFO.map(g => g.col);
-      const asciiRows = ASCII_INFO.map(g => g.row);
-      const asciiSpans = ASCII_INFO.map(g => g.uSpan);
-
+    function createEcorcheShaderMaterial() {
       return new THREE.ShaderMaterial({
+        extensions: {
+          derivatives: true
+        },
         uniforms: {
-          uAtlas: { value: ATLAS.texture },
-          uAtlasCols: { value: ATLAS.cols },
-          uAtlasRows: { value: ATLAS.rows },
+          uAtlas: { value: TYPO.atlasTex },
+          uAsciiStrip: { value: TYPO.asciiStripTex },
+          uWordStrip: { value: TYPO.strips.en },
+          uAtlasCols: { value: 14.0 },
+          uAtlasRows: { value: Math.ceil(Object.keys(MUSCLE_CATALOG).length > 0 ? 12 : 12) },
           uAsciiMode: { value: 1.0 },
-          uAsciiCols: { value: asciiCols },
-          uAsciiRows: { value: asciiRows },
-          uAsciiSpans: { value: asciiSpans }
+          uMaxMuscles: { value: MAX_MUSCLE_ID },
+          uFlowPhase: { value: 0.0 },
+          uMicroDensity: { value: 7.5 }
         },
         vertexShader: `
-          attribute vec3 iCenter;
-          attribute vec3 iAxisU;
-          attribute vec3 iAxisV;
-          attribute vec3 iNormal;
-          attribute vec4 iGlyphData;
+          attribute float aMuscleId;
+          attribute float aEdgeFactor;
 
-          uniform float uAtlasCols;
-          uniform float uAtlasRows;
-          uniform float uAsciiMode;
-          uniform float uAsciiCols[9];
-          uniform float uAsciiRows[9];
-          uniform float uAsciiSpans[9];
-
+          varying vec3 vNormalView;
+          varying vec3 vViewPos;
           varying vec2 vUv;
-          varying float vLum;
-          varying float vViewDepth;
+          varying float vMuscleId;
+          varying float vEdgeFactor;
 
           void main() {
-            vec3 n = normalize(normalMatrix * iNormal);
-
-            // 입체 조각 명암을 드러내는 3점 스튜디오 조명
-            vec3 keyDir = normalize(vec3(0.45, 0.65, 0.82));
-            vec3 fillDir = normalize(vec3(-0.68, 0.18, 0.65));
-
-            float nDotL = dot(n, keyDir);
-            float halfLambert = nDotL * 0.5 + 0.5;
-            float keyLight = pow(clamp(halfLambert, 0.0, 1.0), 1.25) * 0.85;
-            float fillLight = max(dot(n, fillDir), 0.0) * 0.30;
-            float rimLight = pow(1.0 - clamp(max(n.z, 0.0), 0.0, 1.0), 2.1) * 0.34;
-
-            float rawLum = (0.14 + keyLight + fillLight + rimLight) * clamp(iGlyphData.w, 0.55, 1.0);
-            float lum = clamp(rawLum, 0.12, 1.0);
-            vLum = lum;
-
-            float col = iGlyphData.x;
-            float row = iGlyphData.y;
-            float uSpan = iGlyphData.z;
-
-            if (uAsciiMode > 0.5) {
-              int idx = int(clamp(floor(lum * 8.99), 0.0, 8.0));
-              col = uAsciiCols[idx];
-              row = uAsciiRows[idx];
-              uSpan = uAsciiSpans[idx];
-            }
-
-            // 글자의 실제 너비 비율(uSpan)만큼만 셀 중앙에서 잘라내어 1:1 비율과 균일 자간 유지
-            float uLocal = 0.5 + position.x * uSpan;
-            float vLocal = 0.5 + position.y * 0.92;
-
-            vUv = vec2(
-              (col + uLocal) / uAtlasCols,
-              1.0 - (row + 1.0 - vLocal) / uAtlasRows
-            );
-
-            vec3 worldPos = iCenter + iAxisU * position.x + iAxisV * position.y;
-            vec4 mvPosition = modelViewMatrix * vec4(worldPos, 1.0);
-            vViewDepth = -mvPosition.z;
-            gl_Position = projectionMatrix * mvPosition;
+            vNormalView = normalize(normalMatrix * normal);
+            vec4 mvPos = modelViewMatrix * vec4(position, 1.0);
+            vViewPos = -mvPos.xyz;
+            vUv = uv;
+            vMuscleId = aMuscleId;
+            vEdgeFactor = aEdgeFactor;
+            gl_Position = projectionMatrix * mvPos;
           }
         `,
         fragmentShader: `
           uniform sampler2D uAtlas;
+          uniform sampler2D uAsciiStrip;
+          uniform sampler2D uWordStrip;
+          uniform float uAsciiMode;
+          uniform float uMaxMuscles;
+          uniform float uFlowPhase;
+          uniform float uMicroDensity;
+
+          varying vec3 vNormalView;
+          varying vec3 vViewPos;
           varying vec2 vUv;
-          varying float vLum;
-          varying float vViewDepth;
+          varying float vMuscleId;
+          varying float vEdgeFactor;
+
+          // 고해상도 점토 미세 입자 노이즈 (원경 조각상 질감용)
+          float hash12(vec2 p) {
+            vec3 p3  = fract(vec3(p.xyx) * 0.1031);
+            p3 += dot(p3, p3.yzx + 33.33);
+            return fract((p3.x + p3.y) * p3.z);
+          }
 
           void main() {
-            vec4 tex = texture2D(uAtlas, vUv);
-            if (tex.a < 0.05) discard;
+            vec3 n = normalize(vNormalView);
+            if (!gl_FrontFacing) n = -n;
+            vec3 viewDir = normalize(vViewPos);
 
-            // 원경(전신 뷰)에서는 매끄러운 점묘화 조각상으로, 근경(딥 줌)에서는 선명한 글자로 전환
-            float farFactor = clamp((vViewDepth - 9.0) / 28.0, 0.0, 1.0);
-            float pointillistAlpha = pow(tex.a, mix(1.0, 0.42, farFactor));
-            float finalAlpha = clamp(pointillistAlpha * mix(1.0, 1.32, farFactor), 0.0, 1.0);
-            if (finalAlpha < 0.06) discard;
+            // 레퍼런스(image_70dd54)와 동일한 3점 스튜디오 조명
+            // 좌측 상단 차가운 키 라이트 + 우측 가장자리 은은한 웜 림 라이트
+            vec3 keyDir  = normalize(vec3(-0.58, 0.52, 0.72));
+            vec3 fillDir = normalize(vec3( 0.55, 0.15, 0.65));
+            vec3 rimDir  = normalize(vec3( 0.85, 0.25, -0.45));
 
-            float tone = mix(0.18, 1.0, pow(vLum, 0.90));
-            gl_FragColor = vec4(vec3(tone), finalAlpha);
+            float halfLambert = dot(n, keyDir) * 0.5 + 0.5;
+            float keyLight  = pow(clamp(halfLambert, 0.0, 1.0), 1.35) * 0.82;
+            float fillLight = max(dot(n, fillDir), 0.0) * 0.24;
+            float rimFactor = pow(1.0 - clamp(dot(n, viewDir), 0.0, 1.0), 2.4);
+            float rimLight  = rimFactor * max(dot(n, rimDir) * 0.5 + 0.5, 0.0) * 0.36;
+
+            // 근육 경계 윤곽선 음영 (근육과 근육 사이를 명확히 분리)
+            float grooveAO = mix(0.24, 1.0, smoothstep(0.04, 0.46, vEdgeFactor));
+            // 근육 경계선 강조 얇은 어두운 림
+            float borderLine = smoothstep(0.0, 0.12, vEdgeFactor);
+
+            float baseLum = (0.10 + keyLight + fillLight + rimLight) * grooveAO * mix(0.45, 1.0, borderLine);
+            baseLum = clamp(baseLum, 0.06, 0.98);
+
+            // ---------------------------------------------------------
+            // 초고밀도 마이크로 타이포그래피 그리드 (v = 근섬유 방향, u = 행 반복)
+            // ---------------------------------------------------------
+            float rowCoord = vUv.y * uMicroDensity;
+            float rowIndex = floor(rowCoord);
+            float rowFrac  = fract(rowCoord);
+
+            // 행마다 살짝 어긋난 벽돌식 위상(stagger) + FLOW 애니메이션 오프셋
+            float rowStagger = fract(rowIndex * 0.371) + uFlowPhase;
+            float colCoord = vUv.x * (uMicroDensity * 0.42) + rowStagger;
+
+            // 현재 픽셀에서 1행(rowCoord)이 화면상 몇 픽셀인지 계산 (안티엘리어싱 LOD 판정)
+            vec2 dRow = vec2(dFdx(rowCoord), dFdy(rowCoord));
+            float pixelsPerRow = 1.0 / max(length(dRow), 1e-5);
+
+            // 원경(pixelsPerRow < 5.0)에서는 0.0 (순수 매끄러운 점토 조각상),
+            // 딥 줌(pixelsPerRow > 11.5)에서는 1.0 (선명한 타이포그래피)
+            float textReveal = smoothstep(5.0, 11.5, pixelsPerRow);
+
+            // 원경 조각상 색조 (좌측 쿨톤, 우측 미세 웜톤)
+            vec3 clayCool = vec3(0.84, 0.86, 0.89);
+            vec3 clayWarm = vec3(0.95, 0.88, 0.80);
+            float warmMask = clamp(rimFactor * max(n.x, 0.0) * 1.4, 0.0, 1.0);
+            float microGrain = (hash12(floor(vUv * 950.0)) - 0.5) * 0.045;
+            vec3 clayColor = mix(clayCool, clayWarm, warmMask) * clamp(baseLum + microGrain, 0.05, 1.0);
+
+            if (textReveal <= 0.002) {
+              gl_FragColor = vec4(clayColor, 1.0);
+              return;
+            }
+
+            // 근경(딥 줌)에서 글자 샘플링
+            vec2 atlasUv;
+            if (uAsciiMode > 0.5) {
+              float lumIdx = clamp(floor(baseLum * 9.99), 0.0, 9.0);
+              vec4 aInfo = texture2D(uAsciiStrip, vec2((lumIdx + 0.5) / 10.0, 0.5));
+              float uSpan = aInfo.z;
+              float cellFracX = fract(colCoord);
+              float uLocal = 0.5 + (cellFracX - 0.5) * uSpan;
+              float vLocal = 0.5 + (rowFrac - 0.5) * 0.88;
+              atlasUv = vec2(
+                aInfo.x + (uLocal - 0.5) / 14.0,
+                1.0 - (1.0 - aInfo.y + (0.5 - vLocal) / 12.0)
+              );
+            } else {
+              float mRow = (floor(vMuscleId + 0.5) + 0.5) / uMaxMuscles;
+              vec4 wInfo = texture2D(uWordStrip, vec2(fract(colCoord), mRow));
+              float uLocal = wInfo.z;
+              float uSpan  = wInfo.w;
+              float vLocal = 0.5 + (rowFrac - 0.5) * 0.88;
+              atlasUv = vec2(
+                wInfo.x + ((uLocal - 0.5) * uSpan) / 14.0,
+                1.0 - (1.0 - wInfo.y + (0.5 - vLocal) / 12.0)
+              );
+            }
+
+            float glyphAlpha = texture2D(uAtlas, atlasUv).a;
+            // 화면 픽셀 크기에 맞춘 부드러운 안티엘리어싱 엣지
+            float aaWidth = clamp(1.2 / max(pixelsPerRow, 1.0), 0.04, 0.22);
+            float crispGlyph = smoothstep(0.42 - aaWidth, 0.42 + aaWidth, glyphAlpha);
+
+            vec3 textInk = vec3(mix(0.28, 1.0, pow(baseLum, 0.72))) * crispGlyph;
+            // 근육 경계선은 딥 줌 상태에서도 뚜렷한 어두운 선으로 유지
+            textInk *= mix(0.18, 1.0, borderLine);
+
+            vec3 finalColor = mix(clayColor, textInk, textReveal);
+            gl_FragColor = vec4(finalColor, 1.0);
           }
         `,
-        transparent: true,
-        depthWrite: false,
-        depthTest: true,
         side: THREE.FrontSide
       });
     }
 
+    // 아틀라스 행 수를 실제 생성된 아틀라스 비율과 정확히 동기화
+    function syncShaderAtlasUniforms(mat) {
+      const cols = 14;
+      const charSet = new Set(ASCII_CHARS);
+      Object.values(MUSCLE_CATALOG).forEach(entry => {
+        for (const ch of entry.ko) charSet.add(ch);
+        for (const ch of entry.hj) charSet.add(ch);
+        for (const ch of entry.en) charSet.add(ch);
+      });
+      const rows = Math.ceil(charSet.size / cols);
+      mat.uniforms.uAtlasCols.value = cols;
+      mat.uniforms.uAtlasRows.value = rows;
+
+      mat.fragmentShader = mat.fragmentShader
+        .replace(/\/ 14\.0/g, `/ ${cols.toFixed(1)}`)
+        .replace(/\/ 12\.0/g, `/ ${rows.toFixed(1)}`);
+      mat.needsUpdate = true;
+    }
+
     // ---------------------------------------------------------
-    // 6-H. Three.js 뷰포트 초기화, 수직 회전, 44배 딥 줌, 정밀 호버
+    // 6-F. Three.js 뷰포트 초기화, 230배 커서 중심 딥 줌, 정밀 근육 호버
     // ---------------------------------------------------------
+    let cachedGeometries = { ecorche: null, knot: null };
+
     function initAnatomyEngine() {
       const stage = document.getElementById("anatomy-stage");
       scene = new THREE.Scene();
       scene.background = new THREE.Color(0x000000);
 
-      camera = new THREE.PerspectiveCamera(34, stage.clientWidth / stage.clientHeight, 0.05, 250);
+      camera = new THREE.PerspectiveCamera(34, stage.clientWidth / stage.clientHeight, 0.08, 600);
       camera.position.set(0, DEFAULT_PAN_Y, DEFAULT_CAM_Z);
 
-      renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
       renderer.setSize(stage.clientWidth, stage.clientHeight);
-      ATLAS.texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+      TYPO.atlasTex.anisotropy = renderer.capabilities.getMaxAnisotropy();
       stage.appendChild(renderer.domElement);
 
       modelPivot = new THREE.Group();
       modelPivot.rotation.order = "YXZ";
       scene.add(modelPivot);
 
-      change3DModel("knot");
+      change3DModel("ecorche");
 
       stage.addEventListener("mousedown", e => {
         if (e.button === 2 || e.shiftKey) {
@@ -2411,12 +2748,12 @@
         const dy = e.clientY - prevMouse.y;
 
         if (dragMode === "rotate") {
-          modelPivot.rotation.y += dx * 0.009;
-          modelPivot.rotation.x = Math.max(-0.75, Math.min(0.75, modelPivot.rotation.x + dy * 0.006));
+          modelPivot.rotation.y += dx * 0.0085;
+          modelPivot.rotation.x = Math.max(-0.85, Math.min(0.85, modelPivot.rotation.x + dy * 0.006));
         } else if (dragMode === "pan") {
           const panSpeed = targetCamZ * 0.0014;
-          targetPan.x = Math.max(-10.5, Math.min(10.5, targetPan.x - dx * panSpeed));
-          targetPan.y = Math.max(-13.5, Math.min(13.5, targetPan.y + dy * panSpeed));
+          targetPan.x = Math.max(-34.0, Math.min(34.0, targetPan.x - dx * panSpeed));
+          targetPan.y = Math.max(-44.0, Math.min(44.0, targetPan.y + dy * panSpeed));
         }
         prevMouse = { x: e.clientX, y: e.clientY };
       });
@@ -2428,14 +2765,15 @@
         const ndcY = -((e.clientY - rect.top) / rect.height) * 2 + 1;
 
         const oldZ = targetCamZ;
-        const zoomFactor = 1 + e.deltaY * 0.0012;
-        const newZ = Math.min(58.0, Math.max(1.05, oldZ * zoomFactor));
+        const zoomFactor = 1 + e.deltaY * 0.00125;
+        // 165.0(원경) ~ 0.65(초근접 근육 내부 글자 확인) = 250배 줌 범위
+        const newZ = Math.min(165.0, Math.max(0.65, oldZ * zoomFactor));
         const ratio = newZ / oldZ;
 
         let focusDepth = oldZ;
-        if (occlusionGroup) {
+        if (activeSculptureMesh) {
           raycaster.setFromCamera(new THREE.Vector2(ndcX, ndcY), camera);
-          const hits = raycaster.intersectObjects(occlusionGroup.children, false);
+          const hits = raycaster.intersectObject(activeSculptureMesh, false);
           if (hits.length > 0) {
             focusDepth = hits[0].distance;
           }
@@ -2449,12 +2787,12 @@
           targetPan.x = worldX - ndcX * camera.aspect * tanHalfFov * (focusDepth * ratio);
           targetPan.y = worldY - ndcY * tanHalfFov * (focusDepth * ratio);
         } else {
-          targetPan.x += (0 - targetPan.x) * 0.20;
-          targetPan.y += (DEFAULT_PAN_Y - targetPan.y) * 0.20;
+          targetPan.x += (0 - targetPan.x) * 0.22;
+          targetPan.y += (DEFAULT_PAN_Y - targetPan.y) * 0.22;
         }
 
-        targetPan.x = Math.max(-10.5, Math.min(10.5, targetPan.x));
-        targetPan.y = Math.max(-13.5, Math.min(13.5, targetPan.y));
+        targetPan.x = Math.max(-34.0, Math.min(34.0, targetPan.x));
+        targetPan.y = Math.max(-44.0, Math.min(44.0, targetPan.y));
         targetCamZ = newZ;
       }, { passive: false });
 
@@ -2473,77 +2811,41 @@
       renderer.setSize(w, h);
     }
 
-    function disposeGroupResources(group) {
-      if (!group) return;
-      group.traverse(obj => {
-        if (obj.geometry) obj.geometry.dispose();
-        if (obj.material) {
-          if (Array.isArray(obj.material)) obj.material.forEach(m => m.dispose());
-          else obj.material.dispose();
-        }
-      });
-    }
-
     function change3DModel(type) {
       currentModelType = type;
-      document.getElementById("model-knot").classList.toggle("active", type === "knot");
       document.getElementById("model-ecorche").classList.toggle("active", type === "ecorche");
+      document.getElementById("model-knot").classList.toggle("active", type === "knot");
 
-      if (occlusionGroup) {
-        modelPivot.remove(occlusionGroup);
-        disposeGroupResources(occlusionGroup);
-        occlusionGroup = null;
-      }
-      if (glyphInstancedMesh) {
-        modelPivot.remove(glyphInstancedMesh);
-        glyphInstancedMesh.geometry.dispose();
-        glyphInstancedMesh.material.dispose();
-        glyphInstancedMesh = null;
+      if (activeSculptureMesh) {
+        modelPivot.remove(activeSculptureMesh);
+        activeSculptureMesh.material.dispose();
+        activeSculptureMesh = null;
       }
 
       modelPivot.rotation.set(0, 0, 0);
       targetCamZ = DEFAULT_CAM_Z;
       targetPan.set(0, DEFAULT_PAN_Y);
-      flowOffset = 0;
 
-      occlusionGroup = new THREE.Group();
-      surfaceRows = [];
-
-      if (type === "knot") {
-        buildTorusKnotData(surfaceRows, occlusionGroup);
-      } else {
-        buildCurvedEcorcheData(surfaceRows, occlusionGroup);
+      if (!cachedGeometries[type]) {
+        cachedGeometries[type] = type === "ecorche"
+          ? buildFullAnatomicalEcorcheGeometry()
+          : buildTorusKnotGeometry();
       }
 
-      const occlusionMat = new THREE.MeshBasicMaterial({
-        color: 0x000000,
-        side: THREE.DoubleSide,
-        polygonOffset: true,
-        polygonOffsetFactor: 2,
-        polygonOffsetUnits: 2
-      });
-      occlusionGroup.traverse(obj => {
-        if (obj.isMesh) {
-          obj.material = occlusionMat;
-          obj.renderOrder = 1;
-        }
-      });
-      modelPivot.add(occlusionGroup);
-
-      maxInstanceCapacity = estimateMaxGlyphCapacity(surfaceRows);
-      const instGeom = createInstancedQuadGeometry(maxInstanceCapacity);
-      packProportionalGlyphInstances(instGeom);
-
-      const mat = createInstancedQuadMaterial();
+      const mat = createEcorcheShaderMaterial();
+      syncShaderAtlasUniforms(mat);
       mat.uniforms.uAsciiMode.value = glyphMode === "ascii" ? 1.0 : 0.0;
+      mat.uniforms.uMicroDensity.value = type === "ecorche" ? 8.5 : 4.2;
+      if (glyphMode !== "ascii") {
+        mat.uniforms.uWordStrip.value = TYPO.strips[glyphMode];
+      }
 
-      glyphInstancedMesh = new THREE.Mesh(instGeom, mat);
-      glyphInstancedMesh.frustumCulled = false;
-      glyphInstancedMesh.renderOrder = 2;
-      modelPivot.add(glyphInstancedMesh);
+      activeSculptureMesh = new THREE.Mesh(cachedGeometries[type], mat);
+      modelPivot.add(activeSculptureMesh);
 
-      document.getElementById("hud-right").innerHTML =
-        `TARGET : <strong>${type === "knot" ? "TORUS KNOT" : "ÉCORCHÉ"}</strong>`;
+      document.getElementById("hud-right").innerHTML = type === "ecorche"
+        ? `MUSCLE : <strong>HOVER OVER ANY MUSCLE</strong>`
+        : `TARGET : <strong>TORUS KNOT</strong>`;
     }
 
     function setGlyphMode(mode) {
@@ -2552,9 +2854,14 @@
         document.getElementById("mode-" + m).classList.toggle("active", m === mode);
       });
 
-      if (glyphInstancedMesh) {
-        packProportionalGlyphInstances(glyphInstancedMesh.geometry);
-        glyphInstancedMesh.material.uniforms.uAsciiMode.value = mode === "ascii" ? 1.0 : 0.0;
+      if (activeSculptureMesh) {
+        const mat = activeSculptureMesh.material;
+        if (mode === "ascii") {
+          mat.uniforms.uAsciiMode.value = 1.0;
+        } else {
+          mat.uniforms.uAsciiMode.value = 0.0;
+          mat.uniforms.uWordStrip.value = TYPO.strips[mode];
+        }
       }
     }
 
@@ -2578,8 +2885,7 @@
       }
     }
 
-    let lastStepTime = 0;
-    function animateAnatomyScene(now) {
+    function animateAnatomyScene() {
       requestAnimationFrame(animateAnatomyScene);
       if (!document.getElementById("sec-anatomy").classList.contains("active")) return;
 
@@ -2588,34 +2894,29 @@
       camera.position.y += (targetPan.y - camera.position.y) * 0.16;
 
       if (autoRotate && dragMode === "none" && modelPivot) {
-        modelPivot.rotation.y += 0.007;
+        modelPivot.rotation.y += 0.0065;
       }
 
-      if (flowEnabled && glyphMode !== "ascii" && glyphInstancedMesh && now - lastStepTime > 280) {
-        lastStepTime = now;
-        flowOffset += 1;
-        packProportionalGlyphInstances(glyphInstancedMesh.geometry);
+      if (flowEnabled && activeSculptureMesh) {
+        flowPhase = (flowPhase + 0.0022) % 1.0;
+        activeSculptureMesh.material.uniforms.uFlowPhase.value = flowPhase;
       }
 
-      if (occlusionGroup && pointerNDC.x > -2) {
+      if (activeSculptureMesh && pointerNDC.x > -2) {
         modelPivot.updateMatrixWorld(true);
         raycaster.setFromCamera(pointerNDC, camera);
-        const hits = raycaster.intersectObjects(occlusionGroup.children, false);
+        const hits = raycaster.intersectObject(activeSculptureMesh, false);
         const hudRight = document.getElementById("hud-right");
 
-        if (hits.length > 0 && currentModelType === "ecorche") {
-          const hitObj = hits[0].object;
-          const localPt = modelPivot.worldToLocal(hits[0].point.clone());
-          const rId = resolveAnatomicalRegion(
-            hitObj.userData.partName,
-            localPt.x / MODEL_SCALE,
-            localPt.y / MODEL_SCALE,
-            localPt.z / MODEL_SCALE
-          );
-          const m = MUSCLE_TERMS[rId] || MUSCLE_TERMS[7];
-          hudRight.innerHTML = `MUSCLE : <strong>${m.label}</strong>`;
+        if (hits.length > 0 && hits[0].face) {
+          const idAttr = activeSculptureMesh.geometry.getAttribute("aMuscleId");
+          const mId = Math.round(idAttr.getX(hits[0].face.a));
+          const info = MUSCLE_CATALOG[mId] || MUSCLE_CATALOG[0];
+          hudRight.innerHTML = `MUSCLE : <strong>${info.label}</strong>`;
         } else {
-          hudRight.innerHTML = `TARGET : <strong>${currentModelType === "knot" ? "TORUS KNOT" : "ÉCORCHÉ"}</strong>`;
+          hudRight.innerHTML = currentModelType === "ecorche"
+            ? `MUSCLE : <strong>HOVER OVER ANY MUSCLE</strong>`
+            : `TARGET : <strong>TORUS KNOT</strong>`;
         }
       }
 
