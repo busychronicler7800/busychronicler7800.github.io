@@ -10,8 +10,8 @@
     :root {
       --bg: #000000;
       --fg: #ffffff;
-      --muted: #7a7a7a;
-      --line: #2a2a2a;
+      --muted: #777777;
+      --line: #262626;
       --panel: #080808;
     }
 
@@ -103,9 +103,9 @@
     /* MAIN CONTAINER */
     main {
       width: 100%;
-      max-width: 1240px;
+      max-width: 1200px;
       margin: 0 auto;
-      padding: 28px 32px 80px;
+      padding: 32px 32px 80px;
       flex: 1;
     }
 
@@ -198,9 +198,9 @@
     }
 
     .btn-outline {
-      background: #050505;
-      color: #d0d0d0;
-      border: 1px solid #383838;
+      background: #000000;
+      color: var(--fg);
+      border: 1px solid var(--line);
       font-family: inherit;
       font-size: 0.72rem;
       letter-spacing: 0.08em;
@@ -210,15 +210,11 @@
       transition: background 0.15s, color 0.15s, border-color 0.15s;
     }
 
-    .btn-outline:hover {
-      border-color: #ffffff;
-      color: #ffffff;
-    }
-
+    .btn-outline:hover,
     .btn-outline.active {
-      border-color: #ffffff;
-      background: #ffffff;
-      color: #000000;
+      border-color: var(--fg);
+      background: var(--fg);
+      color: var(--bg);
       font-weight: 700;
     }
 
@@ -240,7 +236,7 @@
       border-color: #ffffff;
     }
 
-    /* 01. 3D SCULPTURE VIEWER */
+    /* 01. 3D SCULPTURE CANVAS */
     .anatomy-toolbar {
       display: flex;
       justify-content: space-between;
@@ -265,7 +261,7 @@
 
     #anatomy-stage {
       width: 100%;
-      height: 820px;
+      height: 720px;
       border: 1px solid var(--line);
       background: #000000;
       position: relative;
@@ -293,13 +289,13 @@
       justify-content: space-between;
       flex-wrap: wrap;
       gap: 8px;
-      font-size: 0.72rem;
+      font-size: 0.71rem;
       letter-spacing: 0.08em;
       color: var(--muted);
       pointer-events: none;
-      background: rgba(0, 0, 0, 0.88);
-      padding: 6px 12px;
-      border: 1px solid #1e1e1e;
+      background: rgba(0, 0, 0, 0.82);
+      padding: 5px 10px;
+      border: 1px solid #181818;
     }
 
     .anatomy-hud strong {
@@ -442,7 +438,7 @@
     @media (max-width: 768px) {
       header, main, footer { padding-left: 18px; padding-right: 18px; }
       .form-row, .form-row-3, .bio-grid { grid-template-columns: 1fr; }
-      #anatomy-stage { height: 580px; }
+      #anatomy-stage { height: 540px; }
     }
   </style>
 </head>
@@ -460,7 +456,7 @@
   </header>
 
   <main>
-    <!-- 01. 3D SCULPTURE VIEWER -->
+    <!-- 01. 3D TORUS KNOT ASCII VIEWER -->
     <section id="sec-anatomy" class="section active">
       <div class="box">
         <div class="anatomy-toolbar">
@@ -490,8 +486,8 @@
 
         <div id="anatomy-stage" oncontextmenu="return false;">
           <div class="anatomy-hud">
-            <span id="hud-left">LEFT DRAG : ROTATE · RIGHT/SHIFT DRAG : PAN · WHEEL : ZOOM IN / OUT</span>
-            <span id="hud-right">TARGET : <strong>TORUS KNOT (P=2, Q=3)</strong></span>
+            <span id="hud-left">LEFT DRAG : ROTATE · RIGHT/SHIFT DRAG : PAN · WHEEL : ZOOM TO CURSOR</span>
+            <span id="hud-right">TARGET : <strong>TORUS KNOT</strong></span>
           </div>
         </div>
       </div>
@@ -537,7 +533,7 @@
             PHYSICAL THERAPY UNDERGRADUATE · CREATIVE CODER · DIGITAL ARCHIVIST
           </p>
           <p style="font-size:0.84rem; color:#cccccc;">
-            인체 해부학 구조와 3D 웹 그래픽스, 미니멀리즘 타이포그래피를 결합한 인터랙티브 아트워크와 개인 아카이브를 구축합니다.
+            3D 웹 그래픽스와 미니멀리즘 타이포그래피를 결합한 인터랙티브 아트워크와 개인 아카이브를 구축합니다.
           </p>
         </div>
 
@@ -550,7 +546,7 @@
             </li>
             <li>
               <span class="bio-key">3D & WEB</span>
-              <span>Blender (Écorché Sculpting), Three.js, WebGL Spatial Typography</span>
+              <span>Blender, Three.js, WebGL Spatial Typography</span>
             </li>
             <li>
               <span class="bio-key">SYSTEMS</span>
@@ -956,207 +952,464 @@
     }
 
     // =========================================================
-    // 6. CLASSIC SMOOTH TORUS KNOT ASCII SCULPTURE ENGINE
+    // 6. TORUS KNOT SURFACE-GRID ASCII SCULPTURE ENGINE
     // =========================================================
+    const ASCII_CHARS = [".", ":", "-", "=", "+", "*", "#", "%", "@"];
+
     let autoRotate = true;
     let flowEnabled = false;
-    let flowTime = 0;
+    let flowPhase = 0;
 
-    let scene, camera, renderer, knotPivot, knotMesh;
-    let shadedMaterial;
-    let renderTarget, postScene, postCamera, asciiPassMaterial;
+    let scene, camera, renderer, modelPivot;
+    let glyphPointsMesh = null;
+    let occlusionGroup = null;
+    let raycaster = new THREE.Raycaster();
 
     let dragMode = "none";
     let prevMouse = { x: 0, y: 0 };
-    const DEFAULT_CAM_Z = 48.0;
-    let targetCamZ = DEFAULT_CAM_Z;
-    let targetPan = new THREE.Vector2(0, 0);
+    let targetCamZ = 6.9;
+    let targetPan = new THREE.Vector2(0, 0.02);
 
     // ---------------------------------------------------------
-    // 6-A. 고해상도 9단계 고정폭 ASCII 글리프 아틀라스
-    //      (모든 조형 실루엣이 배경과 명확히 구분되도록 가시 문자만 배치)
+    // 6-A. 고정폭 ASCII 문자 아틀라스 생성
     // ---------------------------------------------------------
-    function createAsciiGlyphTexture() {
-      const chars = [".", ":", "-", "=", "+", "*", "#", "%", "@"];
-      const cellW = 128;
-      const cellH = 128;
+    function buildAsciiAtlas() {
+      const cols = 9;
+      const rows = 1;
+      const cellSize = 128;
       const canvas = document.createElement("canvas");
-      canvas.width = cellW * chars.length;
-      canvas.height = cellH;
+      canvas.width = cols * cellSize;
+      canvas.height = rows * cellSize;
 
       const ctx = canvas.getContext("2d");
-      ctx.fillStyle = "#000000";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.fillStyle = "#ffffff";
-      ctx.font = '700 94px "JetBrains Mono", "SFMono-Regular", Menlo, Consolas, "Courier New", monospace';
+      ctx.font = `700 ${Math.floor(cellSize * 0.78)}px "JetBrains Mono", "SFMono-Regular", Menlo, Consolas, "Courier New", monospace`;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
 
-      chars.forEach((ch, idx) => {
-        ctx.fillText(ch, idx * cellW + cellW * 0.5, cellH * 0.53);
+      ASCII_CHARS.forEach((ch, idx) => {
+        ctx.fillText(ch, idx * cellSize + cellSize / 2, cellSize / 2 + 2);
       });
 
-      const tex = new THREE.CanvasTexture(canvas);
-      tex.minFilter = THREE.LinearFilter;
-      tex.magFilter = THREE.LinearFilter;
-      tex.generateMipmaps = false;
-      tex.needsUpdate = true;
-      return tex;
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.generateMipmaps = true;
+      texture.minFilter = THREE.LinearMipmapLinearFilter;
+      texture.magFilter = THREE.LinearFilter;
+      texture.needsUpdate = true;
+
+      return { texture, cols, rows };
+    }
+
+    const ATLAS = buildAsciiAtlas();
+
+    // ---------------------------------------------------------
+    // 6-B. 곡면 패치(Surface Patch) 및 3D 호 길이 균일 샘플링
+    // ---------------------------------------------------------
+    function addCurvedPatch(
+      rings,
+      closedLoop,
+      stepRow,
+      stepChar,
+      outPoints,
+      occlusionGroup,
+      insetDepth = 0.020
+    ) {
+      const M = rings.length;
+      const N = rings[0].length;
+      if (M < 2 || N < 3) return;
+
+      const ringCenters = rings.map(ring => {
+        let cx = 0, cy = 0, cz = 0;
+        for (let j = 0; j < N; j++) {
+          cx += ring[j][0];
+          cy += ring[j][1];
+          cz += ring[j][2];
+        }
+        return new THREE.Vector3(cx / N, cy / N, cz / N);
+      });
+
+      const normals = Array.from({ length: M }, () => Array.from({ length: N }, () => new THREE.Vector3()));
+      const p0 = new THREE.Vector3(), pU1 = new THREE.Vector3(), pU2 = new THREE.Vector3();
+      const pV1 = new THREE.Vector3(), pV2 = new THREE.Vector3();
+      const dU = new THREE.Vector3(), dV = new THREE.Vector3();
+      let outwardScore = 0;
+
+      for (let i = 0; i < M; i++) {
+        const iPrev = Math.max(0, i - 1);
+        const iNext = Math.min(M - 1, i + 1);
+        for (let j = 0; j < N; j++) {
+          const jPrev = closedLoop ? (j - 1 + N) % N : Math.max(0, j - 1);
+          const jNext = closedLoop ? (j + 1) % N : Math.min(N - 1, j + 1);
+
+          pU1.set(...rings[i][jPrev]);
+          pU2.set(...rings[i][jNext]);
+          pV1.set(...rings[iPrev][j]);
+          pV2.set(...rings[iNext][j]);
+
+          dU.subVectors(pU2, pU1);
+          dV.subVectors(pV2, pV1);
+          const n = new THREE.Vector3().crossVectors(dU, dV);
+          p0.set(...rings[i][j]);
+
+          if (n.lengthSq() < 1e-12) {
+            n.subVectors(p0, ringCenters[i]).normalize();
+          } else {
+            n.normalize();
+          }
+
+          if (closedLoop) {
+            const radial = p0.clone().sub(ringCenters[i]);
+            outwardScore += n.dot(radial);
+          }
+          normals[i][j] = n;
+        }
+      }
+
+      if (closedLoop && outwardScore < 0) {
+        for (let i = 0; i < M; i++) {
+          for (let j = 0; j < N; j++) {
+            normals[i][j].negate();
+          }
+        }
+      }
+
+      // 법선 안쪽으로 insetDepth 만큼 축소된 오클루전 메쉬 생성 (뒷면 문자 가림)
+      const occPositions = [];
+      const insetRings = Array.from({ length: M }, (_, i) =>
+        Array.from({ length: N }, (_, j) => {
+          const pt = rings[i][j];
+          const nm = normals[i][j];
+          return [
+            pt[0] - nm.x * insetDepth,
+            pt[1] - nm.y * insetDepth,
+            pt[2] - nm.z * insetDepth
+          ];
+        })
+      );
+
+      const jLimit = closedLoop ? N : N - 1;
+      for (let i = 0; i < M - 1; i++) {
+        for (let j = 0; j < jLimit; j++) {
+          const jNext = (j + 1) % N;
+          const a = insetRings[i][j], b = insetRings[i + 1][j];
+          const c = insetRings[i + 1][jNext], d = insetRings[i][jNext];
+          occPositions.push(...a, ...b, ...d, ...b, ...c, ...d);
+        }
+      }
+
+      const occGeom = new THREE.BufferGeometry();
+      occGeom.setAttribute("position", new THREE.Float32BufferAttribute(occPositions, 3));
+      const occMesh = new THREE.Mesh(occGeom);
+      occlusionGroup.add(occMesh);
+
+      // 3D 표면 실제 호 길이 기준으로 균일 문자 샘플링
+      const vArc = new Float64Array(M);
+      vArc[0] = 0;
+      for (let i = 1; i < M; i++) {
+        let sumDist = 0;
+        for (let j = 0; j < N; j++) {
+          const a = rings[i - 1][j], b = rings[i][j];
+          sumDist += Math.hypot(b[0] - a[0], b[1] - a[1], b[2] - a[2]);
+        }
+        vArc[i] = vArc[i - 1] + sumDist / N;
+      }
+
+      const totalVLen = vArc[M - 1];
+      if (totalVLen < 1e-5) return;
+
+      const numRows = Math.max(2, Math.round(totalVLen / stepRow));
+      let curI = 0;
+
+      for (let r = 0; r <= numRows; r++) {
+        const targetArc = (r / numRows) * totalVLen;
+        while (curI < M - 2 && vArc[curI + 1] < targetArc) curI++;
+        const segArc = vArc[curI + 1] - vArc[curI];
+        const alphaV = segArc > 1e-7 ? (targetArc - vArc[curI]) / segArc : 0;
+        const vNorm = (curI + alphaV) / (M - 1);
+
+        const rowPts = [];
+        const rowNms = [];
+        const loopCount = closedLoop ? N + 1 : N;
+
+        for (let j = 0; j < loopCount; j++) {
+          const jj = j % N;
+          const pA = rings[curI][jj], pB = rings[curI + 1][jj];
+          const nA = normals[curI][jj], nB = normals[curI + 1][jj];
+
+          rowPts.push([
+            pA[0] + (pB[0] - pA[0]) * alphaV,
+            pA[1] + (pB[1] - pA[1]) * alphaV,
+            pA[2] + (pB[2] - pA[2]) * alphaV
+          ]);
+          const nx = nA.x + (nB.x - nA.x) * alphaV;
+          const ny = nA.y + (nB.y - nA.y) * alphaV;
+          const nz = nA.z + (nB.z - nA.z) * alphaV;
+          const nl = Math.hypot(nx, ny, nz) || 1;
+          rowNms.push([nx / nl, ny / nl, nz / nl]);
+        }
+
+        const uArc = new Float64Array(loopCount);
+        uArc[0] = 0;
+        for (let j = 1; j < loopCount; j++) {
+          const a = rowPts[j - 1], b = rowPts[j];
+          uArc[j] = uArc[j - 1] + Math.hypot(b[0] - a[0], b[1] - a[1], b[2] - a[2]);
+        }
+
+        const totalULen = uArc[loopCount - 1];
+        if (totalULen < stepChar * 0.4) continue;
+
+        const numChars = closedLoop
+          ? Math.max(4, Math.floor(totalULen / stepChar))
+          : Math.max(2, Math.round(totalULen / stepChar) + 1);
+
+        let curJ = 0;
+        for (let c = 0; c < numChars; c++) {
+          const targetU = closedLoop
+            ? (c / numChars) * totalULen
+            : (c / Math.max(1, numChars - 1)) * totalULen;
+
+          while (curJ < loopCount - 2 && uArc[curJ + 1] < targetU) curJ++;
+          const segU = uArc[curJ + 1] - uArc[curJ];
+          const alphaU = segU > 1e-7 ? (targetU - uArc[curJ]) / segU : 0;
+
+          const p0 = rowPts[curJ], p1 = rowPts[curJ + 1];
+          const n0 = rowNms[curJ], n1 = rowNms[curJ + 1];
+
+          const px = p0[0] + (p1[0] - p0[0]) * alphaU;
+          const py = p0[1] + (p1[1] - p0[1]) * alphaU;
+          const pz = p0[2] + (p1[2] - p0[2]) * alphaU;
+
+          let nx = n0[0] + (n1[0] - n0[0]) * alphaU;
+          let ny = n0[1] + (n1[1] - n0[1]) * alphaU;
+          let nz = n0[2] + (n1[2] - n0[2]) * alphaU;
+          const nl = Math.hypot(nx, ny, nz) || 1;
+          nx /= nl; ny /= nl; nz /= nl;
+
+          outPoints.push({
+            x: px, y: py, z: pz,
+            nx, ny, nz,
+            uPhase: vNorm
+          });
+        }
+      }
     }
 
     // ---------------------------------------------------------
-    // 6-B. Three.js 뷰포트 및 매끄러운 스튜디오 ASCII 파이프라인
+    // 6-C. 3차원 매듭 조형 (TORUS KNOT) 데이터 생성
+    // ---------------------------------------------------------
+    function buildTorusKnotData(outPoints, occGroup) {
+      const segsU = 240;
+      const segsV = 36;
+      const p = 2, q = 3;
+      const scale = 0.66;
+      const tubeRadius = 0.36;
+
+      const centers = [];
+      for (let i = 0; i <= segsU; i++) {
+        const t = (i / segsU) * Math.PI * 2;
+        const r = Math.cos(q * t) + 2.0;
+        const x = r * Math.cos(p * t) * scale;
+        const y = -Math.sin(q * t) * scale * 1.15;
+        const z = r * Math.sin(p * t) * scale;
+        centers.push(new THREE.Vector3(x, y, z));
+      }
+
+      const tangents = [];
+      for (let i = 0; i <= segsU; i++) {
+        const prev = centers[(i - 1 + segsU) % segsU];
+        const next = centers[(i + 1) % segsU];
+        tangents.push(new THREE.Vector3().subVectors(next, prev).normalize());
+      }
+
+      let normal = new THREE.Vector3(0, 1, 0);
+      if (Math.abs(tangents[0].dot(normal)) > 0.9) normal.set(1, 0, 0);
+      normal.sub(tangents[0].clone().multiplyScalar(tangents[0].dot(normal))).normalize();
+
+      const rings = [];
+      for (let i = 0; i <= segsU; i++) {
+        if (i > 0) {
+          const rotAxis = new THREE.Vector3().crossVectors(tangents[i - 1], tangents[i]);
+          if (rotAxis.lengthSq() > 1e-10) {
+            rotAxis.normalize();
+            const angle = Math.acos(Math.max(-1, Math.min(1, tangents[i - 1].dot(tangents[i]))));
+            normal.applyAxisAngle(rotAxis, angle).normalize();
+          }
+        }
+        const binormal = new THREE.Vector3().crossVectors(tangents[i], normal).normalize();
+        const ring = [];
+        for (let j = 0; j < segsV; j++) {
+          const theta = (j / segsV) * Math.PI * 2;
+          const cosT = Math.cos(theta), sinT = Math.sin(theta);
+          const pt = centers[i].clone()
+            .addScaledVector(normal, cosT * tubeRadius)
+            .addScaledVector(binormal, sinT * tubeRadius);
+          ring.push([pt.x, pt.y, pt.z]);
+        }
+        rings.push(ring);
+      }
+
+      addCurvedPatch(rings, true, 0.017, 0.015, outPoints, occGroup, 0.020);
+    }
+
+    function buildModelPointGeometry(points) {
+      const count = points.length;
+      const positions = new Float32Array(count * 3);
+      const normals = new Float32Array(count * 3);
+      const uPhases = new Float32Array(count);
+
+      for (let i = 0; i < count; i++) {
+        const p = points[i];
+        positions[i * 3]     = p.x;
+        positions[i * 3 + 1] = p.y;
+        positions[i * 3 + 2] = p.z;
+
+        normals[i * 3]     = p.nx;
+        normals[i * 3 + 1] = p.ny;
+        normals[i * 3 + 2] = p.nz;
+
+        uPhases[i] = p.uPhase;
+      }
+
+      const geom = new THREE.BufferGeometry();
+      geom.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+      geom.setAttribute("normal", new THREE.BufferAttribute(normals, 3));
+      geom.setAttribute("aUPhase", new THREE.BufferAttribute(uPhases, 1));
+      return geom;
+    }
+
+    function createAsciiPointMaterial() {
+      return new THREE.ShaderMaterial({
+        uniforms: {
+          uAtlas: { value: ATLAS.texture },
+          uAtlasCols: { value: ATLAS.cols },
+          uWorldSize: { value: 0.017 },
+          uProjectionScale: { value: 600.0 },
+          uFlow: { value: 0.0 },
+          uFlowPhase: { value: 0.0 }
+        },
+        vertexShader: `
+          attribute float aUPhase;
+          uniform float uWorldSize;
+          uniform float uProjectionScale;
+          uniform float uFlow;
+          uniform float uFlowPhase;
+
+          varying float vCharIdx;
+          varying float vLum;
+          varying float vFacing;
+
+          void main() {
+            vec3 n = normalize(normalMatrix * normal);
+            vFacing = n.z;
+
+            vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+            gl_Position = projectionMatrix * mvPosition;
+
+            float dist = max(0.65, -mvPosition.z);
+            float ptSize = clamp((uWorldSize * uProjectionScale) / dist, 2.0, 44.0);
+            gl_PointSize = vFacing < -0.18 ? 0.0 : ptSize;
+
+            // Half-Lambert 키 라이트 + 좌측 필 라이트 + 프레넬 림 라이트
+            vec3 keyDir = normalize(vec3(0.42, 0.65, 0.85));
+            vec3 fillDir = normalize(vec3(-0.75, -0.15, 0.65));
+
+            float halfLambert = dot(n, keyDir) * 0.5 + 0.5;
+            float keyShading = pow(clamp(halfLambert, 0.0, 1.0), 1.35) * 0.68;
+            float fillShading = max(dot(n, fillDir), 0.0) * 0.28;
+
+            // 외곽 경계선을 순수 블랙 배경과 선명히 분리하는 림 하이라이트
+            float fresnelRim = pow(1.0 - clamp(max(n.z, 0.0), 0.0, 1.0), 2.0) * 0.38;
+
+            float rawLum = 0.15 + keyShading + fillShading + fresnelRim;
+            if (uFlow > 0.5) {
+              rawLum += sin(aUPhase * 37.6991 - uFlowPhase) * 0.16;
+            }
+
+            float lum = clamp(rawLum, 0.12, 1.0);
+            vLum = lum;
+            vCharIdx = clamp(floor(lum * 8.99), 0.0, 8.0);
+          }
+        `,
+        fragmentShader: `
+          uniform sampler2D uAtlas;
+          uniform float uAtlasCols;
+          varying float vCharIdx;
+          varying float vLum;
+          varying float vFacing;
+
+          void main() {
+            float edgeFade = smoothstep(-0.16, 0.18, vFacing);
+            if (edgeFade <= 0.01) discard;
+
+            vec2 localCoord = mix(vec2(0.04), vec2(0.96), gl_PointCoord);
+            vec2 uv = vec2(
+              (vCharIdx + localCoord.x) / uAtlasCols,
+              localCoord.y
+            );
+
+            vec4 texColor = texture2D(uAtlas, uv);
+            float alpha = texColor.a * edgeFade;
+            if (alpha < 0.12) discard;
+
+            float brightness = mix(0.36, 1.0, vLum);
+            gl_FragColor = vec4(vec3(brightness), alpha);
+          }
+        `,
+        transparent: true,
+        depthWrite: false,
+        depthTest: true
+      });
+    }
+
+    // ---------------------------------------------------------
+    // 6-D. Three.js 뷰포트 초기화, 회전/팬/커서 줌
     // ---------------------------------------------------------
     function initAnatomyEngine() {
       const stage = document.getElementById("anatomy-stage");
-      const w = stage.clientWidth;
-      const h = stage.clientHeight;
-      const dpr = Math.min(window.devicePixelRatio, 2);
-
       scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x000000);
 
-      camera = new THREE.PerspectiveCamera(38, w / h, 0.1, 400);
-      camera.position.set(0, 0, DEFAULT_CAM_Z);
+      camera = new THREE.PerspectiveCamera(38, stage.clientWidth / stage.clientHeight, 0.1, 100);
+      camera.position.set(0, 0.02, targetCamZ);
 
-      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" });
-      renderer.setPixelRatio(dpr);
-      renderer.setSize(w, h);
-      renderer.setClearColor(0x000000, 0);
+      renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.setSize(stage.clientWidth, stage.clientHeight);
       stage.appendChild(renderer.domElement);
 
-      // 부드러운 3점 스튜디오 조명 + 프레넬 림 라이트 재질
-      shadedMaterial = new THREE.ShaderMaterial({
-        uniforms: {
-          uTime: { value: 0.0 },
-          uFlow: { value: 0.0 }
-        },
-        vertexShader: `
-          varying vec3 vNormalView;
-          varying vec3 vViewPos;
-          varying vec3 vLocalPos;
-          void main() {
-            vNormalView = normalize(normalMatrix * normal);
-            vec4 mvPos = modelViewMatrix * vec4(position, 1.0);
-            vViewPos = -mvPos.xyz;
-            vLocalPos = position;
-            gl_Position = projectionMatrix * mvPos;
-          }
-        `,
-        fragmentShader: `
-          uniform float uTime;
-          uniform float uFlow;
-          varying vec3 vNormalView;
-          varying vec3 vViewPos;
-          varying vec3 vLocalPos;
+      modelPivot = new THREE.Group();
+      modelPivot.rotation.order = "YXZ";
+      scene.add(modelPivot);
 
-          void main() {
-            vec3 n = normalize(vNormalView);
-            vec3 viewDir = normalize(vViewPos);
+      occlusionGroup = new THREE.Group();
+      const points = [];
+      buildTorusKnotData(points, occlusionGroup);
 
-            vec3 keyDir  = normalize(vec3(-0.55, 0.70, 0.75));
-            vec3 fillDir = normalize(vec3( 0.65, -0.30, 0.50));
-            vec3 backDir = normalize(vec3( 0.0,  0.55, -0.80));
-
-            // 부드러운 하프-램버트 음영
-            float halfLambert = dot(n, keyDir) * 0.5 + 0.5;
-            float diff = pow(clamp(halfLambert, 0.0, 1.0), 1.45) * 0.68;
-            float fill = max(dot(n, fillDir), 0.0) * 0.22;
-            float back = max(dot(n, backDir), 0.0) * 0.16;
-            float spec = pow(max(dot(reflect(-keyDir, n), viewDir), 0.0), 28.0) * 0.34;
-
-            // 외곽 실루엣을 순수 블랙 배경과 선명히 분리하는 림 라이트
-            float rim  = pow(1.0 - clamp(dot(n, viewDir), 0.0, 1.0), 2.1) * 0.52;
-
-            float lum = 0.14 + diff + fill + back + spec + rim;
-
-            if (uFlow > 0.5) {
-              float wave = sin(vLocalPos.x * 0.45 + vLocalPos.y * 0.45 - uTime * 3.2) * 0.16;
-              lum += wave;
-            }
-
-            lum = clamp(lum, 0.12, 1.0);
-            gl_FragColor = vec4(vec3(lum), 1.0);
-          }
-        `
+      const occlusionMat = new THREE.MeshBasicMaterial({
+        colorWrite: false,
+        depthWrite: true,
+        side: THREE.DoubleSide
       });
-
-      knotPivot = new THREE.Group();
-      knotPivot.rotation.order = "YXZ";
-      scene.add(knotPivot);
-
-      const knotGeometry = new THREE.TorusKnotGeometry(10.2, 3.25, 320, 64, 2, 3);
-      knotMesh = new THREE.Mesh(knotGeometry, shadedMaterial);
-      knotPivot.add(knotMesh);
-
-      // 고해상도 2x2 슈퍼샘플링 ASCII 포스트 프로세싱 패스
-      renderTarget = new THREE.WebGLRenderTarget(
-        Math.max(1, Math.floor(w * dpr)),
-        Math.max(1, Math.floor(h * dpr)),
-        {
-          minFilter: THREE.LinearFilter,
-          magFilter: THREE.LinearFilter,
-          format: THREE.RGBAFormat
+      occlusionGroup.traverse(obj => {
+        if (obj.isMesh) {
+          obj.material = occlusionMat;
+          obj.renderOrder = 1;
         }
-      );
-
-      postScene = new THREE.Scene();
-      postCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
-
-      const asciiTex = createAsciiGlyphTexture();
-      asciiPassMaterial = new THREE.ShaderMaterial({
-        uniforms: {
-          uSceneTex: { value: renderTarget.texture },
-          uAsciiTex: { value: asciiTex },
-          uResolution: { value: new THREE.Vector2(w * dpr, h * dpr) },
-          uCellSize: { value: new THREE.Vector2(8.0 * dpr, 12.0 * dpr) }
-        },
-        vertexShader: `
-          void main() {
-            gl_Position = vec4(position, 1.0);
-          }
-        `,
-        fragmentShader: `
-          uniform sampler2D uSceneTex;
-          uniform sampler2D uAsciiTex;
-          uniform vec2 uResolution;
-          uniform vec2 uCellSize;
-
-          void main() {
-            vec2 cellIndex = floor(gl_FragCoord.xy / uCellSize);
-            vec2 cellOriginPx = cellIndex * uCellSize;
-
-            // 셀 내부 2x2 슈퍼샘플링으로 곡면 경계를 매끄럽게 추출
-            vec4 s0 = texture2D(uSceneTex, (cellOriginPx + uCellSize * vec2(0.25, 0.25)) / uResolution);
-            vec4 s1 = texture2D(uSceneTex, (cellOriginPx + uCellSize * vec2(0.75, 0.25)) / uResolution);
-            vec4 s2 = texture2D(uSceneTex, (cellOriginPx + uCellSize * vec2(0.25, 0.75)) / uResolution);
-            vec4 s3 = texture2D(uSceneTex, (cellOriginPx + uCellSize * vec2(0.75, 0.75)) / uResolution);
-
-            float coverage = (s0.a + s1.a + s2.a + s3.a) * 0.25;
-            if (coverage < 0.15) {
-              gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
-              return;
-            }
-
-            float lumSum = s0.r * s0.a + s1.r * s1.a + s2.r * s2.a + s3.r * s3.a;
-            float lum = clamp(lumSum / max(coverage * 4.0, 0.001), 0.08, 1.0);
-
-            vec2 cellUv = fract(gl_FragCoord.xy / uCellSize);
-            float charIdx = clamp(floor(lum * 8.999), 0.0, 8.0);
-            vec2 glyphUv = vec2((charIdx + cellUv.x) / 9.0, cellUv.y);
-
-            float mask = texture2D(uAsciiTex, glyphUv).r;
-            // 어두운 음영부도 배경과 명확히 구분되도록 최소 밝기(0.38) 보장
-            float brightness = mix(0.38, 1.0, pow(lum, 0.75)) * smoothstep(0.10, 0.45, coverage);
-            gl_FragColor = vec4(vec3(mask * brightness), 1.0);
-          }
-        `
       });
+      modelPivot.add(occlusionGroup);
 
-      const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), asciiPassMaterial);
-      postScene.add(quad);
+      const ptGeom = buildModelPointGeometry(points);
+      const mat = createAsciiPointMaterial();
+      if (stage.clientHeight > 0) {
+        const fovRad = (camera.fov * Math.PI) / 180;
+        mat.uniforms.uProjectionScale.value = stage.clientHeight / (2 * Math.tan(fovRad / 2));
+      }
 
-      // 마우스 회전 / 이동 / 줌 컨트롤
+      glyphPointsMesh = new THREE.Points(ptGeom, mat);
+      glyphPointsMesh.renderOrder = 2;
+      modelPivot.add(glyphPointsMesh);
+
       stage.addEventListener("mousedown", e => {
         if (e.button === 2 || e.shiftKey) {
           dragMode = "pan";
@@ -1171,25 +1424,56 @@
       });
 
       window.addEventListener("mousemove", e => {
-        if (dragMode === "none" || !knotPivot) return;
+        if (dragMode === "none" || !modelPivot) return;
         const dx = e.clientX - prevMouse.x;
         const dy = e.clientY - prevMouse.y;
 
         if (dragMode === "rotate") {
-          knotPivot.rotation.y += dx * 0.0085;
-          knotPivot.rotation.x = Math.max(-1.1, Math.min(1.1, knotPivot.rotation.x + dy * 0.0065));
+          modelPivot.rotation.y += dx * 0.009;
+          modelPivot.rotation.x = Math.max(-0.75, Math.min(0.75, modelPivot.rotation.x + dy * 0.006));
         } else if (dragMode === "pan") {
           const panSpeed = targetCamZ * 0.0014;
-          targetPan.x = Math.max(-24.0, Math.min(24.0, targetPan.x - dx * panSpeed));
-          targetPan.y = Math.max(-24.0, Math.min(24.0, targetPan.y + dy * panSpeed));
+          targetPan.x = Math.max(-1.6, Math.min(1.6, targetPan.x - dx * panSpeed));
+          targetPan.y = Math.max(-2.3, Math.min(2.3, targetPan.y + dy * panSpeed));
         }
         prevMouse = { x: e.clientX, y: e.clientY };
       });
 
       stage.addEventListener("wheel", e => {
         e.preventDefault();
+        const rect = stage.getBoundingClientRect();
+        const ndcX = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+        const ndcY = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+
+        const oldZ = targetCamZ;
         const zoomFactor = 1 + e.deltaY * 0.0012;
-        targetCamZ = Math.min(95.0, Math.max(20.0, targetCamZ * zoomFactor));
+        const newZ = Math.min(10.5, Math.max(1.15, oldZ * zoomFactor));
+        const ratio = newZ / oldZ;
+
+        let focusDepth = oldZ;
+        if (occlusionGroup) {
+          raycaster.setFromCamera(new THREE.Vector2(ndcX, ndcY), camera);
+          const hits = raycaster.intersectObjects(occlusionGroup.children, false);
+          if (hits.length > 0) {
+            focusDepth = hits[0].distance;
+          }
+        }
+
+        const tanHalfFov = Math.tan((camera.fov * Math.PI) / 360);
+        const worldX = targetPan.x + ndcX * camera.aspect * tanHalfFov * focusDepth;
+        const worldY = targetPan.y + ndcY * tanHalfFov * focusDepth;
+
+        if (e.deltaY < 0) {
+          targetPan.x = worldX - ndcX * camera.aspect * tanHalfFov * (focusDepth * ratio);
+          targetPan.y = worldY - ndcY * tanHalfFov * (focusDepth * ratio);
+        } else {
+          targetPan.x += (0 - targetPan.x) * 0.18;
+          targetPan.y += (0.02 - targetPan.y) * 0.18;
+        }
+
+        targetPan.x = Math.max(-1.6, Math.min(1.6, targetPan.x));
+        targetPan.y = Math.max(-2.3, Math.min(2.3, targetPan.y));
+        targetCamZ = newZ;
       }, { passive: false });
 
       window.addEventListener("resize", resizeAnatomyViewport);
@@ -1202,19 +1486,13 @@
       if (!stage || !renderer || stage.clientWidth === 0) return;
       const w = stage.clientWidth;
       const h = stage.clientHeight;
-      const dpr = Math.min(window.devicePixelRatio, 2);
-
       camera.aspect = w / h;
       camera.updateProjectionMatrix();
-      renderer.setPixelRatio(dpr);
       renderer.setSize(w, h);
 
-      if (renderTarget) {
-        renderTarget.setSize(Math.max(1, Math.floor(w * dpr)), Math.max(1, Math.floor(h * dpr)));
-      }
-      if (asciiPassMaterial) {
-        asciiPassMaterial.uniforms.uResolution.value.set(w * dpr, h * dpr);
-        asciiPassMaterial.uniforms.uCellSize.value.set(8.0 * dpr, 12.0 * dpr);
+      if (glyphPointsMesh && glyphPointsMesh.material.uniforms) {
+        const fovRad = (camera.fov * Math.PI) / 180;
+        glyphPointsMesh.material.uniforms.uProjectionScale.value = h / (2 * Math.tan(fovRad / 2));
       }
     }
 
@@ -1228,14 +1506,16 @@
       flowEnabled = !flowEnabled;
       document.getElementById("btn-flow").classList.toggle("active", flowEnabled);
       document.getElementById("btn-flow").innerText = `FLOW : ${flowEnabled ? "ON" : "OFF"}`;
-      if (shadedMaterial) shadedMaterial.uniforms.uFlow.value = flowEnabled ? 1.0 : 0.0;
+      if (glyphPointsMesh) {
+        glyphPointsMesh.material.uniforms.uFlow.value = flowEnabled ? 1.0 : 0.0;
+      }
     }
 
     function resetAnatomyView() {
-      targetCamZ = DEFAULT_CAM_Z;
-      targetPan.set(0, 0);
-      if (knotPivot) {
-        knotPivot.rotation.set(0, 0, 0);
+      targetCamZ = 6.9;
+      targetPan.set(0, 0.02);
+      if (modelPivot) {
+        modelPivot.rotation.set(0, 0, 0);
       }
     }
 
@@ -1247,21 +1527,16 @@
       camera.position.x += (targetPan.x - camera.position.x) * 0.16;
       camera.position.y += (targetPan.y - camera.position.y) * 0.16;
 
-      if (autoRotate && dragMode === "none" && knotPivot) {
-        knotPivot.rotation.y += 0.0065;
+      if (autoRotate && dragMode === "none" && modelPivot) {
+        modelPivot.rotation.y += 0.007;
       }
 
-      if (flowEnabled && shadedMaterial) {
-        flowTime += 0.016;
-        shadedMaterial.uniforms.uTime.value = flowTime;
+      if (flowEnabled && glyphPointsMesh) {
+        flowPhase += 0.08;
+        glyphPointsMesh.material.uniforms.uFlowPhase.value = flowPhase;
       }
 
-      renderer.setRenderTarget(renderTarget);
-      renderer.clear();
       renderer.render(scene, camera);
-
-      renderer.setRenderTarget(null);
-      renderer.render(postScene, postCamera);
     }
 
     // =========================================================
