@@ -60,7 +60,7 @@
 
     nav {
       display: flex;
-      gap: 18px;
+      gap: 20px;
       flex-wrap: wrap;
       align-items: center;
     }
@@ -84,15 +84,6 @@
     .nav-btn.active {
       color: var(--fg);
       border-bottom-color: var(--fg);
-    }
-
-    .nav-btn.admin-tab {
-      color: #a3a3a3;
-    }
-
-    .nav-btn.admin-tab.active,
-    .nav-btn.admin-tab:hover {
-      color: var(--fg);
     }
 
     .nav-divider {
@@ -163,8 +154,10 @@
       font-weight: 700;
       letter-spacing: 0.1em;
       text-transform: uppercase;
-      color: #dddddd;
+      color: #ffffff;
       margin-bottom: 10px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid #1a1a1a;
     }
 
     /* FORMS & BUTTONS */
@@ -586,7 +579,29 @@
       word-break: break-word;
     }
 
-    /* 05~07. ADMIN REPORTS, WORK LOG & CHARTS */
+    /* 05. UNIFIED REPORT HUB (MORNING BRIEF / DAILY REVIEW / WORK LOG) */
+    .report-subnav {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .report-subnav .btn-outline {
+      padding: 9px 18px;
+      font-size: 0.75rem;
+    }
+
+    .report-subpanel {
+      display: none;
+    }
+
+    .report-subpanel.active {
+      display: block;
+    }
+
     .filter-bar {
       display: flex;
       gap: 12px;
@@ -604,7 +619,7 @@
     .log-board-item {
       border: 1px solid var(--line);
       background: #000000;
-      margin-bottom: 10px;
+      margin-bottom: 12px;
     }
 
     .log-board-header {
@@ -667,7 +682,7 @@
 
     .log-board-body {
       display: none;
-      padding: 18px 16px;
+      padding: 20px 18px;
       border-top: 1px solid var(--line);
       background: #050505;
       font-size: 0.85rem;
@@ -678,7 +693,7 @@
     }
 
     .log-detail-block {
-      margin-bottom: 16px;
+      margin-bottom: 20px;
     }
 
     .log-detail-block:last-child {
@@ -686,9 +701,9 @@
     }
 
     .log-detail-content {
-      color: #d4d4d4;
+      color: #dcdcdc;
       white-space: pre-line;
-      line-height: 1.65;
+      line-height: 1.72;
     }
 
     .kpi-grid {
@@ -748,27 +763,23 @@
       width: 100%;
     }
 
-    .brief-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
+    .brief-stack {
+      display: flex;
+      flex-direction: column;
       gap: 20px;
     }
 
     .brief-card {
       border: 1px solid var(--line);
       background: #000000;
-      padding: 18px;
-    }
-
-    .brief-card.full {
-      grid-column: 1 / -1;
+      padding: 22px;
     }
 
     .brief-text {
-      font-size: 0.85rem;
-      color: #d4d4d4;
+      font-size: 0.86rem;
+      color: #dcdcdc;
       white-space: pre-line;
-      line-height: 1.65;
+      line-height: 1.75;
     }
 
     footer {
@@ -783,7 +794,7 @@
 
     @media (max-width: 900px) {
       .kpi-grid { grid-template-columns: repeat(2, 1fr); }
-      .charts-grid, .brief-grid { grid-template-columns: 1fr; }
+      .charts-grid { grid-template-columns: 1fr; }
     }
 
     @media (max-width: 768px) {
@@ -804,9 +815,7 @@
       <button class="nav-btn" id="nav-guestbook" onclick="switchTab('guestbook')">04. GUESTBOOK</button>
 
       <span class="nav-divider admin-only" style="display:none;"></span>
-      <button class="nav-btn admin-tab admin-only" id="nav-worklog" style="display:none;" onclick="switchTab('worklog')">05. WORK LOG</button>
-      <button class="nav-btn admin-tab admin-only" id="nav-dailyreview" style="display:none;" onclick="switchTab('dailyreview')">06. DAILY REVIEW</button>
-      <button class="nav-btn admin-tab admin-only" id="nav-morningbrief" style="display:none;" onclick="switchTab('morningbrief')">07. MORNING BRIEF</button>
+      <button class="nav-btn admin-only" id="nav-report" style="display:none;" onclick="switchTab('report')">05. REPORT</button>
     </nav>
     <div class="auth-indicator" id="header-auth-status">GUEST MODE</div>
   </header>
@@ -978,9 +987,10 @@
         <div id="badge-panel" class="badge-panel" style="display:none;">
           <div class="badge-panel-head">
             <span id="badge-stats-text">VISITS : 1 · POSTS : 0 · BADGE SYSTEM</span>
-            <button class="btn-outline active" id="btn-toggle-badge" onclick="toggleBadgeVisibility()">BADGE DISPLAY : ON</button>
+            <button class="btn-outline" id="btn-clear-badge" onclick="clearUserBadge()">CLEAR BADGE (선택 해제)</button>
           </div>
           <div class="badge-grid" id="badge-selector-grid"></div>
+          <div id="badge-sync-msg" style="margin-top:8px; font-size:0.72rem; color:var(--muted);"></div>
         </div>
 
         <div id="gb-form-area" style="margin-bottom:24px; padding-bottom:20px; border-bottom:1px solid var(--line);">
@@ -1005,175 +1015,179 @@
       </div>
     </section>
 
-    <!-- 05. WORK LOG (ADMIN ONLY) -->
-    <section id="sec-worklog" class="section">
+    <!-- 05. REPORT HUB (ADMIN ONLY: MORNING BRIEF / DAILY REVIEW / WORK LOG) -->
+    <section id="sec-report" class="section">
       <div class="box">
-        <h2>
-          <span>05. WORK LOG (작업 일지 게시판)</span>
-          <button class="btn-outline" onclick="toggleWorkLogComposer()">+ NEW / EDIT LOG</button>
-        </h2>
+        <h2>05. COMMAND REPORT HUB (ADMIN ONLY)</h2>
 
-        <!-- Quick Composer for Admin -->
-        <div id="worklog-composer" style="display:none; border:1px solid var(--line); background:#000000; padding:18px; margin-bottom:20px;">
-          <div class="form-row-3">
-            <div class="form-group" style="margin:0;">
-              <label>DATE (YYYY-MM-DD)</label>
-              <input type="date" id="wl-date" />
+        <!-- 3 SUB-TABS -->
+        <div class="report-subnav">
+          <button class="btn-outline active" id="subnav-morningbrief" onclick="switchReportSubTab('morningbrief')">01. 모닝 브리핑 (MORNING BRIEF)</button>
+          <button class="btn-outline" id="subnav-dailyreview" onclick="switchReportSubTab('dailyreview')">02. 분석 리포트 (DAILY REVIEW)</button>
+          <button class="btn-outline" id="subnav-worklog" onclick="switchReportSubTab('worklog')">03. 작업 일지 (WORK LOG)</button>
+        </div>
+
+        <!-- SUB-PANEL 1: MORNING BRIEF -->
+        <div id="sub-morningbrief" class="report-subpanel active">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:18px;">
+            <p id="brief-headline" style="font-size:1rem; font-weight:700;"></p>
+            <select id="brief-date-select" style="width:auto; min-width:160px;" onchange="selectMorningBrief(this.value)"></select>
+          </div>
+
+          <!-- PORTFOLIO KPI SUMMARY -->
+          <div class="kpi-grid" id="portfolio-kpi-grid"></div>
+
+          <!-- PORTFOLIO VISUALIZATION CHARTS -->
+          <div class="charts-grid">
+            <div class="chart-box full">
+              <h3>PORTFOLIO VALUE TRAJECTORY (총 매입원금 VS 평가금액 추이)</h3>
+              <div class="chart-canvas-wrap">
+                <canvas id="chart-trajectory"></canvas>
+              </div>
             </div>
-            <div class="form-group" style="margin:0;">
-              <label>STATUS TYPE</label>
-              <select id="wl-status">
-                <option value="ACTIVE">ACTIVE (작업 진행일)</option>
-                <option value="REST">REST (휴무/비작업일 점검)</option>
+            <div class="chart-box">
+              <h3>ASSET ALLOCATION (종목별 현재 평가 비중)</h3>
+              <div class="chart-canvas-wrap">
+                <canvas id="chart-allocation"></canvas>
+              </div>
+            </div>
+            <div class="chart-box">
+              <h3>RETURN & DRAWDOWN BY TICKER (평단가 대비 수익률 %)</h3>
+              <div class="chart-canvas-wrap">
+                <canvas id="chart-returns"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- FULL UNABRIDGED BRIEFING SECTIONS -->
+          <div class="brief-stack" id="brief-sections-grid"></div>
+        </div>
+
+        <!-- SUB-PANEL 2: DAILY REVIEW (분석 리포트 / 오늘의 정리) -->
+        <div id="sub-dailyreview" class="report-subpanel">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+            <span style="font-size:0.78rem; color:var(--muted); letter-spacing:0.08em;">00:00 DAILY REVIEW ARCHIVE (FULL REPORT)</span>
+            <button class="btn-outline" onclick="toggleDailyReviewComposer()">+ NEW REVIEW</button>
+          </div>
+
+          <div id="dailyreview-composer" style="display:none; border:1px solid var(--line); background:#000000; padding:18px; margin-bottom:20px;">
+            <div class="form-row">
+              <div class="form-group" style="margin:0;">
+                <label>DATE (YYYY-MM-DD)</label>
+                <input type="date" id="dr-date" />
+              </div>
+              <div class="form-group" style="margin:0;">
+                <label>HEADLINE</label>
+                <input type="text" id="dr-headline" placeholder="오늘의 정리 핵심 요약" />
+              </div>
+            </div>
+            <div class="form-group">
+              <label>ACHIEVEMENTS (오늘 완료한 작업 및 성취)</label>
+              <textarea id="dr-achievements" rows="3"></textarea>
+            </div>
+            <div class="form-group">
+              <label>INSIGHTS & IMPROVEMENTS (핵심 리뷰 및 보완점)</label>
+              <textarea id="dr-insights" rows="3"></textarea>
+            </div>
+            <div class="form-group">
+              <label>NEXT PRIORITIES (내일 우선순위 과제)</label>
+              <textarea id="dr-priorities" rows="3"></textarea>
+            </div>
+            <button class="btn" onclick="saveDailyReview()">SAVE DAILY REVIEW</button>
+            <span id="dr-msg" style="margin-left:12px; font-size:0.78rem; color:var(--muted);"></span>
+          </div>
+
+          <div id="dailyreview-list">
+            <p style="font-size:0.84rem; color:var(--muted);">LOADING DAILY REVIEWS...</p>
+          </div>
+        </div>
+
+        <!-- SUB-PANEL 3: WORK LOG (작업 일지) -->
+        <div id="sub-worklog" class="report-subpanel">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+            <span style="font-size:0.78rem; color:var(--muted); letter-spacing:0.08em;">00:30 WORK LOG BOARD (FULL ARCHIVE)</span>
+            <button class="btn-outline" onclick="toggleWorkLogComposer()">+ NEW / EDIT LOG</button>
+          </div>
+
+          <div id="worklog-composer" style="display:none; border:1px solid var(--line); background:#000000; padding:18px; margin-bottom:20px;">
+            <div class="form-row-3">
+              <div class="form-group" style="margin:0;">
+                <label>DATE (YYYY-MM-DD)</label>
+                <input type="date" id="wl-date" />
+              </div>
+              <div class="form-group" style="margin:0;">
+                <label>STATUS TYPE</label>
+                <select id="wl-status">
+                  <option value="ACTIVE">ACTIVE (작업 진행일)</option>
+                  <option value="REST">REST (휴무/비작업일 점검)</option>
+                </select>
+              </div>
+              <div class="form-group" style="margin:0;">
+                <label>TOOLS (쉼표 구분)</label>
+                <input type="text" id="wl-tools" placeholder="Gemini 4 Hydrogen, GitHub, Supabase" />
+              </div>
+            </div>
+            <div class="form-group">
+              <label>ONE-LINE HEADLINE (1줄 제목)</label>
+              <input type="text" id="wl-title" placeholder="예: 방명록 배지 소급 반영 및 REPORT 통합 허브 구축" />
+            </div>
+            <div class="form-group">
+              <label>COMPLETED SUMMARY (일자별 완료 작업 요약)</label>
+              <textarea id="wl-completed" rows="3"></textarea>
+            </div>
+            <div class="form-group">
+              <label>ACTIVE PIPELINES & INVESTMENTS (실행 중인 자동화 / 키움 투자 현황)</label>
+              <textarea id="wl-pipelines" rows="3"></textarea>
+            </div>
+            <div class="form-group">
+              <label>PROBLEM ANALYSIS & STUDY ARCHIVE (문제점 진단 및 학습·성취 기록)</label>
+              <textarea id="wl-analysis" rows="3"></textarea>
+            </div>
+            <button class="btn" onclick="saveWorkLog()">SAVE WORK LOG</button>
+            <span id="wl-msg" style="margin-left:12px; font-size:0.78rem; color:var(--muted);"></span>
+          </div>
+
+          <div class="filter-bar">
+            <div class="filter-item">
+              <label>YEAR</label>
+              <select id="filter-wl-year" onchange="renderWorkLogs()">
+                <option value="ALL">ALL YEARS</option>
+                <option value="2026">2026</option>
+                <option value="2027">2027</option>
               </select>
             </div>
-            <div class="form-group" style="margin:0;">
-              <label>TOOLS (쉼표 구분)</label>
-              <input type="text" id="wl-tools" placeholder="Gemini 4 Hydrogen, GitHub, Supabase" />
+            <div class="filter-item">
+              <label>MONTH</label>
+              <select id="filter-wl-month" onchange="renderWorkLogs()">
+                <option value="ALL">ALL MONTHS</option>
+                <option value="01">01월</option>
+                <option value="02">02월</option>
+                <option value="03">03월</option>
+                <option value="04">04월</option>
+                <option value="05">05월</option>
+                <option value="06">06월</option>
+                <option value="07">07월</option>
+                <option value="08">08월</option>
+                <option value="09">09월</option>
+                <option value="10">10월</option>
+                <option value="11">11월</option>
+                <option value="12">12월</option>
+              </select>
+            </div>
+            <div class="filter-item">
+              <label>TYPE</label>
+              <select id="filter-wl-type" onchange="renderWorkLogs()">
+                <option value="ALL">ALL TYPES</option>
+                <option value="ACTIVE">ACTIVE</option>
+                <option value="REST">REST</option>
+              </select>
             </div>
           </div>
-          <div class="form-group">
-            <label>ONE-LINE HEADLINE (1줄 제목)</label>
-            <input type="text" id="wl-title" placeholder="예: 방명록 배지·쿨다운 보안 업데이트 및 관리자 탭 구축" />
-          </div>
-          <div class="form-group">
-            <label>COMPLETED SUMMARY (완료한 작업 요약)</label>
-            <textarea id="wl-completed" rows="2"></textarea>
-          </div>
-          <div class="form-group">
-            <label>ACTIVE PIPELINES & INVESTMENTS (실행 중인 자동화 / 키움 투자 현황)</label>
-            <textarea id="wl-pipelines" rows="2"></textarea>
-          </div>
-          <div class="form-group">
-            <label>PROBLEM ANALYSIS & SOLUTIONS (문제점 진단 및 해결책)</label>
-            <textarea id="wl-analysis" rows="2"></textarea>
-          </div>
-          <button class="btn" onclick="saveWorkLog()">SAVE WORK LOG</button>
-          <span id="wl-msg" style="margin-left:12px; font-size:0.78rem; color:var(--muted);"></span>
-        </div>
 
-        <!-- Year / Month / Status Filter -->
-        <div class="filter-bar">
-          <div class="filter-item">
-            <label>YEAR</label>
-            <select id="filter-wl-year" onchange="renderWorkLogs()">
-              <option value="ALL">ALL YEARS</option>
-              <option value="2026">2026</option>
-              <option value="2027">2027</option>
-            </select>
-          </div>
-          <div class="filter-item">
-            <label>MONTH</label>
-            <select id="filter-wl-month" onchange="renderWorkLogs()">
-              <option value="ALL">ALL MONTHS</option>
-              <option value="01">01월</option>
-              <option value="02">02월</option>
-              <option value="03">03월</option>
-              <option value="04">04월</option>
-              <option value="05">05월</option>
-              <option value="06">06월</option>
-              <option value="07">07월</option>
-              <option value="08">08월</option>
-              <option value="09">09월</option>
-              <option value="10">10월</option>
-              <option value="11">11월</option>
-              <option value="12">12월</option>
-            </select>
-          </div>
-          <div class="filter-item">
-            <label>TYPE</label>
-            <select id="filter-wl-type" onchange="renderWorkLogs()">
-              <option value="ALL">ALL TYPES</option>
-              <option value="ACTIVE">ACTIVE</option>
-              <option value="REST">REST</option>
-            </select>
+          <div id="worklog-list">
+            <p style="font-size:0.84rem; color:var(--muted);">LOADING WORK LOGS...</p>
           </div>
         </div>
-
-        <div id="worklog-list">
-          <p style="font-size:0.84rem; color:var(--muted);">LOADING WORK LOGS...</p>
-        </div>
-      </div>
-    </section>
-
-    <!-- 06. DAILY REVIEW (ADMIN ONLY - 00:00 오늘의 정리) -->
-    <section id="sec-dailyreview" class="section">
-      <div class="box">
-        <h2>
-          <span>06. DAILY REVIEW (00:00 오늘의 정리 리포트)</span>
-          <button class="btn-outline" onclick="toggleDailyReviewComposer()">+ NEW REVIEW</button>
-        </h2>
-
-        <div id="dailyreview-composer" style="display:none; border:1px solid var(--line); background:#000000; padding:18px; margin-bottom:20px;">
-          <div class="form-row">
-            <div class="form-group" style="margin:0;">
-              <label>DATE (YYYY-MM-DD)</label>
-              <input type="date" id="dr-date" />
-            </div>
-            <div class="form-group" style="margin:0;">
-              <label>HEADLINE</label>
-              <input type="text" id="dr-headline" placeholder="오늘의 정리 핵심 요약" />
-            </div>
-          </div>
-          <div class="form-group">
-            <label>ACHIEVEMENTS (오늘 완료한 작업 및 성취)</label>
-            <textarea id="dr-achievements" rows="2"></textarea>
-          </div>
-          <div class="form-group">
-            <label>INSIGHTS & IMPROVEMENTS (핵심 리뷰 및 보완점)</label>
-            <textarea id="dr-insights" rows="2"></textarea>
-          </div>
-          <div class="form-group">
-            <label>NEXT PRIORITIES (내일 우선순위 과제)</label>
-            <textarea id="dr-priorities" rows="2"></textarea>
-          </div>
-          <button class="btn" onclick="saveDailyReview()">SAVE DAILY REVIEW</button>
-          <span id="dr-msg" style="margin-left:12px; font-size:0.78rem; color:var(--muted);"></span>
-        </div>
-
-        <div id="dailyreview-list">
-          <p style="font-size:0.84rem; color:var(--muted);">LOADING DAILY REVIEWS...</p>
-        </div>
-      </div>
-    </section>
-
-    <!-- 07. MORNING BRIEF & PORTFOLIO CHARTS (ADMIN ONLY - 07:00 브리핑) -->
-    <section id="sec-morningbrief" class="section">
-      <div class="box">
-        <h2>
-          <span>07. MORNING BRIEF & PORTFOLIO ANALYTICS (07:00)</span>
-          <select id="brief-date-select" style="width:auto; min-width:160px;" onchange="selectMorningBrief(this.value)"></select>
-        </h2>
-
-        <p id="brief-headline" style="font-size:0.95rem; font-weight:700; margin-bottom:18px;"></p>
-
-        <!-- PORTFOLIO KPI SUMMARY -->
-        <div class="kpi-grid" id="portfolio-kpi-grid"></div>
-
-        <!-- PORTFOLIO VISUALIZATION CHARTS -->
-        <div class="charts-grid">
-          <div class="chart-box full">
-            <h3>PORTFOLIO VALUE TRAJECTORY (총 매입원금 VS 평가금액 추이)</h3>
-            <div class="chart-canvas-wrap">
-              <canvas id="chart-trajectory"></canvas>
-            </div>
-          </div>
-          <div class="chart-box">
-            <h3>ASSET ALLOCATION (종목별 현재 평가 비중)</h3>
-            <div class="chart-canvas-wrap">
-              <canvas id="chart-allocation"></canvas>
-            </div>
-          </div>
-          <div class="chart-box">
-            <h3>RETURN & DRAWDOWN BY TICKER (평단가 대비 수익률 %)</h3>
-            <div class="chart-canvas-wrap">
-              <canvas id="chart-returns"></canvas>
-            </div>
-          </div>
-        </div>
-
-        <!-- STRUCTURED BRIEFING SECTIONS -->
-        <div class="brief-grid" id="brief-sections-grid"></div>
       </div>
     </section>
   </main>
@@ -1220,6 +1234,7 @@
     const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     let currentUser = null;
     let currentUserProfile = null;
+    let currentReportSubTab = "morningbrief";
     let cachedArchives = [];
     let cachedWorkLogs = [];
     let cachedMorningBriefs = [];
@@ -1241,11 +1256,10 @@
     }
 
     // =========================================================
-    // 2. NAVIGATION
+    // 2. NAVIGATION & REPORT SUB-TABS
     // =========================================================
     function switchTab(tabName) {
-      const adminTabs = ["worklog", "dailyreview", "morningbrief"];
-      if (adminTabs.includes(tabName) && (!currentUser || currentUser.email !== ADMIN_EMAIL)) {
+      if (tabName === "report" && (!currentUser || currentUser.email !== ADMIN_EMAIL)) {
         tabName = "anatomy";
       }
 
@@ -1257,13 +1271,26 @@
       if (tabName === "anatomy") resizeAnatomyViewport();
       if (tabName === "archive") loadArchives();
       if (tabName === "guestbook") loadGuestbook();
-      if (tabName === "worklog") loadWorkLogs();
-      if (tabName === "dailyreview") loadDailyReviews();
-      if (tabName === "morningbrief") loadMorningBriefs();
+      if (tabName === "report") switchReportSubTab(currentReportSubTab);
+    }
+
+    function switchReportSubTab(subName) {
+      if (!currentUser || currentUser.email !== ADMIN_EMAIL) return;
+      currentReportSubTab = subName;
+
+      document.querySelectorAll(".report-subpanel").forEach(el => el.classList.remove("active"));
+      document.querySelectorAll(".report-subnav .btn-outline").forEach(btn => btn.classList.remove("active"));
+
+      document.getElementById("sub-" + subName).classList.add("active");
+      document.getElementById("subnav-" + subName).classList.add("active");
+
+      if (subName === "morningbrief") loadMorningBriefs();
+      if (subName === "dailyreview") loadDailyReviews();
+      if (subName === "worklog") loadWorkLogs();
     }
 
     // =========================================================
-    // 3. AUTHENTICATION & USER BADGE PROFILE SYNC
+    // 3. AUTHENTICATION & RETROACTIVE USER BADGE SYNC
     // =========================================================
     function setAuthMode(mode) {
       const isSignIn = mode === "signin";
@@ -1323,7 +1350,6 @@
         .maybeSingle();
 
       if (error) {
-        // user_profiles 테이블 생성 전 fallback
         currentUserProfile = {
           user_id: user.id,
           visit_count: 1,
@@ -1387,25 +1413,36 @@
     function renderBadgePanel() {
       if (!currentUserProfile) return;
       const statsEl = document.getElementById("badge-stats-text");
-      const toggleBtn = document.getElementById("btn-toggle-badge");
+      const clearBtn = document.getElementById("btn-clear-badge");
       const gridEl = document.getElementById("badge-selector-grid");
 
       const unlocked = currentUserProfile.unlocked_badges || ["guest", "chronicle"];
-      const selected = currentUserProfile.selected_badge || "guest";
-      const showBadge = currentUserProfile.show_badge !== false;
+      const hasActiveBadge = Boolean(currentUserProfile.selected_badge) && currentUserProfile.show_badge !== false;
+      const selected = hasActiveBadge ? currentUserProfile.selected_badge : null;
 
       statsEl.innerText = `VISITS : ${currentUserProfile.visit_count || 1} · POSTS : ${currentUserProfile.post_count || 0} · BADGES (${unlocked.length}/${BADGE_CATALOG.length})`;
-      toggleBtn.classList.toggle("active", showBadge);
-      toggleBtn.innerText = `BADGE DISPLAY : ${showBadge ? "ON" : "OFF"}`;
+      clearBtn.classList.toggle("active", !selected);
 
-      gridEl.innerHTML = BADGE_CATALOG.map(b => {
+      const noneChipHtml = `
+        <button
+          type="button"
+          class="badge-chip ${!selected ? "selected" : ""}"
+          onclick="clearUserBadge()"
+          title="배지를 표시하지 않고 해제합니다"
+        >
+          <span>[NONE]</span>
+          <span class="sub">배지 없음 (선택 해제)</span>
+        </button>
+      `;
+
+      const badgesHtml = BADGE_CATALOG.map(b => {
         const isUnlocked = unlocked.includes(b.code);
-        const isSelected = selected === b.code && showBadge;
+        const isSelected = selected === b.code;
         return `
           <button
             type="button"
             class="badge-chip ${isSelected ? "selected" : ""} ${!isUnlocked ? "locked" : ""}"
-            ${isUnlocked ? `onclick="selectUserBadge('${b.code}')"` : "disabled"}
+            ${isUnlocked ? `onclick="handleBadgeChipClick('${b.code}')"` : "disabled"}
             title="${escapeHtml(b.desc)}"
           >
             <span>[${b.label}]</span>
@@ -1413,34 +1450,80 @@
           </button>
         `;
       }).join("");
+
+      gridEl.innerHTML = noneChipHtml + badgesHtml;
+    }
+
+    function handleBadgeChipClick(badgeCode) {
+      if (!currentUserProfile) return;
+      const isAlreadySelected = currentUserProfile.selected_badge === badgeCode && currentUserProfile.show_badge !== false;
+      if (isAlreadySelected) {
+        clearUserBadge();
+      } else {
+        selectUserBadge(badgeCode);
+      }
     }
 
     async function selectUserBadge(badgeCode) {
       if (!currentUser || !currentUserProfile) return;
+      const msgEl = document.getElementById("badge-sync-msg");
       currentUserProfile.selected_badge = badgeCode;
       currentUserProfile.show_badge = true;
       renderBadgePanel();
+
+      const found = BADGE_CATALOG.find(b => b.code === badgeCode);
+      const newLabel = found ? found.label : null;
+      msgEl.innerText = `배지 [${newLabel}] 적용 및 기존 방명록 동기화 중...`;
 
       await sb
         .from("user_profiles")
         .update({ selected_badge: badgeCode, show_badge: true, updated_at: new Date().toISOString() })
         .eq("user_id", currentUser.id);
+
+      const { error: gbErr } = await sb
+        .from("guestbook")
+        .update({ badge_label: newLabel })
+        .eq("user_id", currentUser.id);
+
+      if (gbErr) {
+        msgEl.innerText = "프로필 저장 완료 (기존 댓글 DB 반영을 위해 Supabase UPDATE RLS 정책을 실행해 주세요).";
+      } else {
+        msgEl.innerText = `기존에 작성한 모든 방명록 댓글에 [${newLabel}] 배지가 반영되었습니다.`;
+      }
+      await loadGuestbook();
     }
 
-    async function toggleBadgeVisibility() {
+    async function clearUserBadge() {
       if (!currentUser || !currentUserProfile) return;
-      const nextShow = !(currentUserProfile.show_badge !== false);
-      currentUserProfile.show_badge = nextShow;
+      const msgEl = document.getElementById("badge-sync-msg");
+      currentUserProfile.selected_badge = null;
+      currentUserProfile.show_badge = false;
       renderBadgePanel();
+
+      msgEl.innerText = "배지 선택 해제 및 기존 방명록 동기화 중...";
 
       await sb
         .from("user_profiles")
-        .update({ show_badge: nextShow, updated_at: new Date().toISOString() })
+        .update({ selected_badge: null, show_badge: false, updated_at: new Date().toISOString() })
         .eq("user_id", currentUser.id);
+
+      const { error: gbErr } = await sb
+        .from("guestbook")
+        .update({ badge_label: null })
+        .eq("user_id", currentUser.id);
+
+      if (gbErr) {
+        msgEl.innerText = "배지가 해제되었습니다 (기존 댓글 DB 반영을 위해 Supabase UPDATE RLS 정책을 실행해 주세요).";
+      } else {
+        msgEl.innerText = "배지가 해제되었으며 기존에 작성한 모든 방명록 댓글에서도 제거되었습니다.";
+      }
+      await loadGuestbook();
     }
 
     function getActiveBadgeLabelForPost() {
-      if (!currentUserProfile || currentUserProfile.show_badge === false) return null;
+      if (!currentUserProfile || currentUserProfile.show_badge === false || !currentUserProfile.selected_badge) {
+        return null;
+      }
       const found = BADGE_CATALOG.find(b => b.code === currentUserProfile.selected_badge);
       return found ? found.label : null;
     }
@@ -1650,7 +1733,7 @@
     }
 
     // =========================================================
-    // 5. GUESTBOOK (COOLDOWN + HONEYPOT + BADGES)
+    // 5. GUESTBOOK (COOLDOWN + HONEYPOT + RETROACTIVE BADGES)
     // =========================================================
     function startCooldownTimer(secondsRemaining) {
       const btn = document.getElementById("btn-post-gb");
@@ -1697,7 +1780,6 @@
 
       const isAdmin = currentUser && currentUser.email === ADMIN_EMAIL;
 
-      // 로그인한 사용자의 마지막 작성 시각으로 클라이언트 쿨다운 동기화
       if (currentUser) {
         const myLatest = data.find(r => r.user_id === currentUser.id);
         if (myLatest) {
@@ -1714,7 +1796,12 @@
           : row.author_email.split("@")[0];
         const isOwner = currentUser && currentUser.id === row.user_id;
         const canDelete = isAdmin || isOwner;
-        const badgeText = row.badge_label ? row.badge_label.trim() : "";
+
+        // 현재 로그인한 본인 글은 현재 프로필 배지 설정과 즉시 동기화하여 렌더링
+        let badgeText = row.badge_label ? row.badge_label.trim() : "";
+        if (isOwner && currentUserProfile) {
+          badgeText = getActiveBadgeLabelForPost() || "";
+        }
         const isArch = badgeText === "ARCHITECT";
 
         return `
@@ -1742,7 +1829,6 @@
       const inputEl = document.getElementById("gb-input");
       const hpVal = document.getElementById("gb-website-hp").value;
 
-      // 봇 허니팟 탐지
       if (hpVal) return;
 
       const authorName = nameEl.value.trim();
@@ -1774,7 +1860,6 @@
         return;
       }
 
-      // 활동 수 카운트 및 활동 배지 해금
       if (currentUserProfile) {
         const nextPosts = (currentUserProfile.post_count || 0) + 1;
         const unlocked = [...(currentUserProfile.unlocked_badges || ["guest", "chronicle"])];
@@ -1812,21 +1897,406 @@
     }
 
     // =========================================================
-    // 6. ADMIN TAB 05: WORK LOG (작업 일지 게시판)
+    // 6. FULL UNABRIDGED FALLBACK DATA FOR 05. REPORT SUB-TABS
     // =========================================================
+    const FALLBACK_MORNING_BRIEFS = [
+      {
+        id: 1,
+        brief_date: "2026-11-26",
+        headline: "2026-11-26 (목) 07:00 모닝 브리핑 — 프로젝트 아키텍처 심층 진단, 한·미 증시·포트폴리오 분석 및 평택시 날씨",
+        dev_strategy: `[A. 3D 조형 엔진 진단 및 인체 모델(.glb) 도입 시 4단계 파이프라인]
+1. 어제 작업의 핵심 교훈 (왜 인체 ASCII가 어색했는가)
+• Torus Knot은 수학적으로 연속된 단일 튜브 곡면이기 때문에 3D 호 길이(Arc-length) 기반 균일 샘플링과 법선 안쪽 오클루전(insetDepth = 0.020)이 완벽하게 맞아떨어졌습니다.
+• 반면 인체(Écorché)는 곡률 변화가 극심한 다중 파츠(근육 다발·골격·관절 홈)가 겹쳐 있어, 단일 점묘(THREE.Points) ASCII 방식으로는 근육의 결(Striation)과 경계가 뭉개질 수밖에 없었습니다. 매듭 조형을 ASCII 대표 아트워크로 고정한 결정은 기술적으로 정확했습니다.
+
+2. 3D 인체 모델 구매 결정 시 바로 실행할 4단계 파이프라인
+• ① 이중 렌더링 아키텍처 분리: 기존 buildTorusKnotData의 ASCII 셰이더는 그대로 두고, 상단 MODEL 선택지에 ANATOMY (.GLB) 버튼을 추가하여 모델 타입에 따라 THREE.Points(ASCII)와 THREE.GLTFLoader(PBR Mesh)를 전환하도록 분기합니다.
+• ② 모노크롬 스튜디오 셰이딩: 사이트의 순수 블랙(#000000) 정체성을 해치지 않도록 메쉬 재질에 MeshStandardMaterial(어두운 무광 차콜/본 컬러 + 림 라이트 DirectionalLight 2점 배치)을 적용합니다.
+• ③ 해부학 인터랙션 (Raycaster + 부위별 메타데이터): 마우스 호버/클릭 시 raycaster.intersectObjects()로 선택된 근육 메쉬 이름(mesh.name)을 추출해 좌측/하단 정보 카드에 한글·영문·한자 해부학 명칭, 기시(Origin), 정지(Insertion), 작용(Action)을 띄웁니다.
+• ④ 카메라 프리셋 & 레이어 컨트롤: 전신(FULL), 상체(UPPER), 하지(LOWER)로 targetPan과 targetCamZ가 부드럽게 보간(Lerp)되는 뷰 프리셋 버튼과 표층근/심층근 투명도(opacity) 슬라이더를 추가합니다.
+
+[B. 웹사이트(01~05 탭) 기능별 문제점 해결 및 발전 아이디어]
+• 방명록(guestbook) 보안 강화: Supabase PostgreSQL RLS(Row Level Security) 정책으로 동일 계정의 60초 쿨다운을 DB 레벨에서 강제하고, UI 허니팟 필드 및 배지 선택·해제·기존 댓글 소급 반영 시스템을 결합했습니다.
+• 아카이브(02. ARCHIVE) 관리 고도화: 관리자 계정 로그인 시 각 게시물 카드 우측 상단에서 제목·본문·이미지 교체가 가능한 수정 모달과 DB·Storage 동시 삭제 기능을 제공합니다. 향후 게시물 누적 시 #EXHIBITION, #ANATOMY, #DEV, #STUDY 태그 필터링 및 라이트박스 상세 모달로 확장합니다.
+• 모바일·iPad 터치 제스처 보완: #anatomy-stage에 단일 터치 회전 및 두 손가락 핀치 줌 이벤트를 탑재했습니다.
+
+[C. '작업 일지' 구축 플랫폼 비교 및 실전 하이브리드 구조]
+• 수치·자산·자동화 상태(작업 일지 + 주식 잔고): busychronicler7800.com의 Supabase DB(work_logs, morning_briefings)를 단일 원본(Single Source of Truth)으로 삼아 웹사이트 관리자 탭(05. REPORT)에서 열람·관리합니다.
+• 물리치료학 전공 심화 노트·사진 아카이브: 기존에 사용 중인 Notion에 누적하고, 핵심 완료 마일스톤만 작업 일지에 요약 기록합니다.
+
+[D. 키움증권 보유 잔고 및 일일 분할 매수 내역 자동화 해결책]
+• 트랙 A — 키움 REST API + GitHub Actions 파이썬 연동 (매일 16:05 & 07:05 실행): OAuth2 접근 토큰을 자동 발급받아 국내 중개형 ISA 계좌(KODEX 미국S&P500, TIME 미국나스닥100액티브, KODEX 미국배당커버드콜)의 보유 수량, 매입단가, 평가손익, 예수금을 직접 조회해 Supabase에 적재합니다.
+• 트랙 B — 키움 체결 알림 이메일 자동 파싱 (해외 위탁종합 추적): 영웅문S#에서 매수 체결 알림 이메일 수신을 활성화해 두면, 파이썬 스크립트가 매일 새벽 kangsihoo0530@gmail.com의 신규 체결 내역을 정규표현식으로 파싱해 매일 분할 매수되는 QLD, JEPQ 및 GOOGL의 수량·평단가·적용 환율을 자동 가산·재계산합니다.
+• 트랙 C — Google Sheets 마스터 시트 병행: 시트 수식과 장기 원장 백업용으로 병행 활용합니다.`,
+
+        market_summary: `[1. 전체 시장 및 주요 지수 흐름 (11/25 전일 마감 기준)]
+• 미국 S&P 500: 7,182.78 (-0.25%) — 장중 낙폭 확대 후 저가 매수세 유입으로 강보합권 회복
+• 미국 나스닥 종합: 23,585.80 (-0.62%) — 장중 -4.6% 급락 후 낙폭 대부분 만회하며 하방 경직성 확인
+• 미국 다우존스 30: 50,182.95 (+0.33%) — 기술주 차익 실현 자금이 가치주·경기방어주로 순환매 유입
+• 미 국채 10년물 / VIX: 4.836% (-1.35%) / 27.08 (+12.94%) — 국채 금리는 4.8%대로 진정됐으나 VIX(공포지수)는 27선으로 급등
+• 한국 코스피 / 코스닥: 4,697.51 (-6.16%) / 650.64 (-2.29%) — 외국인 대규모 순매도(약 1.9조 원) 및 반도체 대형주 약세 여파로 급락, 투자자 예탁금은 82조 원 수준으로 축소
+• 원/달러 환율: 1,343.2원 (+0.8원) — 위험회피 심리 속에 1,340원대 초반에서 제한적 상승 마감
+
+[2. 특이사항 발생 주요 종목 체크]
+• 엔비디아 (NVDA, -3.91%): 장중 9% 넘게 급락했다가 저가 매수세로 낙폭을 절반 이상 줄였으나, S&P 글로벌 신용평가사의 신용등급 강등 검토 및 미 의회 청문회·SEC 조사 불확실성이 단기 변동성 요인으로 작용 중입니다.
+• 삼성전자 (-9.87%): 메모리 업황 둔화 우려와 외국인 수급 이탈이 집중되며 국내 지수 급락을 주도했습니다.
+
+[3. 보유 및 매수 고려 종목 심층 분석 (2026-11-26 임시 잔고 기준)]
+전체 합산: 총 매입원금 12,757,240원 / 총 평가금액 9,826,179원 (평가손익 -2,931,061원, 수익률 -22.98%)
+
+• 해외 위탁종합 계좌 (총 매입 8,924,970원 / 평가 6,929,834원 / -22.79%):
+  1) 알파벳 A (GOOGL | 8주 | 매입 $2,710.54 · 평단 $338.82 | 평가 $2,121.68 · 현재 ~$265.21~273.10 | -22.17%):
+     전일 정규장에서 AI 투자 심리 위축 속에 -2.13%($273.10) 하락 마감 후 시간외 소폭 반등했습니다. 52주 최고가($408.61) 대비 큰 폭으로 조정받은 구간이며 PER 14.3배 수준으로 밸류에이션 매력이 높아졌습니다. VIX가 27을 상회하는 고변동성 구간이므로 신규 추가 매수는 한 번에 진입하기보다 2~3회 분할 매수로 평단가를 낮추는 전략이 유효합니다.
+  2) QLD (ProShares Ultra QQQ | 27주 | 매입 $2,359.34 · 평단 $87.38 | 평가 $1,701.21 · 현재 $63.01 | -28.32% — 매일 분할 매수 중):
+     나스닥 100 일간 2배 레버리지 상품 특성상 장중 4%대 급락과 반등이 반복되는 장세에서는 음의 복리(변동성 끌림) 영향이 커집니다. 매일 일정 금액 분할 매수는 평단 하락에 유리하나, VIX 25 이상 구간에서는 매수 비중을 평시대로 유지해 현금 여력을 관리하는 것이 중요합니다.
+  3) JEPQ (26주 | 매입 $1,558.40 · 평단 $59.94 | 평가 $1,323.66 · 현재 $50.91 | -15.52% — 매일 분할 매수 중):
+     나스닥 100 커버드콜 ETF로, VIX가 27선으로 급등한 변동성 확대 구간에서는 옵션 프리미엄 수취 규모가 커져 월 분배금 방어력이 높아집니다. 포트폴리오 내 하방 완충 및 현금흐름 역할을 충실히 수행 중입니다.
+
+• 국내 중개형 ISA 계좌 (총 매입 3,832,270원 / 평가 2,896,345원 / -24.45%):
+  4) KODEX 미국S&P500 (39주 | 매입가 24,334원 | 현재가 21,570원 | -11.38%): 다우·가치주 순환매 덕분에 나스닥 대비 양호한 방어력을 유지 중입니다.
+  5) TIME 미국나스닥100액티브 (62주 | 매입가 46,311원 | 현재가 32,965원 | -28.84%): 액티브 비중이 높아 빅테크·AI 조정 폭을 크게 반영했으나, ISA 비과세·손익통산 혜택에 맞춰 기존 적립 리듬을 유지하는 것이 유리합니다.
+  6) KODEX 미국배당커버드콜 (1주 | 매입가 11,975원 | 현재가 11,285원 | -5.76%): 배당 방어형 자산으로 소량 보유 중입니다.`,
+
+        news_weather: `[지난 하루 주요 경제·IT 뉴스 및 특이사항]
+• AI 인프라 투자 비용·수익성 논란 재점화로 뉴욕증시 롤러코스터 장세: 젠슨 황 엔비디아 CEO 복귀 직후 급등했던 AI·반도체 섹터에서 대규모 차입 기반 AI 인프라 투자 부담과 수익화 속도에 대한 우려가 다시 부각되며 장중 큰 폭의 변동성이 나타났습니다.
+• S&P 글로벌 신용평가사가 엔비디아의 경영·지배구조 평가 악화를 이유로 신용등급 강등 검토에 착수했다는 소식과 미 의회 청문회·SEC 조사 등 불확실성이 겹치며 반도체 전반의 차익 실현 매물을 자극했습니다.
+• 25일 국내 증시는 외국인 대규모 순매도(약 1.9조 원)와 반도체 대형주 약세 여파로 코스피가 6% 넘게 급락하며 4,700선 아래로 밀려났고, 투자자 예탁금도 82조 원 수준으로 축소되며 변동성이 확대된 상태입니다.
+
+[경기도 평택시 오늘의 날씨 예보 (11월 26일 목요일)]
+• 기온 및 하늘 상태: 아침 기온 5°C(구름 많음)에서 오전 8시부터 맑아져 낮 최고기온은 15°C(오후 1시~3시)까지 오르겠습니다. 최저 5°C / 최고 15°C로 일교차가 10°C로 크게 벌어집니다.
+• 강수 및 바람: 오늘 낮 동안 강수 확률은 낮고 대체로 맑겠으며, 바람은 남서풍이 시속 약 4~11 mph(초속 2~5m) 수준으로 불겠습니다.
+• 주간 기상 특이점: 내일(27일, 금)까지는 낮 최고 17°C로 온화하지만, 토요일(28일)에는 비 예보(강수확률 80%)와 함께 낮 최고기온이 10°C, 일요일(29일)에는 9°C까지 떨어지며 급격히 추워질 전망이니 주말 외출 시 보온에 유의하시기 바랍니다.`,
+
+        exhibition_picks: `[주간 서울·수도권 추천 전시 (매주 월요일 07:00 정기 갱신)]
+• 매주 월요일 오전 7시 정기 스케줄에 맞춰 서울 및 수도권 중심의 무료 전시회와 주요 유료 기획 전시회(전시명, 장소, 기간, 관람 포인트)가 엄선되어 이곳에 자동 업데이트됩니다.`,
+
+        portfolio_snapshot: {
+          total_buy_krw: 12757240,
+          total_eval_krw: 9826179,
+          total_return_pct: -22.98,
+          us_eval_krw: 6929834,
+          us_return_pct: -22.79,
+          kr_eval_krw: 2896345,
+          kr_return_pct: -24.45,
+          history: [
+            { date: "11-26", buy: 1276, eval: 983 }
+          ],
+          holdings: [
+            { ticker: "GOOGL", eval_man: 286, return_pct: -22.17 },
+            { ticker: "QLD", eval_man: 229, return_pct: -28.32 },
+            { ticker: "TIME 나스닥100", eval_man: 204, return_pct: -28.84 },
+            { ticker: "JEPQ", eval_man: 178, return_pct: -15.52 },
+            { ticker: "KODEX S&P500", eval_man: 84, return_pct: -11.38 },
+            { ticker: "KODEX 배당커버드콜", eval_man: 1, return_pct: -5.76 }
+          ]
+        }
+      }
+    ];
+
+    const FALLBACK_DAILY_REVIEWS = [
+      {
+        id: 1,
+        review_date: "2026-11-26",
+        headline: "3D 웹 아트 단독화, 항공권 알림 안정화 및 웹사이트 통합 리포트 허브 구축 완료",
+        achievements: `1. 3D 웹 아트(busychronicler7800.com) 정리 및 최적화
+• 곡률 대비 어색하게 렌더링되던 에코르셰(인체 모형) 코드와 UI를 완전히 제거하고, 3D 호 길이 균일 샘플링 및 오클루전 메쉬가 적용된 Torus Knot(매듭 조형) ASCII 아트 단독 구조로 깔끔하게 정돈했습니다.
+• iPad 및 모바일 터치 드래그 회전·핀치 줌 제스처를 추가했습니다.
+
+2. 항공권 알림 워크플로우 해결
+• 기존에 걸려 있던 항공권 자동 알림 관련 이슈를 매듭짓고 정상 가동 상태로 안정화했습니다.
+
+3. 정기 리포트 및 웹사이트 관리자 허브(05. REPORT) 구축
+• 매일 00:00(오늘의 정리), 매일 00:30(작업 일지), 매일 07:00(모닝 브리핑), 매주 월요일 07:00(서울·수도권 전시 추천) 정기 루틴을 정립했습니다.
+• 상단 네비게이션을 05. REPORT 단일 탭으로 통합하고 내부에서 모닝 브리핑 · 분석 리포트 · 작업 일지를 분기해 원본 전문을 열람할 수 있도록 구현했습니다.
+• 방명록 60초 쿨다운, 허니팟 봇 차단, 선택·해제 및 기존 댓글 소급 반영 배지 시스템, 아카이브 관리자 수정/삭제 모달을 완성했습니다.`,
+
+        insights: `• 선택과 집중의 효과: 억지로 한 엔진에 모든 3D 형태(기하학 매듭 + 다중 파츠 인체)를 끼워 맞추려던 방향을 과감히 접고, 기하학 조형을 먼저 완성도 있게 고정한 덕분에 코드 복잡도가 크게 줄고 결과물의 시각적 밀도가 살아났습니다.
+• 리포트 단일 원본(SSOT) 확보: 제미나이 대화창에 흩어지던 분석 리포트와 작업 일지를 웹사이트 내 관리자 전용 탭과 Supabase DB에 직접 누적하도록 설계하여 장기 추적성과 가독성을 확보했습니다.`,
+
+        next_priorities: `1. Supabase SQL Editor에서 방명록 UPDATE RLS 정책 및 신규 테이블(user_profiles, work_logs, daily_reviews, morning_briefings) 실행 확인
+2. 3D 인체(Écorché) 모델 구매 여부 최종 결정 (구매 확정 시 기존 ASCII 엔진과 분리된 GLTFLoader 기반 .glb 뷰어 및 해부학 Raycaster 인터랙션 구현)
+3. 2단계 자동화 파이프라인 구축: GitHub Actions + 키움 REST API / 체결 알림 메일 파서 + Gemini API를 연결해 매일 정해진 시각에 Supabase DB로 리포트와 잔고 스냅샷 자동 적재`
+      }
+    ];
+
     const FALLBACK_WORK_LOGS = [
       {
         id: 1,
         log_date: "2026-11-26",
-        title: "3D 매듭 조형 단독화 · 방명록 배지/쿨다운 및 관리자 3대 리포트 탭 구축",
+        title: "웹 정비(Torus Knot 단독화 · 방명록 배지 소급 반영 · 05. REPORT 통합 허브) 및 정기 자동화 체계 구축",
         status_type: "ACTIVE",
-        tools: ["Gemini 4 Hydrogen", "Three.js", "Supabase", "GitHub", "Chart.js"],
-        completed_summary: "• 기존 에코르셰(인체 모형) 코드 제거 후 Torus Knot ASCII 조형 단독 엔진 고정\n• 방명록 60초 RLS 쿨다운, 허니팟 봇 차단, 사용자 선택형 배지 시스템 구현\n• 아카이브 관리자 수정/삭제 모달 및 관리자 전용 WORK LOG / DAILY REVIEW / MORNING BRIEF 탭 신설",
-        active_pipelines: "• 항공권 자동 트래킹 (GitHub Actions 스케줄러 정상 가동 중)\n• 키움증권 해외 위탁(GOOGL 8주, QLD 27주, JEPQ 26주) & 국내 ISA(KODEX 미국S&P500 39주, TIME 미국나스닥100액티브 62주, KODEX 미국배당커버드콜 1주) 추적 파이프라인 설계 완료",
-        problem_analysis: "• 문제점: 수동 캡처 기반 잔고 입력의 번거로움 및 제미나이 대화창 내 리포트 혼재\n• 해결책: 웹사이트 내 관리자 전용 탭 분리 완료. 2단계로 GitHub Actions + 키움 REST API/체결 메일 파서를 연결해 완전 자동 적재로 전환 예정"
+        tools: ["Gemini 4 Hydrogen", "Three.js", "Supabase", "GitHub Actions", "Vercel", "Chart.js"],
+        completed_summary: `• 26. 11. 26 (목) 완료 작업 요약
+  1. 개인 웹사이트(busychronicler7800.com) 및 3D 조형 코드 정비: 기존 에코르셰(인체 모형) 데이터·메쉬 생성·용어 전환 UI 제거 후 순수 3D 매듭 조형(TORUS KNOT) ASCII 렌더링 구조로 단독 최적화, 모바일/iPad 터치·핀치 줌 지원 추가.
+  2. 상단 네비게이션 슬림화 및 05. REPORT 통합 허브 구축: 관리자 전용 메뉴를 05. REPORT 하나로 통합하고 내부에 [모닝 브리핑 / 분석 리포트 / 작업 일지] 3분할 서브 탭 및 원본 전문 뷰어 구현.
+  3. 방명록 보안 및 배지 고도화: DB RLS 기반 60초 쿨다운, 허니팟 봇 차단, 사용자 선택·해제(NONE) 배지 시스템 및 선택 변경 시 과거 작성 방명록 일괄 소급 반영 구현.
+  4. 아카이브 관리자 제어 기능: 게시물 제목·본문·이미지 교체 모달(EDIT) 및 DB·Storage 동시 삭제(DELETE) 구현.
+  5. 정기 리포트 루틴 및 키움증권 포트폴리오 기준 스냅샷 등록 완료.`,
+
+        active_pipelines: `1. 항공권 자동 트래킹 서비스
+• 구동 방식: GitHub Actions 스케줄러(.yml 매일 09:00, 15:00, 21:00 실행) 및 개인 웹사이트 연동 워크플로우.
+• 현재 상태: 주요 오류 해결 완료 후 정상 가동 중.
+
+2. 개인 웹사이트 및 3D 조형 아트워크 (busychronicler7800.com)
+• 구동 방식: Three.js WebGL 3D 호 길이 균일 샘플링 ASCII 엔진 + Supabase(인증·아카이브·방명록·관리자 리포트 DB) + Vercel 프록시 및 GitHub Pages 호스팅.
+• 현재 상태: TORUS KNOT ASCII 조형 1차 완성 및 고정 완료. 향후 3D 인체 에코르셰(.glb) 모델 구매 여부 결정 후 GLTFLoader 별도 뷰어 확장 예정.
+
+3. 키움증권 정기 투자 및 보유 현황 (2026-11-26 임시 기준)
+• 해외 위탁종합 계좌 (총 매입 8,924,970원 / 평가 6,929,834원 / -22.79%):
+  - GOOGL (알파벳 A): 8주 | 매입 $2,710.54 (평단 $338.82) | 평가 $2,121.68 (현재 ~$265.21) | -22.17% | 추가 분할 매수 고려 중
+  - QLD (ProShares Ultra QQQ): 27주 | 매입 $2,359.34 (평단 $87.38) | 평가 $1,701.21 (현재 $63.01) | -28.32% | 매일 분할 매수 진행 중
+  - JEPQ (JPMorgan Nasdaq Equity Premium Income): 26주 | 매입 $1,558.40 (평단 $59.94) | 평가 $1,323.66 (현재 $50.91) | -15.52% | 매일 분할 매수 진행 중
+• 국내 중개형 ISA 계좌 (총 매입 3,832,270원 / 평가 2,896,345원 / -24.45%):
+  - KODEX 미국S&P500: 39주 | 매입가 24,334원 | 현재가 21,570원 | -11.38% | 정기 적립식 모으기
+  - TIME 미국나스닥100액티브: 62주 | 매입가 46,311원 | 현재가 32,965원 | -28.84% | 정기 적립식 모으기
+  - KODEX 미국배당커버드콜: 1주 | 매입가 11,975원 | 현재가 11,285원 | -5.76% | 보유 중`,
+
+        problem_analysis: `[문제점 진단 및 향후 해결책]
+• 문제점 1: 키움증권 일일 분할 매수 체결 내역 및 계좌 평가금액이 현재 수동 캡처 기준값으로 입력되어 있음.
+• 해결책 1: 2단계 작업으로 GitHub Actions에 키움 REST API(국내 ISA 잔고 조회)와 영웅문S# 체결 알림 이메일 파서(해외 위탁 QLD·JEPQ·GOOGL 수량·평단 자동 합산)를 연동하여 매일 새벽 Supabase에 자동 적재.
+• 문제점 2: 휴가나 외부 일정으로 웹사이트 작업을 쉬는 날(비작업일)에도 기록의 연속성이 끊기지 않아야 함.
+• 해결책 2: 비작업일에는 상태 플래그를 REST로 자동 기록하되, 기존 시스템 상태 점검과 다음 작업일 우선순위 해결책은 매일 동일하게 생성하여 게시판에 누적.
+
+[학습 및 성취 아카이브]
+• 전공 및 학술 활동 (가천대학교 물리치료학과 2학년 / 군 휴학 중): 군 e러닝 학점 이수 과정(「기업과 경영의 역사」 중간 과제 완료, 취약계층 지원 경제학 에세이 작성) 및 향후 물리치료학 해부학·임상 공부 기록 누적 예정.
+• 자격증 및 직무 역량: ITQ(한국생산성본부) 시험 이수 완료, KIRD 온라인 안전교육 수료, 컴퓨터활용능력 2급 실기(iPad–홈 PC 원격 데스크톱 환경) 대비 학습 진행 중.
+• 구축 완료 인프라: Windows 11 홈 데스크톱(서후컴)–iPad Pro Moonlight 원격 스트리밍, DuckDNS, Tuya 게이트웨이 & Fingerbot 원격 부팅 시스템, Notion 연대기 아카이브.`
       }
     ];
 
+    // =========================================================
+    // 7. SUB-PANEL 1: MORNING BRIEF & PORTFOLIO CHARTS
+    // =========================================================
+    async function loadMorningBriefs() {
+      if (!currentUser || currentUser.email !== ADMIN_EMAIL) return;
+      const { data, error } = await sb
+        .from("morning_briefings")
+        .select("*")
+        .order("brief_date", { ascending: false });
+
+      cachedMorningBriefs = (error || !data || data.length === 0) ? FALLBACK_MORNING_BRIEFS : data;
+
+      const selectEl = document.getElementById("brief-date-select");
+      selectEl.innerHTML = cachedMorningBriefs.map(b =>
+        `<option value="${escapeHtml(b.brief_date)}">${escapeHtml(b.brief_date)}</option>`
+      ).join("");
+
+      selectMorningBrief(cachedMorningBriefs[0].brief_date);
+    }
+
+    function selectMorningBrief(dateStr) {
+      const brief = cachedMorningBriefs.find(b => b.brief_date === dateStr) || cachedMorningBriefs[0];
+      if (!brief) return;
+
+      document.getElementById("brief-headline").innerText = brief.headline || "";
+
+      const snap = brief.portfolio_snapshot || FALLBACK_MORNING_BRIEFS[0].portfolio_snapshot;
+      const pnlKrw = (snap.total_eval_krw || 0) - (snap.total_buy_krw || 0);
+
+      document.getElementById("portfolio-kpi-grid").innerHTML = `
+        <div class="kpi-card">
+          <div class="kpi-label">TOTAL EVALUATION (총 평가금액)</div>
+          <div class="kpi-val">${Number(snap.total_eval_krw || 0).toLocaleString("ko-KR")}원</div>
+          <div class="kpi-sub">매입 ${Number(snap.total_buy_krw || 0).toLocaleString("ko-KR")}원</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">TOTAL P&L (총 평가손익)</div>
+          <div class="kpi-val">${pnlKrw >= 0 ? "+" : ""}${pnlKrw.toLocaleString("ko-KR")}원</div>
+          <div class="kpi-sub">수익률 ${Number(snap.total_return_pct || 0).toFixed(2)}%</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">US ACCOUNT (해외 위탁종합)</div>
+          <div class="kpi-val">${Number(snap.us_eval_krw || 0).toLocaleString("ko-KR")}원</div>
+          <div class="kpi-sub">수익률 ${Number(snap.us_return_pct || 0).toFixed(2)}%</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">KR ISA ACCOUNT (중개형 ISA)</div>
+          <div class="kpi-val">${Number(snap.kr_eval_krw || 0).toLocaleString("ko-KR")}원</div>
+          <div class="kpi-sub">수익률 ${Number(snap.kr_return_pct || 0).toFixed(2)}%</div>
+        </div>
+      `;
+
+      renderPortfolioCharts(snap);
+
+      document.getElementById("brief-sections-grid").innerHTML = `
+        <div class="brief-card">
+          <h3>01. PROJECT STRATEGY & ARCHITECTURE (프로젝트 진단 · 작업 일지 · 키움 자동화 설계)</h3>
+          <div class="brief-text">${escapeHtml(brief.dev_strategy || "")}</div>
+        </div>
+        <div class="brief-card">
+          <h3>02. MARKET & PORTFOLIO DEEP DIVE (한·미 증시 · 특이 종목 · 보유 종목 심층 분석)</h3>
+          <div class="brief-text">${escapeHtml(brief.market_summary || "")}</div>
+        </div>
+        <div class="brief-card">
+          <h3>03. MACRO NEWS & PYEONGTAEK WEATHER (주요 뉴스 및 경기도 평택시 날씨 예보)</h3>
+          <div class="brief-text">${escapeHtml(brief.news_weather || "")}</div>
+        </div>
+        <div class="brief-card">
+          <h3>04. WEEKLY EXHIBITION PICKS (서울·수도권 추천 전시)</h3>
+          <div class="brief-text">${escapeHtml(brief.exhibition_picks || "")}</div>
+        </div>
+      `;
+    }
+
+    function renderPortfolioCharts(snap) {
+      Object.values(chartInstances).forEach(ch => ch && ch.destroy());
+      chartInstances = {};
+
+      const history = snap.history || [{ date: "11-26", buy: 1276, eval: 983 }];
+      const holdings = snap.holdings || [];
+
+      const commonGrid = { color: "#1f1f1f" };
+      const commonTicks = { color: "#888888", font: { family: "JetBrains Mono, monospace", size: 11 } };
+
+      chartInstances.trajectory = new Chart(document.getElementById("chart-trajectory"), {
+        type: "line",
+        data: {
+          labels: history.map(h => h.date),
+          datasets: [
+            {
+              label: "총 매입원금 (만원)",
+              data: history.map(h => h.buy),
+              borderColor: "#666666",
+              borderDash: [5, 5],
+              borderWidth: 2,
+              pointRadius: 4,
+              pointBackgroundColor: "#666666",
+              tension: 0.2
+            },
+            {
+              label: "총 평가금액 (만원)",
+              data: history.map(h => h.eval),
+              borderColor: "#ffffff",
+              backgroundColor: "rgba(255,255,255,0.08)",
+              borderWidth: 2,
+              pointRadius: 5,
+              pointBackgroundColor: "#ffffff",
+              fill: true,
+              tension: 0.2
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { labels: { color: "#cccccc" } } },
+          scales: { x: { grid: commonGrid, ticks: commonTicks }, y: { grid: commonGrid, ticks: commonTicks } }
+        }
+      });
+
+      chartInstances.allocation = new Chart(document.getElementById("chart-allocation"), {
+        type: "doughnut",
+        data: {
+          labels: holdings.map(h => h.ticker),
+          datasets: [{
+            data: holdings.map(h => h.eval_man),
+            backgroundColor: ["#ffffff", "#cccccc", "#999999", "#666666", "#404040", "#222222"],
+            borderColor: "#000000",
+            borderWidth: 2
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: "right", labels: { color: "#cccccc", font: { size: 11 } } } }
+        }
+      });
+
+      chartInstances.returns = new Chart(document.getElementById("chart-returns"), {
+        type: "bar",
+        data: {
+          labels: holdings.map(h => h.ticker),
+          datasets: [{
+            label: "수익률 (%)",
+            data: holdings.map(h => h.return_pct),
+            backgroundColor: holdings.map(h => h.return_pct >= 0 ? "#ffffff" : "#777777"),
+            borderColor: "#ffffff",
+            borderWidth: 1
+          }]
+        },
+        options: {
+          indexAxis: "y",
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { x: { grid: commonGrid, ticks: commonTicks }, y: { grid: commonGrid, ticks: commonTicks } }
+        }
+      });
+    }
+
+    // =========================================================
+    // 8. SUB-PANEL 2: DAILY REVIEW (분석 리포트 / 오늘의 정리)
+    // =========================================================
+    function toggleDailyReviewComposer() {
+      const box = document.getElementById("dailyreview-composer");
+      const isHidden = box.style.display === "none";
+      box.style.display = isHidden ? "block" : "none";
+      if (isHidden && !document.getElementById("dr-date").value) {
+        document.getElementById("dr-date").value = getTodayKST();
+      }
+    }
+
+    async function loadDailyReviews() {
+      if (!currentUser || currentUser.email !== ADMIN_EMAIL) return;
+      const listEl = document.getElementById("dailyreview-list");
+      const { data, error } = await sb
+        .from("daily_reviews")
+        .select("*")
+        .order("review_date", { ascending: false });
+
+      const rows = (error || !data || data.length === 0) ? FALLBACK_DAILY_REVIEWS : data;
+
+      listEl.innerHTML = rows.map(r => `
+        <div class="brief-card" style="margin-bottom:20px;">
+          <div class="archive-meta" style="margin-bottom:6px;">${escapeHtml(r.review_date)} · 00:00 DAILY REVIEW</div>
+          <div style="font-size:0.98rem; font-weight:700; margin-bottom:16px;">${escapeHtml(r.headline)}</div>
+          <div class="log-detail-block">
+            <h3>ACHIEVEMENTS / 오늘 완료한 주요 작업</h3>
+            <div class="brief-text">${escapeHtml(r.achievements || "")}</div>
+          </div>
+          <div class="log-detail-block">
+            <h3>INSIGHTS / 핵심 리뷰 및 인사이트</h3>
+            <div class="brief-text">${escapeHtml(r.insights || "")}</div>
+          </div>
+          <div class="log-detail-block">
+            <h3>NEXT PRIORITIES / 다음 우선순위 과제</h3>
+            <div class="brief-text">${escapeHtml(r.next_priorities || "")}</div>
+          </div>
+        </div>
+      `).join("");
+    }
+
+    async function saveDailyReview() {
+      if (!currentUser || currentUser.email !== ADMIN_EMAIL) return;
+      const reviewDate = document.getElementById("dr-date").value;
+      const headline = document.getElementById("dr-headline").value.trim();
+      const achievements = document.getElementById("dr-achievements").value.trim();
+      const insights = document.getElementById("dr-insights").value.trim();
+      const nextPriorities = document.getElementById("dr-priorities").value.trim();
+      const msgEl = document.getElementById("dr-msg");
+
+      if (!reviewDate || !headline) { msgEl.innerText = "날짜와 제목을 입력하세요."; return; }
+      msgEl.innerText = "SAVING...";
+
+      const { error } = await sb.from("daily_reviews").upsert({
+        review_date: reviewDate,
+        headline,
+        achievements,
+        insights,
+        next_priorities: nextPriorities
+      }, { onConflict: "review_date" });
+
+      if (error) {
+        msgEl.innerText = "ERROR : " + error.message;
+      } else {
+        msgEl.innerText = "SAVED.";
+        loadDailyReviews();
+      }
+    }
+
+    // =========================================================
+    // 9. SUB-PANEL 3: WORK LOG (작업 일지 게시판)
+    // =========================================================
     function toggleWorkLogComposer() {
       const box = document.getElementById("worklog-composer");
       const isHidden = box.style.display === "none";
@@ -1888,15 +2358,15 @@
             </div>
             <div class="log-board-body">
               <div class="log-detail-block">
-                <h3>COMPLETED WORK / 변경 사항</h3>
+                <h3>1. COMPLETED WORK / 일자별 작업 기록</h3>
                 <div class="log-detail-content">${escapeHtml(item.completed_summary || "기록 없음")}</div>
               </div>
               <div class="log-detail-block">
-                <h3>ACTIVE AUTOMATIONS & PORTFOLIO / 실행 중인 작업</h3>
+                <h3>2. ACTIVE AUTOMATIONS & PORTFOLIO / 실행 중인 자동화 및 투자 현황</h3>
                 <div class="log-detail-content">${escapeHtml(item.active_pipelines || "기록 없음")}</div>
               </div>
               <div class="log-detail-block">
-                <h3>DIAGNOSIS & NEXT SOLUTIONS / 문제점 분석 및 해결책</h3>
+                <h3>3. DIAGNOSIS, SOLUTIONS & STUDY ARCHIVE / 문제점 분석 및 학습·성취 기록</h3>
                 <div class="log-detail-content">${escapeHtml(item.problem_analysis || "기록 없음")}</div>
               </div>
             </div>
@@ -1938,282 +2408,6 @@
       }
     }
 
-    // =========================================================
-    // 7. ADMIN TAB 06: DAILY REVIEW (00:00 오늘의 정리)
-    // =========================================================
-    const FALLBACK_DAILY_REVIEWS = [
-      {
-        id: 1,
-        review_date: "2026-11-26",
-        headline: "웹사이트 아키텍처 정비 및 자동 리포트 웹 통합 1단계 완료",
-        achievements: "• 3D Torus Knot ASCII 뷰어 단독화 및 모바일 터치 제스처 보완\n• Supabase DB 스키마(user_profiles, work_logs, daily_reviews, morning_briefings) 및 RLS 보안 정책 설계\n• 키움증권 해외 위탁 및 국내 ISA 계좌 기준 스냅샷 정립",
-        insights: "• 복잡한 3D 인체 모델과 ASCII 점묘 엔진을 억지로 결합하지 않고 분리한 덕분에 코드 유지보수성과 시각적 완성도가 크게 향상됨\n• 리포트 데이터를 채팅창이 아닌 웹사이트 관리자 탭에 누적함으로써 장기 기록 검색성이 확보됨",
-        next_priorities: "1. Supabase SQL Editor에서 신규 테이블 및 RLS 정책 실행\n2. GitHub Actions + 키움증권 REST API / 체결 메일 파서 연동(2단계) 착수\n3. 3D 인체 에코르셰(.glb) 모델 구매 최종 결정"
-      }
-    ];
-
-    function toggleDailyReviewComposer() {
-      const box = document.getElementById("dailyreview-composer");
-      const isHidden = box.style.display === "none";
-      box.style.display = isHidden ? "block" : "none";
-      if (isHidden && !document.getElementById("dr-date").value) {
-        document.getElementById("dr-date").value = getTodayKST();
-      }
-    }
-
-    async function loadDailyReviews() {
-      if (!currentUser || currentUser.email !== ADMIN_EMAIL) return;
-      const listEl = document.getElementById("dailyreview-list");
-      const { data, error } = await sb
-        .from("daily_reviews")
-        .select("*")
-        .order("review_date", { ascending: false });
-
-      const rows = (error || !data || data.length === 0) ? FALLBACK_DAILY_REVIEWS : data;
-
-      listEl.innerHTML = rows.map(r => `
-        <div class="brief-card" style="margin-bottom:16px;">
-          <div class="archive-meta" style="margin-bottom:6px;">${escapeHtml(r.review_date)} · 00:00 DAILY REVIEW</div>
-          <div style="font-size:0.95rem; font-weight:700; margin-bottom:14px;">${escapeHtml(r.headline)}</div>
-          <div class="log-detail-block">
-            <h3>ACHIEVEMENTS / 오늘 완료한 일</h3>
-            <div class="brief-text">${escapeHtml(r.achievements || "")}</div>
-          </div>
-          <div class="log-detail-block">
-            <h3>INSIGHTS / 핵심 리뷰 및 개선점</h3>
-            <div class="brief-text">${escapeHtml(r.insights || "")}</div>
-          </div>
-          <div class="log-detail-block">
-            <h3>NEXT PRIORITIES / 다음 우선순위</h3>
-            <div class="brief-text">${escapeHtml(r.next_priorities || "")}</div>
-          </div>
-        </div>
-      `).join("");
-    }
-
-    async function saveDailyReview() {
-      if (!currentUser || currentUser.email !== ADMIN_EMAIL) return;
-      const reviewDate = document.getElementById("dr-date").value;
-      const headline = document.getElementById("dr-headline").value.trim();
-      const achievements = document.getElementById("dr-achievements").value.trim();
-      const insights = document.getElementById("dr-insights").value.trim();
-      const nextPriorities = document.getElementById("dr-priorities").value.trim();
-      const msgEl = document.getElementById("dr-msg");
-
-      if (!reviewDate || !headline) { msgEl.innerText = "날짜와 제목을 입력하세요."; return; }
-      msgEl.innerText = "SAVING...";
-
-      const { error } = await sb.from("daily_reviews").upsert({
-        review_date: reviewDate,
-        headline,
-        achievements,
-        insights,
-        next_priorities: nextPriorities
-      }, { onConflict: "review_date" });
-
-      if (error) {
-        msgEl.innerText = "ERROR : " + error.message;
-      } else {
-        msgEl.innerText = "SAVED.";
-        loadDailyReviews();
-      }
-    }
-
-    // =========================================================
-    // 8. ADMIN TAB 07: MORNING BRIEF & CHARTS (07:00 브리핑)
-    // =========================================================
-    const FALLBACK_MORNING_BRIEFS = [
-      {
-        id: 1,
-        brief_date: "2026-11-26",
-        headline: "2026-11-26 : AI 인프라 변동성 확대 속 포트폴리오 리스크 점검 및 웹 1단계 구축",
-        dev_strategy: "• 현재 진행 방향: 웹사이트 내 관리자 전용 탭(WORK LOG / DAILY REVIEW / MORNING BRIEF) 구축 완료.\n• 다음 단계(2단계): GitHub Actions에서 매일 00:00, 00:30, 07:00에 자동 실행되는 파이썬 스크립트를 통해 Supabase DB에 리포트와 키움증권 잔고 스냅샷을 직접 적재하도록 연결합니다.",
-        market_summary: "• 미국 증시: S&P 500 7,182.78(-0.25%), 나스닥 23,585.80(-0.62%), 다우 50,182.95(+0.33%), VIX 27.08(+12.94%).\n• 한국 증시: 코스피 4,697.51(-6.16%), 코스닥 650.64(-2.29%), 원/달러 1,343.2원.\n• 보유 종목 점검: VIX 27선 고변동성 구간에서 QLD(-28.32%)는 정액 분할 매수 리듬을 유지해 평단을 낮추고, JEPQ(-15.52%)는 높은 옵션 프리미엄으로 하방을 완충 중입니다. GOOGL(-22.17%)은 2~3회 분할 추가 진입이 유리합니다.",
-        news_weather: "• 주요 뉴스: S&P 글로벌의 엔비디아 신용등급 강등 검토 및 AI 인프라 투자 수익성 논란으로 반도체 섹터 차익 실현 매물 출회.\n• 경기도 평택시 오늘 날씨: 최저 5°C / 최고 15°C (맑음, 일교차 10°C). 토요일(28일) 비 예보 후 일요일 최고 9°C로 기온 급강하 전망.",
-        exhibition_picks: "• 주간 서울·수도권 추천 전시(매주 월요일 07:00 정기 갱신): 국립현대미술관(서울관/과천관) 및 한남동·삼청동 주요 갤러리 무료·기획 전시 일정이 이곳에 자동 업데이트됩니다.",
-        portfolio_snapshot: {
-          total_buy_krw: 12757240,
-          total_eval_krw: 9826179,
-          total_return_pct: -22.98,
-          us_eval_krw: 6929834,
-          us_return_pct: -22.79,
-          kr_eval_krw: 2896345,
-          kr_return_pct: -24.45,
-          history: [
-            { date: "11-26", buy: 1276, eval: 983 }
-          ],
-          holdings: [
-            { ticker: "GOOGL", eval_man: 286, return_pct: -22.17 },
-            { ticker: "QLD", eval_man: 229, return_pct: -28.32 },
-            { ticker: "TIME 나스닥100", eval_man: 204, return_pct: -28.84 },
-            { ticker: "JEPQ", eval_man: 178, return_pct: -15.52 },
-            { ticker: "KODEX S&P500", eval_man: 84, return_pct: -11.38 },
-            { ticker: "KODEX 배당커버드콜", eval_man: 1, return_pct: -5.76 }
-          ]
-        }
-      }
-    ];
-
-    async function loadMorningBriefs() {
-      if (!currentUser || currentUser.email !== ADMIN_EMAIL) return;
-      const { data, error } = await sb
-        .from("morning_briefings")
-        .select("*")
-        .order("brief_date", { ascending: false });
-
-      cachedMorningBriefs = (error || !data || data.length === 0) ? FALLBACK_MORNING_BRIEFS : data;
-
-      const selectEl = document.getElementById("brief-date-select");
-      selectEl.innerHTML = cachedMorningBriefs.map(b =>
-        `<option value="${escapeHtml(b.brief_date)}">${escapeHtml(b.brief_date)}</option>`
-      ).join("");
-
-      selectMorningBrief(cachedMorningBriefs[0].brief_date);
-    }
-
-    function selectMorningBrief(dateStr) {
-      const brief = cachedMorningBriefs.find(b => b.brief_date === dateStr) || cachedMorningBriefs[0];
-      if (!brief) return;
-
-      document.getElementById("brief-headline").innerText = brief.headline || "";
-
-      const snap = brief.portfolio_snapshot || FALLBACK_MORNING_BRIEFS[0].portfolio_snapshot;
-      const pnlKrw = (snap.total_eval_krw || 0) - (snap.total_buy_krw || 0);
-
-      document.getElementById("portfolio-kpi-grid").innerHTML = `
-        <div class="kpi-card">
-          <div class="kpi-label">TOTAL EVALUATION (총 평가금액)</div>
-          <div class="kpi-val">${Number(snap.total_eval_krw || 0).toLocaleString("ko-KR")}원</div>
-          <div class="kpi-sub">매입 ${Number(snap.total_buy_krw || 0).toLocaleString("ko-KR")}원</div>
-        </div>
-        <div class="kpi-card">
-          <div class="kpi-label">TOTAL P&L (총 평가손익)</div>
-          <div class="kpi-val">${pnlKrw >= 0 ? "+" : ""}${pnlKrw.toLocaleString("ko-KR")}원</div>
-          <div class="kpi-sub">수익률 ${Number(snap.total_return_pct || 0).toFixed(2)}%</div>
-        </div>
-        <div class="kpi-card">
-          <div class="kpi-label">US ACCOUNT (해외 위탁종합)</div>
-          <div class="kpi-val">${Number(snap.us_eval_krw || 0).toLocaleString("ko-KR")}원</div>
-          <div class="kpi-sub">수익률 ${Number(snap.us_return_pct || 0).toFixed(2)}%</div>
-        </div>
-        <div class="kpi-card">
-          <div class="kpi-label">KR ISA ACCOUNT (중개형 ISA)</div>
-          <div class="kpi-val">${Number(snap.kr_eval_krw || 0).toLocaleString("ko-KR")}원</div>
-          <div class="kpi-sub">수익률 ${Number(snap.kr_return_pct || 0).toFixed(2)}%</div>
-        </div>
-      `;
-
-      renderPortfolioCharts(snap);
-
-      document.getElementById("brief-sections-grid").innerHTML = `
-        <div class="brief-card full">
-          <h3>01. PROJECT STRATEGY & NEXT STEPS (프로젝트 방향성)</h3>
-          <div class="brief-text">${escapeHtml(brief.dev_strategy || "")}</div>
-        </div>
-        <div class="brief-card">
-          <h3>02. MARKET & PORTFOLIO ANALYSIS (한·미 증시 및 종목 분석)</h3>
-          <div class="brief-text">${escapeHtml(brief.market_summary || "")}</div>
-        </div>
-        <div class="brief-card">
-          <h3>03. MACRO NEWS & PYEONGTAEK WEATHER (뉴스 및 평택시 날씨)</h3>
-          <div class="brief-text">${escapeHtml(brief.news_weather || "")}</div>
-        </div>
-        <div class="brief-card full">
-          <h3>04. WEEKLY EXHIBITION PICKS (서울·수도권 추천 전시)</h3>
-          <div class="brief-text">${escapeHtml(brief.exhibition_picks || "")}</div>
-        </div>
-      `;
-    }
-
-    function renderPortfolioCharts(snap) {
-      Object.values(chartInstances).forEach(ch => ch && ch.destroy());
-      chartInstances = {};
-
-      const history = snap.history || [{ date: "11-26", buy: 1276, eval: 983 }];
-      const holdings = snap.holdings || [];
-
-      const commonGrid = { color: "#1f1f1f" };
-      const commonTicks = { color: "#888888", font: { family: "JetBrains Mono, monospace", size: 11 } };
-
-      // 1. Trajectory Line Chart
-      chartInstances.trajectory = new Chart(document.getElementById("chart-trajectory"), {
-        type: "line",
-        data: {
-          labels: history.map(h => h.date),
-          datasets: [
-            {
-              label: "총 매입원금 (만원)",
-              data: history.map(h => h.buy),
-              borderColor: "#666666",
-              borderDash: [5, 5],
-              borderWidth: 2,
-              pointRadius: 4,
-              pointBackgroundColor: "#666666",
-              tension: 0.2
-            },
-            {
-              label: "총 평가금액 (만원)",
-              data: history.map(h => h.eval),
-              borderColor: "#ffffff",
-              backgroundColor: "rgba(255,255,255,0.08)",
-              borderWidth: 2,
-              pointRadius: 5,
-              pointBackgroundColor: "#ffffff",
-              fill: true,
-              tension: 0.2
-            }
-          ]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: { legend: { labels: { color: "#cccccc" } } },
-          scales: { x: { grid: commonGrid, ticks: commonTicks }, y: { grid: commonGrid, ticks: commonTicks } }
-        }
-      });
-
-      // 2. Allocation Doughnut Chart
-      chartInstances.allocation = new Chart(document.getElementById("chart-allocation"), {
-        type: "doughnut",
-        data: {
-          labels: holdings.map(h => h.ticker),
-          datasets: [{
-            data: holdings.map(h => h.eval_man),
-            backgroundColor: ["#ffffff", "#cccccc", "#999999", "#666666", "#404040", "#222222"],
-            borderColor: "#000000",
-            borderWidth: 2
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: { legend: { position: "right", labels: { color: "#cccccc", font: { size: 11 } } } }
-        }
-      });
-
-      // 3. Return Horizontal Bar Chart
-      chartInstances.returns = new Chart(document.getElementById("chart-returns"), {
-        type: "bar",
-        data: {
-          labels: holdings.map(h => h.ticker),
-          datasets: [{
-            label: "수익률 (%)",
-            data: holdings.map(h => h.return_pct),
-            backgroundColor: holdings.map(h => h.return_pct >= 0 ? "#ffffff" : "#777777"),
-            borderColor: "#ffffff",
-            borderWidth: 1
-          }]
-        },
-        options: {
-          indexAxis: "y",
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: { legend: { display: false } },
-          scales: { x: { grid: commonGrid, ticks: commonTicks }, y: { grid: commonGrid, ticks: commonTicks } }
-        }
-      });
-    }
-
     function escapeHtml(str) {
       return String(str)
         .replace(/&/g, "&amp;")
@@ -2223,7 +2417,7 @@
     }
 
     // =========================================================
-    // 9. TORUS KNOT SURFACE-GRID ASCII SCULPTURE ENGINE
+    // 10. TORUS KNOT SURFACE-GRID ASCII SCULPTURE ENGINE
     // =========================================================
     const ASCII_CHARS = [".", ":", "-", "=", "+", "*", "#", "%", "@"];
 
@@ -2642,7 +2836,6 @@
       glyphPointsMesh.renderOrder = 2;
       modelPivot.add(glyphPointsMesh);
 
-      // Mouse Events
       stage.addEventListener("mousedown", e => {
         dragMode = (e.button === 2 || e.shiftKey) ? "pan" : "rotate";
         prevMouse = { x: e.clientX, y: e.clientY };
@@ -2666,7 +2859,6 @@
         prevMouse = { x: e.clientX, y: e.clientY };
       });
 
-      // Touch Events (iPad / Mobile)
       stage.addEventListener("touchstart", e => {
         if (e.touches.length === 1) {
           dragMode = "rotate";
@@ -2801,7 +2993,7 @@
     }
 
     // =========================================================
-    // 10. INITIALIZE ON LOAD
+    // 11. INITIALIZE ON LOAD
     // =========================================================
     window.addEventListener("DOMContentLoaded", async () => {
       initAnatomyEngine();
