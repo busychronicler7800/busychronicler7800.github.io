@@ -6,20 +6,17 @@
   <title>BUSYCHRONICLER7800</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     :root {
       --bg: #000000;
-      --surface: #0a0a0a;
-      --surface-2: #121212;
-      --line: #222222;
-      --line-strong: #444444;
-      --text: #ffffff;
-      --muted: #888888;
-      --accent: #ffffff;
+      --fg: #ffffff;
+      --muted: #777777;
+      --line: #262626;
+      --panel: #080808;
     }
 
     * {
@@ -29,24 +26,24 @@
     }
 
     body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
-      line-height: 1.6;
+      background-color: var(--bg);
+      color: var(--fg);
+      font-family: "Helvetica Neue", Helvetica, Arial, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
       min-height: 100vh;
       display: flex;
       flex-direction: column;
-      -webkit-font-smoothing: antialiased;
     }
 
     header {
       border-bottom: 1px solid var(--line);
-      padding: 18px 28px;
+      padding: 20px 32px;
       display: flex;
       justify-content: space-between;
       align-items: center;
       flex-wrap: wrap;
-      gap: 14px;
+      gap: 16px;
       position: sticky;
       top: 0;
       background: rgba(0, 0, 0, 0.94);
@@ -55,61 +52,62 @@
     }
 
     .brand {
-      font-family: "JetBrains Mono", monospace;
-      font-weight: 700;
       font-size: 0.95rem;
-      letter-spacing: 0.16em;
-      color: var(--text);
-      text-decoration: none;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
       cursor: pointer;
     }
 
     nav {
       display: flex;
-      gap: 8px;
+      gap: 22px;
       flex-wrap: wrap;
       align-items: center;
     }
 
     .nav-btn {
-      background: transparent;
-      border: 1px solid transparent;
+      background: none;
+      border: none;
       color: var(--muted);
-      font-family: "JetBrains Mono", monospace;
-      font-size: 0.78rem;
-      letter-spacing: 0.08em;
-      padding: 7px 12px;
+      font-family: inherit;
+      font-size: 0.8rem;
+      font-weight: 500;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
       cursor: pointer;
-      transition: all 0.18s ease;
+      padding: 4px 0;
+      border-bottom: 1px solid transparent;
+      transition: color 0.15s, border-color 0.15s;
       display: inline-flex;
       align-items: center;
       gap: 6px;
     }
 
-    .nav-btn:hover {
-      color: var(--text);
-      border-color: var(--line);
+    .nav-btn:hover,
+    .nav-btn.active {
+      color: var(--fg);
+      border-bottom-color: var(--fg);
     }
 
-    .nav-btn.active {
-      color: #000000;
-      background: #ffffff;
-      border-color: #ffffff;
-      font-weight: 700;
+    .nav-divider {
+      width: 1px;
+      height: 14px;
+      background: var(--line);
+      display: inline-block;
     }
 
     .header-status {
-      font-family: "JetBrains Mono", monospace;
-      font-size: 0.72rem;
+      font-size: 0.74rem;
       color: var(--muted);
-      letter-spacing: 0.06em;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
     }
 
     .badge-admin {
       display: inline-block;
-      border: 1px solid #ffffff;
-      color: #ffffff;
-      font-family: "JetBrains Mono", monospace;
+      border: 1px solid var(--fg);
+      color: var(--fg);
       font-size: 0.65rem;
       padding: 1px 6px;
       margin-left: 6px;
@@ -118,26 +116,23 @@
 
     .unread-dot {
       display: inline-block;
-      width: 7px;
-      height: 7px;
+      width: 6px;
+      height: 6px;
       border-radius: 50%;
-      background: #ffffff;
-      box-shadow: 0 0 6px rgba(255, 255, 255, 0.85);
+      background: var(--fg);
       flex-shrink: 0;
     }
 
-    .nav-btn.active .unread-dot,
     .btn-outline.active .unread-dot {
-      background: #000000;
-      box-shadow: none;
+      background: var(--bg);
     }
 
     main {
       flex: 1;
       width: 100%;
-      max-width: 1200px;
+      max-width: 1180px;
       margin: 0 auto;
-      padding: 28px 24px 60px;
+      padding: 32px 24px 64px;
     }
 
     .section {
@@ -150,30 +145,31 @@
 
     .box {
       border: 1px solid var(--line);
-      background: var(--surface);
+      background: var(--panel);
       padding: 24px;
       margin-bottom: 24px;
     }
 
     h2 {
-      font-family: "JetBrains Mono", monospace;
-      font-size: 0.92rem;
-      letter-spacing: 0.14em;
+      font-size: 0.84rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
       margin-bottom: 18px;
       padding-bottom: 12px;
       border-bottom: 1px solid var(--line);
-      font-weight: 700;
     }
 
     h3 {
-      font-family: "JetBrains Mono", monospace;
-      font-size: 0.8rem;
+      font-size: 0.76rem;
+      font-weight: 700;
       letter-spacing: 0.08em;
+      text-transform: uppercase;
       color: #cccccc;
       margin-bottom: 10px;
     }
 
-    /* 01. SCULPTURE STAGE */
+    /* 01. SCULPTURE */
     .stage-wrap {
       border: 1px solid var(--line);
       background: #000000;
@@ -215,28 +211,31 @@
     }
 
     .stage-hint {
-      font-family: "JetBrains Mono", monospace;
-      font-size: 0.7rem;
+      font-size: 0.72rem;
       color: var(--muted);
-      background: rgba(0, 0, 0, 0.75);
+      letter-spacing: 0.06em;
+      background: rgba(0, 0, 0, 0.8);
       padding: 5px 10px;
       border: 1px solid var(--line);
     }
 
-    /* BUTTONS & INPUTS */
-    .btn, .btn-outline, .btn-sm {
-      font-family: "JetBrains Mono", monospace;
+    /* BUTTONS & FORMS */
+    .btn,
+    .btn-outline,
+    .btn-sm {
+      font-family: inherit;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
       cursor: pointer;
-      transition: all 0.16s ease;
-      letter-spacing: 0.06em;
+      transition: all 0.15s ease;
     }
 
     .btn {
-      background: #ffffff;
-      color: #000000;
-      border: 1px solid #ffffff;
+      background: var(--fg);
+      color: var(--bg);
+      border: 1px solid var(--fg);
       padding: 9px 16px;
-      font-size: 0.76rem;
+      font-size: 0.75rem;
       font-weight: 700;
     }
 
@@ -246,14 +245,14 @@
     }
 
     .btn:disabled {
-      opacity: 0.45;
+      opacity: 0.4;
       cursor: not-allowed;
     }
 
     .btn-outline {
-      background: rgba(0, 0, 0, 0.85);
-      color: #ffffff;
-      border: 1px solid var(--line-strong);
+      background: var(--bg);
+      color: var(--fg);
+      border: 1px solid var(--line);
       padding: 8px 14px;
       font-size: 0.74rem;
       display: inline-flex;
@@ -262,13 +261,13 @@
     }
 
     .btn-outline:hover {
-      border-color: #ffffff;
+      border-color: var(--fg);
     }
 
     .btn-outline.active {
-      background: #ffffff;
-      color: #000000;
-      border-color: #ffffff;
+      background: var(--fg);
+      color: var(--bg);
+      border-color: var(--fg);
       font-weight: 700;
     }
 
@@ -281,8 +280,8 @@
     }
 
     .btn-sm:hover {
-      color: #ffffff;
-      border-color: #ffffff;
+      color: var(--fg);
+      border-color: var(--fg);
     }
 
     .form-group {
@@ -305,11 +304,11 @@
 
     label {
       display: block;
-      font-family: "JetBrains Mono", monospace;
-      font-size: 0.7rem;
+      font-size: 0.72rem;
       color: var(--muted);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
       margin-bottom: 6px;
-      letter-spacing: 0.06em;
     }
 
     input[type="text"],
@@ -320,17 +319,19 @@
     textarea,
     select {
       width: 100%;
-      background: #000000;
-      border: 1px solid var(--line-strong);
-      color: #ffffff;
+      background: var(--bg);
+      border: 1px solid var(--line);
+      color: var(--fg);
       padding: 9px 12px;
-      font-family: "Inter", sans-serif;
-      font-size: 0.84rem;
+      font-family: inherit;
+      font-size: 0.85rem;
       outline: none;
     }
 
-    input:focus, textarea:focus, select:focus {
-      border-color: #ffffff;
+    input:focus,
+    textarea:focus,
+    select:focus {
+      border-color: var(--fg);
     }
 
     .hp-field {
@@ -344,12 +345,12 @@
     .archive-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-      gap: 18px;
+      gap: 20px;
     }
 
     .archive-card {
       border: 1px solid var(--line);
-      background: #000000;
+      background: var(--bg);
       display: flex;
       flex-direction: column;
     }
@@ -379,8 +380,7 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      font-family: "JetBrains Mono", monospace;
-      font-size: 0.7rem;
+      font-size: 0.74rem;
       color: var(--muted);
     }
 
@@ -400,28 +400,36 @@
       white-space: pre-wrap;
     }
 
-    /* 03. BIO */
+    /* 03. BIO (ORIGINAL 1fr 2fr GRID) */
     .bio-grid {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: 1fr 2fr;
       gap: 24px;
     }
 
     .bio-list {
       list-style: none;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      font-size: 0.86rem;
-      color: #cccccc;
     }
 
-    .bio-list li strong {
-      font-family: "JetBrains Mono", monospace;
-      color: #ffffff;
-      font-size: 0.78rem;
-      display: inline-block;
-      min-width: 110px;
+    .bio-list li {
+      padding: 12px 0;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      font-size: 0.86rem;
+    }
+
+    .bio-list li:last-child {
+      border-bottom: none;
+    }
+
+    .bio-key {
+      color: var(--muted);
+      font-size: 0.75rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      min-width: 120px;
     }
 
     /* 04. GUESTBOOK & BADGES */
@@ -434,13 +442,9 @@
     .admin-grant-panel,
     .badge-panel {
       border: 1px solid var(--line);
-      background: #000000;
+      background: var(--bg);
       padding: 16px;
       margin-bottom: 20px;
-    }
-
-    .admin-grant-panel {
-      border-color: var(--line-strong);
     }
 
     .badge-panel-head {
@@ -450,8 +454,8 @@
       flex-wrap: wrap;
       gap: 10px;
       margin-bottom: 12px;
-      font-family: "JetBrains Mono", monospace;
-      font-size: 0.74rem;
+      font-size: 0.75rem;
+      letter-spacing: 0.06em;
       color: #cccccc;
     }
 
@@ -462,40 +466,40 @@
     }
 
     .badge-chip {
-      background: #080808;
+      background: var(--panel);
       border: 1px solid var(--line);
       color: #cccccc;
       padding: 10px 12px;
       text-align: left;
       cursor: pointer;
-      font-family: "JetBrains Mono", monospace;
-      font-size: 0.74rem;
+      font-family: inherit;
+      font-size: 0.76rem;
       display: flex;
       flex-direction: column;
       gap: 4px;
-      transition: all 0.16s ease;
+      transition: all 0.15s ease;
     }
 
     .badge-chip:hover:not(:disabled) {
-      border-color: #ffffff;
-      color: #ffffff;
+      border-color: var(--fg);
+      color: var(--fg);
     }
 
     .badge-chip.selected {
-      background: #ffffff;
-      color: #000000;
-      border-color: #ffffff;
+      background: var(--fg);
+      color: var(--bg);
+      border-color: var(--fg);
       font-weight: 700;
     }
 
     .badge-chip.special-badge {
       border-style: dashed;
-      border-color: #888888;
+      border-color: #666666;
     }
 
     .badge-chip.special-badge.selected {
       border-style: solid;
-      border-color: #ffffff;
+      border-color: var(--fg);
     }
 
     .badge-chip.locked {
@@ -504,8 +508,7 @@
     }
 
     .badge-chip .sub {
-      font-family: "Inter", sans-serif;
-      font-size: 0.7rem;
+      font-size: 0.71rem;
       opacity: 0.78;
       font-weight: 400;
     }
@@ -526,29 +529,29 @@
       flex-wrap: wrap;
       gap: 8px;
       margin-bottom: 8px;
-      font-family: "JetBrains Mono", monospace;
-      font-size: 0.75rem;
+      font-size: 0.76rem;
       color: var(--muted);
     }
 
     .gb-author strong {
-      color: #ffffff;
-      font-size: 0.84rem;
+      color: var(--fg);
+      font-size: 0.86rem;
     }
 
     .user-badge-tag {
       display: inline-block;
       margin-left: 6px;
       padding: 1px 6px;
-      border: 1px solid var(--line-strong);
+      border: 1px solid var(--line);
       color: #dddddd;
       font-size: 0.68rem;
+      letter-spacing: 0.06em;
     }
 
     .user-badge-tag.architect {
-      background: #ffffff;
-      color: #000000;
-      border-color: #ffffff;
+      background: var(--fg);
+      color: var(--bg);
+      border-color: var(--fg);
       font-weight: 700;
     }
 
@@ -592,26 +595,25 @@
 
     .kpi-card {
       border: 1px solid var(--line);
-      background: #000000;
+      background: var(--bg);
       padding: 14px 16px;
     }
 
     .kpi-label {
-      font-family: "JetBrains Mono", monospace;
-      font-size: 0.68rem;
+      font-size: 0.7rem;
       color: var(--muted);
+      letter-spacing: 0.06em;
       margin-bottom: 6px;
     }
 
     .kpi-val {
-      font-family: "JetBrains Mono", monospace;
       font-size: 1.05rem;
       font-weight: 700;
-      color: #ffffff;
+      color: var(--fg);
     }
 
     .kpi-sub {
-      font-size: 0.74rem;
+      font-size: 0.75rem;
       color: #aaaaaa;
       margin-top: 4px;
     }
@@ -625,7 +627,7 @@
 
     .chart-box {
       border: 1px solid var(--line);
-      background: #000000;
+      background: var(--bg);
       padding: 16px;
     }
 
@@ -647,7 +649,7 @@
 
     .brief-card {
       border: 1px solid var(--line);
-      background: #000000;
+      background: var(--bg);
       padding: 18px;
     }
 
@@ -675,7 +677,7 @@
       margin-bottom: 16px;
       padding: 12px;
       border: 1px solid var(--line);
-      background: #000000;
+      background: var(--bg);
     }
 
     .filter-item {
@@ -684,13 +686,13 @@
 
     .board-row-item {
       border: 1px solid var(--line);
-      background: #000000;
+      background: var(--bg);
       margin-bottom: 8px;
       transition: border-color 0.15s ease;
     }
 
     .board-row-item.unread {
-      border-color: var(--line-strong);
+      border-color: #555555;
     }
 
     .board-row-header {
@@ -716,26 +718,25 @@
     }
 
     .board-date-mono {
-      font-family: "JetBrains Mono", monospace;
       font-size: 0.78rem;
       color: var(--muted);
+      letter-spacing: 0.04em;
       flex-shrink: 0;
     }
 
     .today-tag {
-      font-family: "JetBrains Mono", monospace;
-      font-size: 0.66rem;
+      font-size: 0.68rem;
       font-weight: 700;
       padding: 1px 6px;
-      background: #ffffff;
-      color: #000000;
+      background: var(--fg);
+      color: var(--bg);
       flex-shrink: 0;
     }
 
     .board-title-text {
       font-size: 0.88rem;
       font-weight: 600;
-      color: #ffffff;
+      color: var(--fg);
     }
 
     .board-row-right {
@@ -749,7 +750,7 @@
       display: none;
       padding: 18px 16px;
       border-top: 1px solid var(--line);
-      background: #050505;
+      background: #040404;
     }
 
     .board-row-item.open .board-row-body {
@@ -764,10 +765,9 @@
     }
 
     .tool-chip {
-      font-family: "JetBrains Mono", monospace;
-      font-size: 0.68rem;
+      font-size: 0.7rem;
       padding: 2px 8px;
-      border: 1px solid var(--line-strong);
+      border: 1px solid var(--line);
       color: #cccccc;
     }
 
@@ -805,18 +805,18 @@
     .modal-box {
       width: 100%;
       max-width: 520px;
-      background: var(--surface);
-      border: 1px solid #ffffff;
+      background: var(--panel);
+      border: 1px solid var(--fg);
       padding: 24px;
     }
 
     footer {
       border-top: 1px solid var(--line);
-      padding: 18px 28px;
+      padding: 20px 32px;
       display: flex;
       justify-content: space-between;
-      font-family: "JetBrains Mono", monospace;
-      font-size: 0.72rem;
+      font-size: 0.74rem;
+      letter-spacing: 0.08em;
       color: var(--muted);
     }
 
@@ -830,17 +830,22 @@
       .form-row-3 {
         grid-template-columns: 1fr;
       }
+      .bio-list li {
+        flex-direction: column;
+        gap: 4px;
+      }
     }
   </style>
 </head>
 <body>
   <header>
-    <a class="brand" onclick="switchTab('anatomy')">BUSYCHRONICLER7800</a>
+    <div class="brand" onclick="switchTab('anatomy')">BUSYCHRONICLER7800</div>
     <nav>
       <button class="nav-btn active" id="nav-anatomy" onclick="switchTab('anatomy')">01. SCULPTURE</button>
       <button class="nav-btn" id="nav-archive" onclick="switchTab('archive')">02. ARCHIVE</button>
       <button class="nav-btn" id="nav-bio" onclick="switchTab('bio')">03. BIO</button>
       <button class="nav-btn" id="nav-guestbook" onclick="switchTab('guestbook')">04. GUESTBOOK</button>
+      <span class="nav-divider admin-only" style="display:none;"></span>
       <button class="nav-btn admin-only" id="nav-report" style="display:none;" onclick="switchTab('report')">
         <span>05. REPORT</span>
         <span class="unread-dot" id="nav-report-dot" style="display:none;" title="확인하지 않은 리포트가 있습니다"></span>
@@ -895,26 +900,39 @@
       </div>
     </section>
 
-    <!-- 03. BIO -->
+    <!-- 03. BIO (RESTORED ORIGINAL DESIGN) -->
     <section id="sec-bio" class="section">
-      <div class="box">
-        <h2>03. BIO & STATEMENT</h2>
-        <div class="bio-grid">
-          <div>
-            <h3>CONCEPT</h3>
-            <p style="font-size:0.88rem; color:#cccccc; line-height:1.75;">
-              BUSYCHRONICLER7800은 순수 흑백(Monochrome) 조형 언어와 웹 기반 3D ASCII 타이포그래피, 그리고 일상의 기록과 데이터 파이프라인을 하나의 아카이브로 통합하는 개인 디지털 공간입니다.
-            </p>
-          </div>
-          <div>
-            <h3>INDEX</h3>
-            <ul class="bio-list">
-              <li><strong>HANDLE</strong> BUSYCHRONICLER7800</li>
-              <li><strong>MEDIUM</strong> WebGL, Three.js, ASCII Shader, Supabase</li>
-              <li><strong>AESTHETIC</strong> Pure Monochrome (#000000 / #FFFFFF)</li>
-              <li><strong>DOMAIN</strong> busychronicler7800.com</li>
-            </ul>
-          </div>
+      <div class="bio-grid">
+        <div class="box">
+          <h2>IDENTITY</h2>
+          <p style="font-size:1.1rem; font-weight:700; margin-bottom:8px;">SIHOO KANG / 강시후</p>
+          <p style="font-size:0.84rem; color:var(--muted); margin-bottom:20px;">
+            PHYSICAL THERAPY UNDERGRADUATE · CREATIVE CODER · DIGITAL ARCHIVIST
+          </p>
+          <p style="font-size:0.84rem; color:#cccccc;">
+            인체 해부학 구조와 3D 웹 그래픽스, 미니멀리즘 타이포그래피를 결합한 인터랙티브 아트워크와 개인 아카이브를 구축합니다.
+          </p>
+        </div>
+        <div class="box">
+          <h2>INDEX &amp; PRACTICE</h2>
+          <ul class="bio-list">
+            <li>
+              <span class="bio-key">DISCIPLINE</span>
+              <span>Department of Physical Therapy, Gachon University</span>
+            </li>
+            <li>
+              <span class="bio-key">VISUAL MEDIUM</span>
+              <span>WebGL, Three.js, Procedural ASCII Surface Rendering</span>
+            </li>
+            <li>
+              <span class="bio-key">ARCHIVE</span>
+              <span>Exhibitions, 3D Studies, Daily Chronicles &amp; Automated Pipelines</span>
+            </li>
+            <li>
+              <span class="bio-key">DOMAIN</span>
+              <span>busychronicler7800.com</span>
+            </li>
+          </ul>
         </div>
       </div>
     </section>
@@ -988,9 +1006,9 @@
           <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
             <button class="btn" type="button" onclick="grantSpecialBadge()">GRANT SPECIAL BADGE</button>
             <button class="btn-outline" type="button" onclick="revokeSpecialBadge()">REVOKE BADGE</button>
-            <span style="font-size:0.72rem; color:var(--muted);">※ 부여된 특수 배지는 해당 계정 본인에게만 표시되며 선택할 수 있습니다.</span>
+            <span style="font-size:0.74rem; color:var(--muted);">※ 부여된 특수 배지는 해당 계정 본인에게만 표시되며 선택할 수 있습니다.</span>
           </div>
-          <div id="grant-status-msg" style="margin-top:8px; font-size:0.74rem; color:#cccccc;"></div>
+          <div id="grant-status-msg" style="margin-top:8px; font-size:0.75rem; color:#cccccc;"></div>
         </div>
 
         <!-- BADGE CONFIGURATION PANEL (LOGGED IN ONLY) -->
@@ -1000,7 +1018,7 @@
             <button class="btn-outline" id="btn-clear-badge" onclick="clearUserBadge()">CLEAR BADGE (선택 해제)</button>
           </div>
           <div class="badge-grid" id="badge-selector-grid"></div>
-          <div id="badge-sync-msg" style="margin-top:8px; font-size:0.72rem; color:var(--muted);"></div>
+          <div id="badge-sync-msg" style="margin-top:8px; font-size:0.74rem; color:var(--muted);"></div>
         </div>
 
         <div id="gb-form-area" style="margin-bottom:24px; padding-bottom:20px; border-bottom:1px solid var(--line);">
@@ -1066,7 +1084,7 @@
               </div>
             </div>
             <div class="chart-box">
-              <h3>RETURN & DRAWDOWN BY TICKER (평단가 대비 수익률 %)</h3>
+              <h3>RETURN &amp; DRAWDOWN BY TICKER (평단가 대비 수익률 %)</h3>
               <div class="chart-canvas-wrap">
                 <canvas id="chart-returns"></canvas>
               </div>
@@ -1079,7 +1097,7 @@
         <!-- SUB-PANEL 2: DAILY REVIEW -->
         <div id="sub-dailyreview" class="report-subpanel">
           <div class="board-toolbar">
-            <span style="font-size:0.78rem; color:var(--muted); letter-spacing:0.08em;">
+            <span style="font-size:0.78rem; color:var(--muted); letter-spacing:0.06em;">
               00:00 DAILY REVIEW BOARD · 제목을 클릭하면 전체 리포트가 열립니다
             </span>
             <div style="display:flex; gap:8px; flex-wrap:wrap;">
@@ -1088,7 +1106,7 @@
             </div>
           </div>
 
-          <div id="dailyreview-composer" style="display:none; border:1px solid var(--line); background:#000000; padding:18px; margin-bottom:20px;">
+          <div id="dailyreview-composer" style="display:none; border:1px solid var(--line); background:var(--bg); padding:18px; margin-bottom:20px;">
             <div class="form-row">
               <div class="form-group" style="margin:0;">
                 <label>DATE (YYYY-MM-DD)</label>
@@ -1104,7 +1122,7 @@
               <textarea id="dr-achievements" rows="3"></textarea>
             </div>
             <div class="form-group">
-              <label>INSIGHTS & IMPROVEMENTS (핵심 리뷰 및 보완점)</label>
+              <label>INSIGHTS &amp; IMPROVEMENTS (핵심 리뷰 및 보완점)</label>
               <textarea id="dr-insights" rows="3"></textarea>
             </div>
             <div class="form-group">
@@ -1123,7 +1141,7 @@
         <!-- SUB-PANEL 3: WORK LOG -->
         <div id="sub-worklog" class="report-subpanel">
           <div class="board-toolbar">
-            <span style="font-size:0.78rem; color:var(--muted); letter-spacing:0.08em;">
+            <span style="font-size:0.78rem; color:var(--muted); letter-spacing:0.06em;">
               00:30 WORK LOG BOARD · 제목을 클릭하면 전체 일지가 열립니다
             </span>
             <div style="display:flex; gap:8px; flex-wrap:wrap;">
@@ -1132,7 +1150,7 @@
             </div>
           </div>
 
-          <div id="worklog-composer" style="display:none; border:1px solid var(--line); background:#000000; padding:18px; margin-bottom:20px;">
+          <div id="worklog-composer" style="display:none; border:1px solid var(--line); background:var(--bg); padding:18px; margin-bottom:20px;">
             <div class="form-row-3">
               <div class="form-group" style="margin:0;">
                 <label>DATE (YYYY-MM-DD)</label>
@@ -1159,11 +1177,11 @@
               <textarea id="wl-completed" rows="3"></textarea>
             </div>
             <div class="form-group">
-              <label>ACTIVE PIPELINES & INVESTMENTS (실행 중인 자동화 / 키움 투자 현황)</label>
+              <label>ACTIVE PIPELINES &amp; INVESTMENTS (실행 중인 자동화 / 키움 투자 현황)</label>
               <textarea id="wl-pipelines" rows="3"></textarea>
             </div>
             <div class="form-group">
-              <label>PROBLEM ANALYSIS & STUDY ARCHIVE (문제점 진단 및 학습·성취 기록)</label>
+              <label>PROBLEM ANALYSIS &amp; STUDY ARCHIVE (문제점 진단 및 학습·성취 기록)</label>
               <textarea id="wl-analysis" rows="3"></textarea>
             </div>
             <button class="btn" onclick="saveWorkLog()">SAVE WORK LOG</button>
@@ -1267,7 +1285,6 @@
     let cooldownInterval = null;
     let chartInstances = {};
 
-    // 공개 배지 목록 (방명록 5회 작성 배지 삭제 완료)
     const BADGE_CATALOG = [
       { code: "guest",     label: "GUEST",       desc: "기본 제공 배지" },
       { code: "chronicle", label: "OBSERVER",    desc: "기본 제공 배지" },
@@ -1393,7 +1410,9 @@
         adminArchiveBox.style.display = isAdmin ? "block" : "none";
         badgePanel.style.display = "block";
         adminGrantBox.style.display = isAdmin ? "block" : "none";
-        adminNavEls.forEach(el => el.style.display = isAdmin ? "inline-flex" : "none");
+        adminNavEls.forEach(el => {
+          el.style.display = isAdmin ? (el.classList.contains("nav-divider") ? "inline-block" : "inline-flex") : "none";
+        });
 
         const savedName = localStorage.getItem("gb_display_name_" + user.id);
         if (savedName && !document.getElementById("gb-name").value) {
@@ -2192,7 +2211,7 @@
         headline: "웹사이트 05. REPORT 게시판 UI 및 방명록 비공개 특수 배지 시스템 적용",
         achievements: `• 방명록 배지 선택 해제, 기존 댓글 소급 반영 및 관리자 지정 비공개 특수 배지 기능을 적용했습니다.\n• 05. REPORT의 분석 리포트와 작업 일지를 게시판 목록형 UI 및 미확인 알림 점 구조로 개편했습니다.`,
         insights: `• 제목 클릭형 아코디언 게시판과 미확인 표시를 통해 누적 리포트 열람 편의성을 높였습니다.`,
-        next_priorities: `1. Supabase SQL 정책 반영 확인\n2. 자동 리포트 파이프라인 연동`
+        next_priorities: `1. Supabase SQL 정책 반영 확인\n2. 2단계 자동 적재 파이프라인 연동`
       }
     ];
 
@@ -2249,7 +2268,7 @@
           <div class="kpi-sub">매입 ${Number(snap.total_buy_krw || 0).toLocaleString("ko-KR")}원</div>
         </div>
         <div class="kpi-card">
-          <div class="kpi-label">TOTAL P&L (총 평가손익)</div>
+          <div class="kpi-label">TOTAL P&amp;L (총 평가손익)</div>
           <div class="kpi-val">${pnlKrw >= 0 ? "+" : ""}${pnlKrw.toLocaleString("ko-KR")}원</div>
           <div class="kpi-sub">수익률 ${Number(snap.total_return_pct || 0).toFixed(2)}%</div>
         </div>
@@ -2269,15 +2288,15 @@
 
       document.getElementById("brief-sections-grid").innerHTML = `
         <div class="brief-card">
-          <h3>01. PROJECT STRATEGY & ARCHITECTURE</h3>
+          <h3>01. PROJECT STRATEGY &amp; ARCHITECTURE</h3>
           <div class="brief-text">${escapeHtml(brief.dev_strategy || "")}</div>
         </div>
         <div class="brief-card">
-          <h3>02. MARKET & PORTFOLIO DEEP DIVE</h3>
+          <h3>02. MARKET &amp; PORTFOLIO DEEP DIVE</h3>
           <div class="brief-text">${escapeHtml(brief.market_summary || "")}</div>
         </div>
         <div class="brief-card">
-          <h3>03. MACRO NEWS & PYEONGTAEK WEATHER</h3>
+          <h3>03. MACRO NEWS &amp; PYEONGTAEK WEATHER</h3>
           <div class="brief-text">${escapeHtml(brief.news_weather || "")}</div>
         </div>
         <div class="brief-card">
@@ -2295,7 +2314,7 @@
       const holdings = snap.holdings || [];
 
       const commonGrid = { color: "#1f1f1f" };
-      const commonTicks = { color: "#888888", font: { family: "JetBrains Mono, monospace", size: 11 } };
+      const commonTicks = { color: "#888888", font: { size: 11 } };
 
       chartInstances.trajectory = new Chart(document.getElementById("chart-trajectory"), {
         type: "line",
@@ -2570,11 +2589,11 @@
                 <div class="log-detail-content">${escapeHtml(item.completed_summary || "기록 없음")}</div>
               </div>
               <div class="log-detail-block">
-                <h3>2. ACTIVE AUTOMATIONS & PORTFOLIO / 실행 중인 자동화 및 투자 현황</h3>
+                <h3>2. ACTIVE AUTOMATIONS &amp; PORTFOLIO / 실행 중인 자동화 및 투자 현황</h3>
                 <div class="log-detail-content">${escapeHtml(item.active_pipelines || "기록 없음")}</div>
               </div>
               <div class="log-detail-block">
-                <h3>3. DIAGNOSIS, SOLUTIONS & STUDY ARCHIVE / 문제점 분석 및 학습·성취 기록</h3>
+                <h3>3. DIAGNOSIS, SOLUTIONS &amp; STUDY ARCHIVE / 문제점 분석 및 학습·성취 기록</h3>
                 <div class="log-detail-content">${escapeHtml(item.problem_analysis || "기록 없음")}</div>
               </div>
             </div>
@@ -2678,7 +2697,7 @@
       const ctx = canvas.getContext("2d");
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.fillStyle = "#ffffff";
-      ctx.font = `700 ${Math.floor(cellSize * 0.78)}px "JetBrains Mono", "SFMono-Regular", Menlo, Consolas, "Courier New", monospace`;
+      ctx.font = `700 ${Math.floor(cellSize * 0.78)}px "SFMono-Regular", Menlo, Consolas, "Courier New", monospace`;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
 
