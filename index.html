@@ -66,8 +66,8 @@
       font-weight: 700;
       color: #ffffff;
       border: 1px solid #ffffff;
-      padding: 0 5px;
-      letter-spacing: 0.03em;
+      padding: 0 6px;
+      letter-spacing: 0.04em;
       flex-shrink: 0;
     }
 
@@ -300,7 +300,6 @@
       font-weight: 700;
     }
 
-    /* Invert unread dot on active white sub-tab button so it stays visible */
     .btn-outline.active .unread-dot {
       background-color: #000000;
       box-shadow: 0 0 5px rgba(0, 0, 0, 0.8);
@@ -569,16 +568,6 @@
       font-family: inherit;
       font-size: 0.62rem;
       opacity: 0.78;
-    }
-
-    .gb-notice-box {
-      border: 1px solid #2e2e2e;
-      background: #000000;
-      color: #a8a8a8;
-      font-size: 0.76rem;
-      letter-spacing: 0.03em;
-      padding: 10px 14px;
-      margin-bottom: 16px;
     }
 
     .user-badge-tag {
@@ -1077,17 +1066,13 @@
           <!-- Honeypot field for bot filtering -->
           <input type="text" id="gb-website-hp" class="hp-field" tabindex="-1" autocomplete="off" />
 
-          <div class="gb-notice-box">
-            ※ 과도한 언어나 욕설 등 비속어·비방성 방명록은 사전 통보 없이 삭제될 수 있습니다.
-          </div>
-
           <div class="form-group">
             <label>DISPLAY NAME (방명록 표시 이름)</label>
             <input type="text" id="gb-name" maxlength="30" placeholder="방명록에 표시할 이름을 입력하세요 (예: 강시후)" />
           </div>
           <div class="form-group">
             <label>LEAVE A MESSAGE (MAX 1,000 CHARS · 60S COOLDOWN)</label>
-            <textarea id="gb-input" rows="3" maxlength="1000" placeholder="로그인 후 방명록을 남길 수 있습니다. (과도한 언어나 욕설 등 비속어 방명록은 삭제될 수 있습니다.)"></textarea>
+            <textarea id="gb-input" rows="3" maxlength="1000" placeholder="과도한 언어나 욕설 등 비속어 방명록은 삭제될 수 있습니다. (로그인 후 작성 가능)"></textarea>
           </div>
           <button class="btn" id="btn-post-gb" onclick="postGuestbook()">POST MESSAGE</button>
           <div id="gb-status" style="margin-top:8px; font-size:0.8rem; color:var(--muted);"></div>
@@ -2242,7 +2227,7 @@
       const today = getTodayKST();
       const selectEl = document.getElementById("brief-date-select");
       selectEl.innerHTML = cachedMorningBriefs.map(b => {
-        const todaySuffix = b.brief_date === today ? " (오늘)" : "";
+        const todaySuffix = b.brief_date === today ? " · 오늘" : "";
         return `<option value="${escapeHtml(b.brief_date)}">${escapeHtml(b.brief_date)}${todaySuffix}</option>`;
       }).join("");
 
@@ -2255,7 +2240,7 @@
 
       const isToday = brief.brief_date === getTodayKST();
       document.getElementById("brief-headline").innerHTML =
-        `${isToday ? '<span class="today-tag" style="margin-right:8px;">(오늘)</span>' : ''}${escapeHtml(brief.headline || "")}`;
+        `${isToday ? '<span class="today-tag" style="margin-right:8px;">오늘</span>' : ''}${escapeHtml(brief.headline || "")}`;
 
       const snap = brief.portfolio_snapshot || FALLBACK_MORNING_BRIEFS[0].portfolio_snapshot;
       const pnlKrw = (snap.total_eval_krw || 0) - (snap.total_buy_krw || 0);
@@ -2436,7 +2421,7 @@
             <div class="board-row-header" onclick="toggleDailyReviewItem('${escapeHtml(key)}')">
               <div class="board-row-left">
                 <span class="board-date-mono">${escapeHtml(r.review_date)}</span>
-                ${isToday ? `<span class="today-tag">(오늘)</span>` : ""}
+                ${isToday ? `<span class="today-tag">오늘</span>` : ""}
                 <span class="board-title-text">${escapeHtml(r.headline)}</span>
               </div>
               <div class="board-row-right">
@@ -2570,7 +2555,7 @@
             <div class="board-row-header" onclick="toggleWorkLogItem('${escapeHtml(key)}')">
               <div class="board-row-left">
                 <span class="board-date-mono">${escapeHtml(item.log_date)}</span>
-                ${isToday ? `<span class="today-tag">(오늘)</span>` : ""}
+                ${isToday ? `<span class="today-tag">오늘</span>` : ""}
                 <span class="board-title-text">${escapeHtml(item.title)}</span>
               </div>
               <div class="board-row-right">
