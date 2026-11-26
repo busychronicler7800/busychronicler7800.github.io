@@ -4,77 +4,44 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>BUSYCHRONICLER7800</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     :root {
       --bg: #000000;
-      --fg: #ffffff;
-      --muted: #777777;
-      --line: #262626;
-      --panel: #080808;
-      --mono: "JetBrains Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+      --surface: #0a0a0a;
+      --surface-2: #121212;
+      --line: #222222;
+      --line-strong: #444444;
+      --text: #ffffff;
+      --muted: #888888;
+      --accent: #ffffff;
     }
 
     * {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
-      border-radius: 0 !important;
     }
 
     body {
-      background-color: var(--bg);
-      color: var(--fg);
-      font-family: "Helvetica Neue", Helvetica, Arial, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
-      line-height: 1.55;
-      -webkit-font-smoothing: antialiased;
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+      line-height: 1.6;
       min-height: 100vh;
       display: flex;
       flex-direction: column;
+      -webkit-font-smoothing: antialiased;
     }
 
-    /* UNREAD BLINKING WHITE DOT */
-    @keyframes pulseWhiteDot {
-      0%, 100% {
-        opacity: 1;
-        transform: scale(1);
-        box-shadow: 0 0 6px rgba(255, 255, 255, 0.95);
-      }
-      50% {
-        opacity: 0.15;
-        transform: scale(0.78);
-        box-shadow: none;
-      }
-    }
-
-    .unread-dot {
-      display: inline-block;
-      width: 7px;
-      height: 7px;
-      background-color: #ffffff;
-      border-radius: 50% !important;
-      animation: pulseWhiteDot 1.3s infinite ease-in-out;
-      flex-shrink: 0;
-      vertical-align: middle;
-    }
-
-    .today-tag {
-      font-family: var(--mono);
-      font-size: 0.7rem;
-      font-weight: 700;
-      color: #ffffff;
-      border: 1px solid #ffffff;
-      padding: 0 6px;
-      letter-spacing: 0.04em;
-      flex-shrink: 0;
-    }
-
-    /* HEADER & NAVIGATION */
     header {
       border-bottom: 1px solid var(--line);
-      padding: 18px 32px;
+      padding: 18px 28px;
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -82,80 +49,95 @@
       gap: 14px;
       position: sticky;
       top: 0;
-      background: rgba(0, 0, 0, 0.95);
-      z-index: 100;
+      background: rgba(0, 0, 0, 0.94);
+      backdrop-filter: blur(8px);
+      z-index: 50;
     }
 
     .brand {
-      font-size: 0.95rem;
+      font-family: "JetBrains Mono", monospace;
       font-weight: 700;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
+      font-size: 0.95rem;
+      letter-spacing: 0.16em;
+      color: var(--text);
+      text-decoration: none;
       cursor: pointer;
     }
 
     nav {
       display: flex;
-      gap: 20px;
+      gap: 8px;
       flex-wrap: wrap;
       align-items: center;
     }
 
     .nav-btn {
-      background: none;
-      border: none;
+      background: transparent;
+      border: 1px solid transparent;
       color: var(--muted);
-      font-family: inherit;
+      font-family: "JetBrains Mono", monospace;
       font-size: 0.78rem;
-      font-weight: 500;
-      letter-spacing: 0.09em;
-      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 7px 12px;
       cursor: pointer;
-      padding: 4px 0;
-      border-bottom: 1px solid transparent;
-      transition: color 0.15s, border-color 0.15s;
+      transition: all 0.18s ease;
       display: inline-flex;
       align-items: center;
-      gap: 7px;
+      gap: 6px;
     }
 
-    .nav-btn:hover,
+    .nav-btn:hover {
+      color: var(--text);
+      border-color: var(--line);
+    }
+
     .nav-btn.active {
-      color: var(--fg);
-      border-bottom-color: var(--fg);
-    }
-
-    .nav-divider {
-      width: 1px;
-      height: 14px;
-      background: var(--line);
-    }
-
-    .auth-indicator {
-      font-size: 0.72rem;
-      letter-spacing: 0.08em;
-      color: var(--muted);
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .badge-admin {
-      border: 1px solid var(--fg);
-      color: var(--fg);
-      padding: 1px 6px;
-      font-family: var(--mono);
-      font-size: 0.66rem;
+      color: #000000;
+      background: #ffffff;
+      border-color: #ffffff;
       font-weight: 700;
     }
 
-    /* MAIN CONTAINER */
+    .header-status {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 0.72rem;
+      color: var(--muted);
+      letter-spacing: 0.06em;
+    }
+
+    .badge-admin {
+      display: inline-block;
+      border: 1px solid #ffffff;
+      color: #ffffff;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 0.65rem;
+      padding: 1px 6px;
+      margin-left: 6px;
+      letter-spacing: 0.08em;
+    }
+
+    .unread-dot {
+      display: inline-block;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #ffffff;
+      box-shadow: 0 0 6px rgba(255, 255, 255, 0.85);
+      flex-shrink: 0;
+    }
+
+    .nav-btn.active .unread-dot,
+    .btn-outline.active .unread-dot {
+      background: #000000;
+      box-shadow: none;
+    }
+
     main {
-      width: 100%;
-      max-width: 1240px;
-      margin: 0 auto;
-      padding: 32px 32px 80px;
       flex: 1;
+      width: 100%;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 28px 24px 60px;
     }
 
     .section {
@@ -168,107 +150,99 @@
 
     .box {
       border: 1px solid var(--line);
-      background: var(--panel);
+      background: var(--surface);
       padding: 24px;
       margin-bottom: 24px;
     }
 
     h2 {
-      font-size: 0.82rem;
-      font-weight: 700;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      margin-bottom: 16px;
-      padding-bottom: 10px;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 0.92rem;
+      letter-spacing: 0.14em;
+      margin-bottom: 18px;
+      padding-bottom: 12px;
       border-bottom: 1px solid var(--line);
+      font-weight: 700;
+    }
+
+    h3 {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 0.8rem;
+      letter-spacing: 0.08em;
+      color: #cccccc;
+      margin-bottom: 10px;
+    }
+
+    /* 01. SCULPTURE STAGE */
+    .stage-wrap {
+      border: 1px solid var(--line);
+      background: #000000;
+      position: relative;
+      width: 100%;
+      height: 68vh;
+      min-height: 460px;
+      overflow: hidden;
+    }
+
+    #anatomy-stage {
+      width: 100%;
+      height: 100%;
+      cursor: grab;
+      touch-action: none;
+    }
+
+    #anatomy-stage:active {
+      cursor: grabbing;
+    }
+
+    .stage-hud {
+      position: absolute;
+      bottom: 16px;
+      left: 16px;
+      right: 16px;
       display: flex;
       justify-content: space-between;
       align-items: center;
       flex-wrap: wrap;
-      gap: 8px;
-    }
-
-    h3 {
-      font-size: 0.76rem;
-      font-weight: 700;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: #ffffff;
-      margin-bottom: 10px;
-      padding-bottom: 6px;
-      border-bottom: 1px solid #1a1a1a;
-    }
-
-    /* FORMS & BUTTONS */
-    .form-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
-      margin-bottom: 16px;
-    }
-
-    .form-row-3 {
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 16px;
-      margin-bottom: 16px;
-    }
-
-    .form-group {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      margin-bottom: 16px;
-    }
-
-    label {
-      font-size: 0.71rem;
-      letter-spacing: 0.08em;
-      color: var(--muted);
-      text-transform: uppercase;
-    }
-
-    input, textarea, select {
-      width: 100%;
-      background: #000000;
-      border: 1px solid var(--line);
-      color: var(--fg);
-      font-family: inherit;
-      font-size: 0.84rem;
-      padding: 9px 12px;
-      outline: none;
-    }
-
-    input:focus, textarea:focus, select:focus {
-      border-color: var(--fg);
-    }
-
-    .hp-field {
-      position: absolute;
-      left: -9999px;
-      width: 1px;
-      height: 1px;
-      opacity: 0;
+      gap: 10px;
       pointer-events: none;
     }
 
-    .btn {
-      background: var(--fg);
-      color: var(--bg);
-      border: 1px solid var(--fg);
-      font-family: inherit;
-      font-size: 0.75rem;
-      font-weight: 700;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      padding: 10px 18px;
+    .stage-controls {
+      display: flex;
+      gap: 8px;
+      pointer-events: auto;
+    }
+
+    .stage-hint {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 0.7rem;
+      color: var(--muted);
+      background: rgba(0, 0, 0, 0.75);
+      padding: 5px 10px;
+      border: 1px solid var(--line);
+    }
+
+    /* BUTTONS & INPUTS */
+    .btn, .btn-outline, .btn-sm {
+      font-family: "JetBrains Mono", monospace;
       cursor: pointer;
-      transition: background 0.15s, color 0.15s;
+      transition: all 0.16s ease;
+      letter-spacing: 0.06em;
+    }
+
+    .btn {
+      background: #ffffff;
+      color: #000000;
+      border: 1px solid #ffffff;
+      padding: 9px 16px;
+      font-size: 0.76rem;
+      font-weight: 700;
     }
 
     .btn:hover:not(:disabled) {
-      background: var(--bg);
-      color: var(--fg);
+      background: #cccccc;
+      border-color: #cccccc;
     }
 
     .btn:disabled {
@@ -277,45 +251,33 @@
     }
 
     .btn-outline {
-      background: #000000;
-      color: var(--fg);
-      border: 1px solid var(--line);
-      font-family: inherit;
-      font-size: 0.71rem;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      padding: 7px 14px;
-      cursor: pointer;
-      transition: background 0.15s, color 0.15s, border-color 0.15s;
+      background: rgba(0, 0, 0, 0.85);
+      color: #ffffff;
+      border: 1px solid var(--line-strong);
+      padding: 8px 14px;
+      font-size: 0.74rem;
       display: inline-flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
     }
 
-    .btn-outline:hover,
+    .btn-outline:hover {
+      border-color: #ffffff;
+    }
+
     .btn-outline.active {
-      border-color: var(--fg);
-      background: var(--fg);
-      color: var(--bg);
+      background: #ffffff;
+      color: #000000;
+      border-color: #ffffff;
       font-weight: 700;
-    }
-
-    .btn-outline.active .unread-dot {
-      background-color: #000000;
-      box-shadow: 0 0 5px rgba(0, 0, 0, 0.8);
     }
 
     .btn-sm {
       background: transparent;
       color: var(--muted);
       border: 1px solid var(--line);
-      font-family: inherit;
-      font-size: 0.65rem;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      padding: 2px 8px;
-      cursor: pointer;
-      transition: color 0.15s, border-color 0.15s;
+      padding: 3px 8px;
+      font-size: 0.68rem;
     }
 
     .btn-sm:hover {
@@ -323,83 +285,71 @@
       border-color: #ffffff;
     }
 
-    /* 01. 3D SCULPTURE CANVAS */
-    .anatomy-toolbar {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-end;
-      flex-wrap: wrap;
-      gap: 16px;
-      margin-bottom: 16px;
+    .form-group {
+      margin-bottom: 14px;
     }
 
-    .toolbar-group {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 14px;
     }
 
-    .toolbar-buttons {
-      display: flex;
-      gap: 6px;
-      flex-wrap: wrap;
-      align-items: center;
+    .form-row-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 14px;
     }
 
-    #anatomy-stage {
-      width: 100%;
-      height: 700px;
-      border: 1px solid var(--line);
-      background: #000000;
-      position: relative;
-      overflow: hidden;
-      cursor: grab;
-      user-select: none;
-      touch-action: none;
-    }
-
-    #anatomy-stage:active {
-      cursor: grabbing;
-    }
-
-    #anatomy-stage canvas {
-      width: 100%;
-      height: 100%;
+    label {
       display: block;
-    }
-
-    .anatomy-hud {
-      position: absolute;
-      bottom: 12px;
-      left: 16px;
-      right: 16px;
-      display: flex;
-      justify-content: space-between;
-      flex-wrap: wrap;
-      gap: 8px;
+      font-family: "JetBrains Mono", monospace;
       font-size: 0.7rem;
-      letter-spacing: 0.08em;
       color: var(--muted);
+      margin-bottom: 6px;
+      letter-spacing: 0.06em;
+    }
+
+    input[type="text"],
+    input[type="email"],
+    input[type="password"],
+    input[type="date"],
+    input[type="file"],
+    textarea,
+    select {
+      width: 100%;
+      background: #000000;
+      border: 1px solid var(--line-strong);
+      color: #ffffff;
+      padding: 9px 12px;
+      font-family: "Inter", sans-serif;
+      font-size: 0.84rem;
+      outline: none;
+    }
+
+    input:focus, textarea:focus, select:focus {
+      border-color: #ffffff;
+    }
+
+    .hp-field {
+      position: absolute;
+      left: -9999px;
+      opacity: 0;
       pointer-events: none;
-      background: rgba(0, 0, 0, 0.84);
-      padding: 5px 10px;
-      border: 1px solid #181818;
     }
 
-    .anatomy-hud strong {
-      color: var(--fg);
-    }
-
-    /* 02. ARCHIVE GRID & MODAL */
+    /* 02. ARCHIVE */
     .archive-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-      gap: 20px;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 18px;
     }
 
     .archive-card {
       border: 1px solid var(--line);
-      background: var(--panel);
+      background: #000000;
       display: flex;
       flex-direction: column;
     }
@@ -410,7 +360,7 @@
       object-fit: cover;
       border-bottom: 1px solid var(--line);
       filter: grayscale(100%);
-      transition: filter 0.25s;
+      transition: filter 0.25s ease;
     }
 
     .archive-card:hover img {
@@ -418,24 +368,20 @@
     }
 
     .archive-body {
-      padding: 18px;
+      padding: 16px;
       flex: 1;
       display: flex;
       flex-direction: column;
+      gap: 8px;
     }
 
     .archive-meta-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      gap: 8px;
-      margin-bottom: 8px;
-    }
-
-    .archive-meta {
+      font-family: "JetBrains Mono", monospace;
       font-size: 0.7rem;
       color: var(--muted);
-      letter-spacing: 0.08em;
     }
 
     .archive-admin-actions {
@@ -444,80 +390,57 @@
     }
 
     .archive-title {
-      font-size: 0.95rem;
       font-weight: 700;
-      margin-bottom: 8px;
+      font-size: 0.95rem;
     }
 
     .archive-desc {
       font-size: 0.84rem;
       color: #cccccc;
-      white-space: pre-line;
-    }
-
-    .modal-backdrop {
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.86);
-      display: none;
-      justify-content: center;
-      align-items: center;
-      z-index: 300;
-      padding: 20px;
-    }
-
-    .modal-backdrop.open {
-      display: flex;
-    }
-
-    .modal-box {
-      width: 100%;
-      max-width: 560px;
-      background: #080808;
-      border: 1px solid #ffffff;
-      padding: 24px;
+      white-space: pre-wrap;
     }
 
     /* 03. BIO */
     .bio-grid {
       display: grid;
-      grid-template-columns: 1fr 2fr;
+      grid-template-columns: 1fr 1fr;
       gap: 24px;
     }
 
     .bio-list {
       list-style: none;
-    }
-
-    .bio-list li {
-      padding: 12px 0;
-      border-bottom: 1px solid var(--line);
       display: flex;
-      justify-content: space-between;
-      gap: 16px;
+      flex-direction: column;
+      gap: 10px;
       font-size: 0.86rem;
+      color: #cccccc;
     }
 
-    .bio-key {
-      color: var(--muted);
-      font-size: 0.74rem;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      min-width: 120px;
+    .bio-list li strong {
+      font-family: "JetBrains Mono", monospace;
+      color: #ffffff;
+      font-size: 0.78rem;
+      display: inline-block;
+      min-width: 110px;
     }
 
-    /* 04. GUESTBOOK & BADGE SYSTEM */
-    .auth-mode-tabs {
+    /* 04. GUESTBOOK & BADGES */
+    .auth-tabs {
       display: flex;
       gap: 8px;
-      margin-bottom: 18px;
+      margin-bottom: 16px;
     }
 
+    .admin-grant-panel,
     .badge-panel {
       border: 1px solid var(--line);
       background: #000000;
       padding: 16px;
-      margin-bottom: 18px;
+      margin-bottom: 20px;
+    }
+
+    .admin-grant-panel {
+      border-color: var(--line-strong);
     }
 
     .badge-panel-head {
@@ -527,36 +450,52 @@
       flex-wrap: wrap;
       gap: 10px;
       margin-bottom: 12px;
+      font-family: "JetBrains Mono", monospace;
       font-size: 0.74rem;
-      color: var(--muted);
+      color: #cccccc;
     }
 
     .badge-grid {
-      display: flex;
-      flex-wrap: wrap;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(175px, 1fr));
       gap: 8px;
     }
 
     .badge-chip {
-      border: 1px solid var(--line);
       background: #080808;
+      border: 1px solid var(--line);
       color: #cccccc;
-      font-family: var(--mono);
-      font-size: 0.7rem;
-      padding: 6px 10px;
+      padding: 10px 12px;
+      text-align: left;
       cursor: pointer;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 0.74rem;
       display: flex;
       flex-direction: column;
-      gap: 2px;
-      text-align: left;
-      transition: all 0.15s;
+      gap: 4px;
+      transition: all 0.16s ease;
+    }
+
+    .badge-chip:hover:not(:disabled) {
+      border-color: #ffffff;
+      color: #ffffff;
     }
 
     .badge-chip.selected {
-      border-color: #ffffff;
       background: #ffffff;
       color: #000000;
+      border-color: #ffffff;
       font-weight: 700;
+    }
+
+    .badge-chip.special-badge {
+      border-style: dashed;
+      border-color: #888888;
+    }
+
+    .badge-chip.special-badge.selected {
+      border-style: solid;
+      border-color: #ffffff;
     }
 
     .badge-chip.locked {
@@ -564,29 +503,11 @@
       cursor: not-allowed;
     }
 
-    .badge-chip span.sub {
-      font-family: inherit;
-      font-size: 0.62rem;
+    .badge-chip .sub {
+      font-family: "Inter", sans-serif;
+      font-size: 0.7rem;
       opacity: 0.78;
-    }
-
-    .user-badge-tag {
-      display: inline-block;
-      border: 1px solid #888888;
-      color: #ffffff;
-      font-family: var(--mono);
-      font-size: 0.65rem;
-      padding: 0 5px;
-      margin-left: 6px;
-      letter-spacing: 0.06em;
-      vertical-align: middle;
-    }
-
-    .user-badge-tag.architect {
-      border-color: #ffffff;
-      background: #ffffff;
-      color: #000000;
-      font-weight: 700;
+      font-weight: 400;
     }
 
     .gb-item {
@@ -604,13 +525,30 @@
       align-items: center;
       flex-wrap: wrap;
       gap: 8px;
-      font-size: 0.76rem;
-      color: var(--muted);
       margin-bottom: 8px;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 0.75rem;
+      color: var(--muted);
     }
 
     .gb-author strong {
-      color: var(--fg);
+      color: #ffffff;
+      font-size: 0.84rem;
+    }
+
+    .user-badge-tag {
+      display: inline-block;
+      margin-left: 6px;
+      padding: 1px 6px;
+      border: 1px solid var(--line-strong);
+      color: #dddddd;
+      font-size: 0.68rem;
+    }
+
+    .user-badge-tag.architect {
+      background: #ffffff;
+      color: #000000;
+      border-color: #ffffff;
       font-weight: 700;
     }
 
@@ -621,24 +559,20 @@
     }
 
     .gb-msg {
-      font-size: 0.9rem;
+      font-size: 0.88rem;
+      color: #e5e5e5;
       white-space: pre-wrap;
       word-break: break-word;
     }
 
-    /* 05. UNIFIED REPORT HUB (MORNING BRIEF / DAILY REVIEW / WORK LOG) */
+    /* 05. REPORT HUB */
     .report-subnav {
       display: flex;
       gap: 8px;
       flex-wrap: wrap;
-      margin-bottom: 24px;
+      margin-bottom: 20px;
       padding-bottom: 16px;
       border-bottom: 1px solid var(--line);
-    }
-
-    .report-subnav .btn-outline {
-      padding: 9px 18px;
-      font-size: 0.75rem;
     }
 
     .report-subpanel {
@@ -649,159 +583,35 @@
       display: block;
     }
 
-    .board-toolbar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin-bottom: 16px;
-    }
-
-    .filter-bar {
-      display: flex;
-      gap: 12px;
-      flex-wrap: wrap;
-      align-items: flex-end;
-      margin-bottom: 18px;
-      padding-bottom: 14px;
-      border-bottom: 1px solid var(--line);
-    }
-
-    .filter-item {
-      min-width: 140px;
-    }
-
-    /* COMPACT BOARD ROWS FOR DAILY REVIEW & WORK LOG */
-    .board-row-item {
-      border: 1px solid var(--line);
-      background: #000000;
-      margin-bottom: 10px;
-      transition: border-color 0.15s;
-    }
-
-    .board-row-item.unread {
-      border-color: #555555;
-    }
-
-    .board-row-item.open {
-      border-color: #ffffff;
-    }
-
-    .board-row-header {
-      padding: 14px 18px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 14px;
-      cursor: pointer;
-      transition: background 0.15s;
-    }
-
-    .board-row-header:hover {
-      background: #111111;
-    }
-
-    .board-row-left {
-      display: flex;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 10px;
-      font-size: 0.88rem;
-      font-weight: 600;
-      min-width: 0;
-    }
-
-    .board-date-mono {
-      font-family: var(--mono);
-      color: #ffffff;
-      font-weight: 700;
-      flex-shrink: 0;
-    }
-
-    .board-title-text {
-      color: #e8e8e8;
-    }
-
-    .board-row-right {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      flex-shrink: 0;
-    }
-
-    .board-row-body {
-      display: none;
-      padding: 22px 20px;
-      border-top: 1px solid var(--line);
-      background: #050505;
-      font-size: 0.85rem;
-    }
-
-    .board-row-item.open .board-row-body {
-      display: block;
-    }
-
-    .tool-chips {
-      display: flex;
-      gap: 6px;
-      flex-wrap: wrap;
-      margin-bottom: 16px;
-    }
-
-    .tool-chip {
-      font-family: var(--mono);
-      font-size: 0.66rem;
-      color: #b3b3b3;
-      border: 1px solid #333333;
-      background: #0a0a0a;
-      padding: 2px 8px;
-    }
-
-    .log-detail-block {
-      margin-bottom: 20px;
-    }
-
-    .log-detail-block:last-child {
-      margin-bottom: 0;
-    }
-
-    .log-detail-content {
-      color: #dcdcdc;
-      white-space: pre-line;
-      line-height: 1.74;
-    }
-
     .kpi-grid {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
-      gap: 14px;
-      margin-bottom: 24px;
+      gap: 12px;
+      margin-bottom: 20px;
     }
 
     .kpi-card {
       border: 1px solid var(--line);
       background: #000000;
-      padding: 16px;
+      padding: 14px 16px;
     }
 
     .kpi-label {
+      font-family: "JetBrains Mono", monospace;
       font-size: 0.68rem;
-      letter-spacing: 0.08em;
       color: var(--muted);
-      text-transform: uppercase;
       margin-bottom: 6px;
     }
 
     .kpi-val {
-      font-family: var(--mono);
-      font-size: 1.15rem;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 1.05rem;
       font-weight: 700;
+      color: #ffffff;
     }
 
     .kpi-sub {
-      font-family: var(--mono);
-      font-size: 0.72rem;
+      font-size: 0.74rem;
       color: #aaaaaa;
       margin-top: 4px;
     }
@@ -809,8 +619,8 @@
     .charts-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 20px;
-      margin-bottom: 24px;
+      gap: 16px;
+      margin-bottom: 22px;
     }
 
     .chart-box {
@@ -825,116 +635,244 @@
 
     .chart-canvas-wrap {
       position: relative;
-      height: 260px;
+      height: 220px;
       width: 100%;
     }
 
     .brief-stack {
       display: flex;
       flex-direction: column;
-      gap: 20px;
+      gap: 16px;
     }
 
     .brief-card {
       border: 1px solid var(--line);
       background: #000000;
-      padding: 22px;
+      padding: 18px;
     }
 
     .brief-text {
-      font-size: 0.86rem;
-      color: #dcdcdc;
-      white-space: pre-line;
-      line-height: 1.75;
+      font-size: 0.85rem;
+      color: #dddddd;
+      white-space: pre-wrap;
+      line-height: 1.7;
+    }
+
+    /* BULLETIN BOARD LIST FOR DAILY REVIEW & WORK LOG */
+    .board-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .filter-bar {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      background: #000000;
+    }
+
+    .filter-item {
+      min-width: 130px;
+    }
+
+    .board-row-item {
+      border: 1px solid var(--line);
+      background: #000000;
+      margin-bottom: 8px;
+      transition: border-color 0.15s ease;
+    }
+
+    .board-row-item.unread {
+      border-color: var(--line-strong);
+    }
+
+    .board-row-header {
+      padding: 14px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .board-row-header:hover {
+      background: #0d0d0d;
+    }
+
+    .board-row-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      min-width: 0;
+    }
+
+    .board-date-mono {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 0.78rem;
+      color: var(--muted);
+      flex-shrink: 0;
+    }
+
+    .today-tag {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 0.66rem;
+      font-weight: 700;
+      padding: 1px 6px;
+      background: #ffffff;
+      color: #000000;
+      flex-shrink: 0;
+    }
+
+    .board-title-text {
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: #ffffff;
+    }
+
+    .board-row-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .board-row-body {
+      display: none;
+      padding: 18px 16px;
+      border-top: 1px solid var(--line);
+      background: #050505;
+    }
+
+    .board-row-item.open .board-row-body {
+      display: block;
+    }
+
+    .tool-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 14px;
+    }
+
+    .tool-chip {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 0.68rem;
+      padding: 2px 8px;
+      border: 1px solid var(--line-strong);
+      color: #cccccc;
+    }
+
+    .log-detail-block {
+      margin-bottom: 16px;
+    }
+
+    .log-detail-block:last-child {
+      margin-bottom: 0;
+    }
+
+    .log-detail-content {
+      font-size: 0.84rem;
+      color: #dddddd;
+      white-space: pre-wrap;
+      line-height: 1.68;
+    }
+
+    /* MODAL */
+    .modal-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.85);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .modal-backdrop.open {
+      display: flex;
+    }
+
+    .modal-box {
+      width: 100%;
+      max-width: 520px;
+      background: var(--surface);
+      border: 1px solid #ffffff;
+      padding: 24px;
     }
 
     footer {
       border-top: 1px solid var(--line);
-      padding: 20px 32px;
-      font-size: 0.74rem;
-      color: var(--muted);
+      padding: 18px 28px;
       display: flex;
       justify-content: space-between;
-      letter-spacing: 0.06em;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 0.72rem;
+      color: var(--muted);
     }
 
-    @media (max-width: 900px) {
-      .kpi-grid { grid-template-columns: repeat(2, 1fr); }
-      .charts-grid { grid-template-columns: 1fr; }
-    }
-
-    @media (max-width: 768px) {
-      header, main, footer { padding-left: 18px; padding-right: 18px; }
-      .form-row, .form-row-3, .bio-grid { grid-template-columns: 1fr; }
-      #anatomy-stage { height: 520px; }
+    @media (max-width: 820px) {
+      .kpi-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+      .charts-grid,
+      .bio-grid,
+      .form-row,
+      .form-row-3 {
+        grid-template-columns: 1fr;
+      }
     }
   </style>
 </head>
 <body>
-
   <header>
-    <div class="brand" onclick="switchTab('anatomy')">BUSYCHRONICLER7800</div>
+    <a class="brand" onclick="switchTab('anatomy')">BUSYCHRONICLER7800</a>
     <nav>
       <button class="nav-btn active" id="nav-anatomy" onclick="switchTab('anatomy')">01. SCULPTURE</button>
       <button class="nav-btn" id="nav-archive" onclick="switchTab('archive')">02. ARCHIVE</button>
       <button class="nav-btn" id="nav-bio" onclick="switchTab('bio')">03. BIO</button>
       <button class="nav-btn" id="nav-guestbook" onclick="switchTab('guestbook')">04. GUESTBOOK</button>
-
-      <span class="nav-divider admin-only" style="display:none;"></span>
       <button class="nav-btn admin-only" id="nav-report" style="display:none;" onclick="switchTab('report')">
         <span>05. REPORT</span>
         <span class="unread-dot" id="nav-report-dot" style="display:none;" title="확인하지 않은 리포트가 있습니다"></span>
       </button>
     </nav>
-    <div class="auth-indicator" id="header-auth-status">GUEST MODE</div>
+    <div class="header-status" id="header-auth-status">GUEST MODE</div>
   </header>
 
   <main>
-    <!-- 01. 3D TORUS KNOT ASCII VIEWER -->
+    <!-- 01. SCULPTURE -->
     <section id="sec-anatomy" class="section active">
-      <div class="box">
-        <div class="anatomy-toolbar">
-          <div class="toolbar-group">
-            <label>MODEL</label>
-            <div class="toolbar-buttons">
-              <button class="btn-outline active" id="model-knot" onclick="resetAnatomyView()">TORUS KNOT (매듭 조형)</button>
-            </div>
+      <div class="stage-wrap">
+        <div id="anatomy-stage"></div>
+        <div class="stage-hud">
+          <div class="stage-controls">
+            <button class="btn-outline active" id="btn-autorotate" onclick="toggleAutoRotate()">ROTATE : ON</button>
+            <button class="btn-outline" id="btn-flow" onclick="toggleFlow()">FLOW : OFF</button>
+            <button class="btn-outline" onclick="resetAnatomyView()">RESET VIEW</button>
           </div>
-
-          <div class="toolbar-group">
-            <label>RENDER</label>
-            <div class="toolbar-buttons">
-              <button class="btn-outline active" id="mode-ascii">ASCII</button>
-            </div>
-          </div>
-
-          <div class="toolbar-group">
-            <label>VIEW & CONTROL</label>
-            <div class="toolbar-buttons">
-              <button class="btn-outline active" id="btn-autorotate" onclick="toggleAutoRotate()">ROTATE : ON</button>
-              <button class="btn-outline" id="btn-flow" onclick="toggleFlow()">FLOW : OFF</button>
-              <button class="btn-outline" onclick="resetAnatomyView()">RESET VIEW</button>
-            </div>
-          </div>
-        </div>
-
-        <div id="anatomy-stage" oncontextmenu="return false;">
-          <div class="anatomy-hud">
-            <span id="hud-left">DRAG / TOUCH : ROTATE · RIGHT/SHIFT DRAG : PAN · WHEEL/PINCH : ZOOM</span>
-            <span id="hud-right">TARGET : <strong>TORUS KNOT</strong></span>
-          </div>
+          <div class="stage-hint">DRAG / TOUCH : ROTATE · SHIFT+DRAG : PAN · SCROLL / PINCH : ZOOM</div>
         </div>
       </div>
     </section>
 
     <!-- 02. ARCHIVE -->
     <section id="sec-archive" class="section">
-      <div id="admin-archive-box" class="box" style="display:none;">
-        <h2>NEW ARCHIVE ENTRY (ADMIN)</h2>
+      <div class="box" id="admin-archive-box" style="display:none;">
+        <h2>ADMIN : PUBLISH ARCHIVE</h2>
         <div class="form-row">
           <div class="form-group" style="margin:0;">
             <label>TITLE</label>
-            <input type="text" id="arc-title" placeholder="EXHIBITION / EVENT / STUDY LOG" />
+            <input type="text" id="arc-title" placeholder="작품 또는 기록 제목" />
           </div>
           <div class="form-group" style="margin:0;">
             <label>IMAGE FILE (OPTIONAL)</label>
@@ -943,15 +881,15 @@
         </div>
         <div class="form-group">
           <label>DESCRIPTION</label>
-          <textarea id="arc-desc" rows="3" placeholder="기록할 내용을 입력하세요..."></textarea>
+          <textarea id="arc-desc" rows="3" placeholder="설명 및 기록 내용을 입력하세요"></textarea>
         </div>
         <button class="btn" onclick="publishArchive()">PUBLISH ENTRY</button>
-        <div id="arc-status" style="margin-top:10px; font-size:0.8rem; color:var(--muted);"></div>
+        <span id="arc-status" style="margin-left:12px; font-size:0.8rem; color:var(--muted);"></span>
       </div>
 
       <div class="box">
-        <h2>CHRONICLE ARCHIVE</h2>
-        <div id="archive-list" class="archive-grid">
+        <h2>02. ARCHIVE</h2>
+        <div class="archive-grid" id="archive-list">
           <p style="font-size:0.84rem; color:var(--muted);">LOADING ARCHIVES...</p>
         </div>
       </div>
@@ -959,52 +897,34 @@
 
     <!-- 03. BIO -->
     <section id="sec-bio" class="section">
-      <div class="bio-grid">
-        <div class="box">
-          <h2>IDENTITY</h2>
-          <p style="font-size:1.1rem; font-weight:700; margin-bottom:8px;">SIHOO KANG / 강시후</p>
-          <p style="font-size:0.84rem; color:var(--muted); margin-bottom:20px;">
-            PHYSICAL THERAPY UNDERGRADUATE · CREATIVE CODER · DIGITAL ARCHIVIST
-          </p>
-          <p style="font-size:0.84rem; color:#cccccc;">
-            3D 웹 그래픽스와 미니멀리즘 타이포그래피를 결합한 인터랙티브 아트워크와 개인 아카이브를 구축합니다.
-          </p>
-        </div>
-
-        <div class="box">
-          <h2>INDEX & PRACTICE</h2>
-          <ul class="bio-list">
-            <li>
-              <span class="bio-key">DISCIPLINE</span>
-              <span>Department of Physical Therapy, Gachon University</span>
-            </li>
-            <li>
-              <span class="bio-key">3D & WEB</span>
-              <span>Blender, Three.js, WebGL Spatial Typography</span>
-            </li>
-            <li>
-              <span class="bio-key">SYSTEMS</span>
-              <span>Supabase, Vercel Serverless Proxy, GitHub Pages</span>
-            </li>
-            <li>
-              <span class="bio-key">ARCHIVE</span>
-              <span>Event Logs, Photography, Exhibition & Study Notes</span>
-            </li>
-            <li>
-              <span class="bio-key">DOMAIN</span>
-              <span>busychronicler7800.com</span>
-            </li>
-          </ul>
+      <div class="box">
+        <h2>03. BIO & STATEMENT</h2>
+        <div class="bio-grid">
+          <div>
+            <h3>CONCEPT</h3>
+            <p style="font-size:0.88rem; color:#cccccc; line-height:1.75;">
+              BUSYCHRONICLER7800은 순수 흑백(Monochrome) 조형 언어와 웹 기반 3D ASCII 타이포그래피, 그리고 일상의 기록과 데이터 파이프라인을 하나의 아카이브로 통합하는 개인 디지털 공간입니다.
+            </p>
+          </div>
+          <div>
+            <h3>INDEX</h3>
+            <ul class="bio-list">
+              <li><strong>HANDLE</strong> BUSYCHRONICLER7800</li>
+              <li><strong>MEDIUM</strong> WebGL, Three.js, ASCII Shader, Supabase</li>
+              <li><strong>AESTHETIC</strong> Pure Monochrome (#000000 / #FFFFFF)</li>
+              <li><strong>DOMAIN</strong> busychronicler7800.com</li>
+            </ul>
+          </div>
         </div>
       </div>
     </section>
 
     <!-- 04. GUESTBOOK -->
     <section id="sec-guestbook" class="section">
-      <div class="box" id="auth-panel">
-        <h2>AUTHENTICATION</h2>
+      <div class="box">
+        <h2>ACCOUNT ACCESS</h2>
         <div id="auth-logged-out">
-          <div class="auth-mode-tabs">
+          <div class="auth-tabs">
             <button class="btn-outline active" id="tab-auth-signin" onclick="setAuthMode('signin')">SIGN IN</button>
             <button class="btn-outline" id="tab-auth-signup" onclick="setAuthMode('signup')">CREATE ACCOUNT</button>
           </div>
@@ -1017,7 +937,7 @@
               </div>
               <div class="form-group" style="margin:0;">
                 <label>PASSWORD</label>
-                <input type="password" id="signin-password" placeholder="••••••" />
+                <input type="password" id="signin-password" placeholder="비밀번호 입력" />
               </div>
             </div>
             <button class="btn" onclick="handleSignIn()">SIGN IN</button>
@@ -1031,7 +951,7 @@
               </div>
               <div class="form-group" style="margin:0;">
                 <label>PASSWORD (6+ CHARS)</label>
-                <input type="password" id="signup-password" placeholder="••••••" />
+                <input type="password" id="signup-password" placeholder="6자 이상 비밀번호" />
               </div>
               <div class="form-group" style="margin:0;">
                 <label>CONFIRM PASSWORD</label>
@@ -1052,6 +972,27 @@
       <div class="box">
         <h2>GUESTBOOK</h2>
 
+        <!-- ADMIN ONLY: GRANT PRIVATE SPECIAL BADGE TO SPECIFIC ACCOUNT -->
+        <div id="admin-badge-grant-box" class="admin-grant-panel" style="display:none;">
+          <h3 style="margin-bottom:12px;">ADMIN : GRANT PRIVATE SPECIAL BADGE (지정 계정 전용 특수 배지 부여)</h3>
+          <div class="form-row">
+            <div class="form-group" style="margin:0;">
+              <label>TARGET ACCOUNT EMAIL (특수 배지를 부여할 계정 이메일)</label>
+              <input type="email" id="grant-target-email" placeholder="target@example.com" />
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label>SPECIAL BADGE NAME (특수 배지 명칭)</label>
+              <input type="text" id="grant-badge-label" value="테스트용 부여 배지" maxlength="24" />
+            </div>
+          </div>
+          <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+            <button class="btn" type="button" onclick="grantSpecialBadge()">GRANT SPECIAL BADGE</button>
+            <button class="btn-outline" type="button" onclick="revokeSpecialBadge()">REVOKE BADGE</button>
+            <span style="font-size:0.72rem; color:var(--muted);">※ 부여된 특수 배지는 해당 계정 본인에게만 표시되며 선택할 수 있습니다.</span>
+          </div>
+          <div id="grant-status-msg" style="margin-top:8px; font-size:0.74rem; color:#cccccc;"></div>
+        </div>
+
         <!-- BADGE CONFIGURATION PANEL (LOGGED IN ONLY) -->
         <div id="badge-panel" class="badge-panel" style="display:none;">
           <div class="badge-panel-head">
@@ -1063,7 +1004,6 @@
         </div>
 
         <div id="gb-form-area" style="margin-bottom:24px; padding-bottom:20px; border-bottom:1px solid var(--line);">
-          <!-- Honeypot field for bot filtering -->
           <input type="text" id="gb-website-hp" class="hp-field" tabindex="-1" autocomplete="off" />
 
           <div class="form-group">
@@ -1084,12 +1024,11 @@
       </div>
     </section>
 
-    <!-- 05. REPORT HUB (ADMIN ONLY: MORNING BRIEF / DAILY REVIEW / WORK LOG) -->
+    <!-- 05. REPORT HUB (ADMIN ONLY) -->
     <section id="sec-report" class="section">
       <div class="box">
         <h2>05. COMMAND REPORT HUB (ADMIN ONLY)</h2>
 
-        <!-- 3 SUB-TABS WITH UNREAD INDICATORS -->
         <div class="report-subnav">
           <button class="btn-outline active" id="subnav-morningbrief" onclick="switchReportSubTab('morningbrief')">
             <span>01. 모닝 브리핑 (MORNING BRIEF)</span>
@@ -1111,10 +1050,8 @@
             <select id="brief-date-select" style="width:auto; min-width:160px;" onchange="selectMorningBrief(this.value)"></select>
           </div>
 
-          <!-- PORTFOLIO KPI SUMMARY -->
           <div class="kpi-grid" id="portfolio-kpi-grid"></div>
 
-          <!-- PORTFOLIO VISUALIZATION CHARTS -->
           <div class="charts-grid">
             <div class="chart-box full">
               <h3>PORTFOLIO VALUE TRAJECTORY (총 매입원금 VS 평가금액 추이)</h3>
@@ -1136,11 +1073,10 @@
             </div>
           </div>
 
-          <!-- FULL UNABRIDGED BRIEFING SECTIONS -->
           <div class="brief-stack" id="brief-sections-grid"></div>
         </div>
 
-        <!-- SUB-PANEL 2: DAILY REVIEW (분석 리포트 게시판) -->
+        <!-- SUB-PANEL 2: DAILY REVIEW -->
         <div id="sub-dailyreview" class="report-subpanel">
           <div class="board-toolbar">
             <span style="font-size:0.78rem; color:var(--muted); letter-spacing:0.08em;">
@@ -1184,7 +1120,7 @@
           </div>
         </div>
 
-        <!-- SUB-PANEL 3: WORK LOG (작업 일지 게시판) -->
+        <!-- SUB-PANEL 3: WORK LOG -->
         <div id="sub-worklog" class="report-subpanel">
           <div class="board-toolbar">
             <span style="font-size:0.78rem; color:var(--muted); letter-spacing:0.08em;">
@@ -1211,12 +1147,12 @@
               </div>
               <div class="form-group" style="margin:0;">
                 <label>TOOLS (쉼표 구분)</label>
-                <input type="text" id="wl-tools" placeholder="Gemini 4 Hydrogen, GitHub, Supabase" />
+                <input type="text" id="wl-tools" placeholder="Three.js, GitHub, Supabase" />
               </div>
             </div>
             <div class="form-group">
               <label>ONE-LINE HEADLINE (1줄 제목)</label>
-              <input type="text" id="wl-title" placeholder="예: 방명록 배지 소급 반영 및 REPORT 통합 허브 구축" />
+              <input type="text" id="wl-title" placeholder="예: 방명록 특수 배지 기능 및 REPORT 통합 허브 구축" />
             </div>
             <div class="form-group">
               <label>COMPLETED SUMMARY (일자별 완료 작업 요약)</label>
@@ -1331,14 +1267,14 @@
     let cooldownInterval = null;
     let chartInstances = {};
 
+    // 공개 배지 목록 (방명록 5회 작성 배지 삭제 완료)
     const BADGE_CATALOG = [
-      { code: "guest",      label: "GUEST",      desc: "기본 제공 배지" },
-      { code: "chronicle",  label: "OBSERVER",   desc: "기본 제공 배지" },
-      { code: "visit_3",    label: "VISITOR III",desc: "서로 다른 날 3회 접속" },
-      { code: "visit_10",   label: "REGULAR",    desc: "서로 다른 날 10회 접속" },
-      { code: "scribe_1",   label: "FIRST LOG",  desc: "방명록 첫 글 작성" },
-      { code: "scribe_5",   label: "CHRONICLER", desc: "방명록 5회 이상 작성" },
-      { code: "admin",      label: "ARCHITECT",  desc: "관리자 전용 배지" }
+      { code: "guest",     label: "GUEST",       desc: "기본 제공 배지" },
+      { code: "chronicle", label: "OBSERVER",    desc: "기본 제공 배지" },
+      { code: "visit_3",   label: "VISITOR III", desc: "서로 다른 날 3회 접속" },
+      { code: "visit_10",  label: "REGULAR",     desc: "서로 다른 날 10회 접속" },
+      { code: "scribe_1",  label: "FIRST LOG",   desc: "방명록 첫 글 작성" },
+      { code: "admin",     label: "ARCHITECT",   desc: "관리자 전용 배지" }
     ];
 
     function getTodayKST() {
@@ -1346,7 +1282,7 @@
     }
 
     // =========================================================
-    // UNREAD TRACKING HELPERS (LOCAL STORAGE PERSISTED)
+    // UNREAD TRACKING HELPERS
     // =========================================================
     function getReadSet(storageKey) {
       try {
@@ -1426,7 +1362,7 @@
     }
 
     // =========================================================
-    // 3. AUTHENTICATION & RETROACTIVE USER BADGE SYNC
+    // 3. AUTHENTICATION & PRIVATE SPECIAL BADGE SYSTEM
     // =========================================================
     function setAuthMode(mode) {
       const isSignIn = mode === "signin";
@@ -1445,6 +1381,7 @@
       const userInfo = document.getElementById("auth-user-info");
       const adminArchiveBox = document.getElementById("admin-archive-box");
       const badgePanel = document.getElementById("badge-panel");
+      const adminGrantBox = document.getElementById("admin-badge-grant-box");
       const adminNavEls = document.querySelectorAll(".admin-only");
 
       if (user) {
@@ -1455,6 +1392,7 @@
         userInfo.innerHTML = `SIGNED IN AS <strong>${escapeHtml(user.email)}</strong> ${isAdmin ? '<span class="badge-admin">ADMIN</span>' : ''}`;
         adminArchiveBox.style.display = isAdmin ? "block" : "none";
         badgePanel.style.display = "block";
+        adminGrantBox.style.display = isAdmin ? "block" : "none";
         adminNavEls.forEach(el => el.style.display = isAdmin ? "inline-flex" : "none");
 
         const savedName = localStorage.getItem("gb_display_name_" + user.id);
@@ -1473,6 +1411,7 @@
         loggedInBox.style.display = "none";
         adminArchiveBox.style.display = "none";
         badgePanel.style.display = "none";
+        adminGrantBox.style.display = "none";
         adminNavEls.forEach(el => el.style.display = "none");
       }
     }
@@ -1501,6 +1440,7 @@
       if (error) {
         currentUserProfile = {
           user_id: user.id,
+          email: user.email,
           visit_count: 1,
           post_count: 0,
           unlocked_badges: defaultBadges,
@@ -1527,8 +1467,10 @@
       } else {
         let visitCount = data.visit_count || 1;
         let lastDate = data.last_visit_date;
-        let unlocked = Array.isArray(data.unlocked_badges) ? [...data.unlocked_badges] : [...defaultBadges];
-        let changed = false;
+        let unlocked = Array.isArray(data.unlocked_badges)
+          ? data.unlocked_badges.filter(c => c !== "scribe_5")
+          : [...defaultBadges];
+        let changed = (Array.isArray(data.unlocked_badges) && data.unlocked_badges.includes("scribe_5")) || !data.email;
 
         if (lastDate !== today) {
           visitCount += 1;
@@ -1539,24 +1481,61 @@
         if (visitCount >= 3 && !unlocked.includes("visit_3")) { unlocked.push("visit_3"); changed = true; }
         if (visitCount >= 10 && !unlocked.includes("visit_10")) { unlocked.push("visit_10"); changed = true; }
 
+        let nextSelected = data.selected_badge === "scribe_5" ? null : data.selected_badge;
+        let nextShow = data.selected_badge === "scribe_5" ? false : data.show_badge;
+
         if (changed) {
           const { data: updated } = await sb
             .from("user_profiles")
             .update({
+              email: user.email,
               visit_count: visitCount,
               last_visit_date: lastDate,
               unlocked_badges: unlocked,
+              selected_badge: nextSelected,
+              show_badge: nextShow,
               updated_at: new Date().toISOString()
             })
             .eq("user_id", user.id)
             .select()
             .single();
-          currentUserProfile = updated || { ...data, visit_count: visitCount, unlocked_badges: unlocked };
+          currentUserProfile = updated || {
+            ...data,
+            email: user.email,
+            visit_count: visitCount,
+            unlocked_badges: unlocked,
+            selected_badge: nextSelected,
+            show_badge: nextShow
+          };
         } else {
           currentUserProfile = data;
         }
       }
       renderBadgePanel();
+    }
+
+    function getUserPrivateSpecialBadges(profile) {
+      if (!profile || !Array.isArray(profile.unlocked_badges)) return [];
+      return profile.unlocked_badges
+        .filter(code => typeof code === "string" && code.startsWith("custom:"))
+        .map(code => {
+          const label = code.slice("custom:".length).trim();
+          return {
+            code,
+            label,
+            desc: "지정 계정 전용 특수 배지"
+          };
+        })
+        .filter(item => item.label.length > 0);
+    }
+
+    function resolveBadgeLabelByCode(code) {
+      if (!code) return null;
+      if (typeof code === "string" && code.startsWith("custom:")) {
+        return code.slice("custom:".length).trim() || null;
+      }
+      const found = BADGE_CATALOG.find(b => b.code === code);
+      return found ? found.label : null;
     }
 
     function renderBadgePanel() {
@@ -1565,11 +1544,15 @@
       const clearBtn = document.getElementById("btn-clear-badge");
       const gridEl = document.getElementById("badge-selector-grid");
 
-      const unlocked = currentUserProfile.unlocked_badges || ["guest", "chronicle"];
+      const unlocked = (currentUserProfile.unlocked_badges || ["guest", "chronicle"]).filter(c => c !== "scribe_5");
+      const privateSpecials = getUserPrivateSpecialBadges(currentUserProfile);
+      const totalUnlockedCount = BADGE_CATALOG.filter(b => unlocked.includes(b.code)).length + privateSpecials.length;
+      const totalCatalogCount = BADGE_CATALOG.length + privateSpecials.length;
+
       const hasActiveBadge = Boolean(currentUserProfile.selected_badge) && currentUserProfile.show_badge !== false;
       const selected = hasActiveBadge ? currentUserProfile.selected_badge : null;
 
-      statsEl.innerText = `VISITS : ${currentUserProfile.visit_count || 1} · POSTS : ${currentUserProfile.post_count || 0} · BADGES (${unlocked.length}/${BADGE_CATALOG.length})`;
+      statsEl.innerText = `VISITS : ${currentUserProfile.visit_count || 1} · POSTS : ${currentUserProfile.post_count || 0} · BADGES (${totalUnlockedCount}/${totalCatalogCount})`;
       clearBtn.classList.toggle("active", !selected);
 
       const noneChipHtml = `
@@ -1584,23 +1567,38 @@
         </button>
       `;
 
-      const badgesHtml = BADGE_CATALOG.map(b => {
+      const publicBadgesHtml = BADGE_CATALOG.map(b => {
         const isUnlocked = unlocked.includes(b.code);
         const isSelected = selected === b.code;
         return `
           <button
             type="button"
             class="badge-chip ${isSelected ? "selected" : ""} ${!isUnlocked ? "locked" : ""}"
-            ${isUnlocked ? `onclick="handleBadgeChipClick('${b.code}')"` : "disabled"}
+            ${isUnlocked ? `onclick="handleBadgeChipClick('${escapeHtml(b.code)}')"` : "disabled"}
             title="${escapeHtml(b.desc)}"
           >
-            <span>[${b.label}]</span>
+            <span>[${escapeHtml(b.label)}]</span>
             <span class="sub">${escapeHtml(b.desc)}</span>
           </button>
         `;
       }).join("");
 
-      gridEl.innerHTML = noneChipHtml + badgesHtml;
+      const privateBadgesHtml = privateSpecials.map(sbItem => {
+        const isSelected = selected === sbItem.code;
+        return `
+          <button
+            type="button"
+            class="badge-chip special-badge ${isSelected ? "selected" : ""}"
+            onclick="handleBadgeChipClick('${escapeHtml(sbItem.code)}')"
+            title="${escapeHtml(sbItem.desc)}"
+          >
+            <span>[${escapeHtml(sbItem.label)}]</span>
+            <span class="sub">${escapeHtml(sbItem.desc)}</span>
+          </button>
+        `;
+      }).join("");
+
+      gridEl.innerHTML = noneChipHtml + publicBadgesHtml + privateBadgesHtml;
     }
 
     function handleBadgeChipClick(badgeCode) {
@@ -1620,8 +1618,7 @@
       currentUserProfile.show_badge = true;
       renderBadgePanel();
 
-      const found = BADGE_CATALOG.find(b => b.code === badgeCode);
-      const newLabel = found ? found.label : null;
+      const newLabel = resolveBadgeLabelByCode(badgeCode);
       msgEl.innerText = `배지 [${newLabel}] 적용 및 기존 방명록 동기화 중...`;
 
       await sb
@@ -1635,7 +1632,7 @@
         .eq("user_id", currentUser.id);
 
       if (gbErr) {
-        msgEl.innerText = "프로필 저장 완료 (기존 댓글 DB 반영을 위해 Supabase UPDATE RLS 정책을 실행해 주세요).";
+        msgEl.innerText = "프로필 저장 완료 (기존 댓글 반영을 위해 Supabase UPDATE RLS 정책을 확인해 주세요).";
       } else {
         msgEl.innerText = `기존에 작성한 모든 방명록 댓글에 [${newLabel}] 배지가 반영되었습니다.`;
       }
@@ -1662,7 +1659,7 @@
         .eq("user_id", currentUser.id);
 
       if (gbErr) {
-        msgEl.innerText = "배지가 해제되었습니다 (기존 댓글 DB 반영을 위해 Supabase UPDATE RLS 정책을 실행해 주세요).";
+        msgEl.innerText = "배지가 해제되었습니다 (기존 댓글 반영을 위해 Supabase UPDATE RLS 정책을 확인해 주세요).";
       } else {
         msgEl.innerText = "배지가 해제되었으며 기존에 작성한 모든 방명록 댓글에서도 제거되었습니다.";
       }
@@ -1673,8 +1670,118 @@
       if (!currentUserProfile || currentUserProfile.show_badge === false || !currentUserProfile.selected_badge) {
         return null;
       }
-      const found = BADGE_CATALOG.find(b => b.code === currentUserProfile.selected_badge);
-      return found ? found.label : null;
+      return resolveBadgeLabelByCode(currentUserProfile.selected_badge);
+    }
+
+    async function grantSpecialBadge() {
+      if (!currentUser || currentUser.email !== ADMIN_EMAIL) return;
+      const targetEmail = document.getElementById("grant-target-email").value.trim().toLowerCase();
+      const rawLabel = document.getElementById("grant-badge-label").value.trim() || "테스트용 부여 배지";
+      const statusEl = document.getElementById("grant-status-msg");
+
+      if (!targetEmail) {
+        statusEl.innerText = "특수 배지를 부여할 대상 계정 이메일을 입력하세요.";
+        return;
+      }
+
+      const badgeCode = `custom:${rawLabel}`;
+      statusEl.innerText = `${targetEmail} 계정에 [${rawLabel}] 배지 부여 중...`;
+
+      const { data: targetProfile, error: fetchErr } = await sb
+        .from("user_profiles")
+        .select("*")
+        .ilike("email", targetEmail)
+        .maybeSingle();
+
+      if (fetchErr) {
+        statusEl.innerText = "조회 오류 : " + fetchErr.message;
+        return;
+      }
+      if (!targetProfile) {
+        statusEl.innerText = "해당 이메일의 프로필을 찾을 수 없습니다. 대상 계정이 1회 이상 로그인한 상태여야 합니다.";
+        return;
+      }
+
+      const unlocked = Array.isArray(targetProfile.unlocked_badges) ? [...targetProfile.unlocked_badges] : ["guest", "chronicle"];
+      if (!unlocked.includes(badgeCode)) {
+        unlocked.push(badgeCode);
+      }
+
+      const { error: upErr } = await sb
+        .from("user_profiles")
+        .update({
+          unlocked_badges: unlocked,
+          updated_at: new Date().toISOString()
+        })
+        .eq("user_id", targetProfile.user_id);
+
+      if (upErr) {
+        statusEl.innerText = "부여 오류 (관리자 user_profiles RLS 정책 확인 필요) : " + upErr.message;
+        return;
+      }
+
+      if (targetProfile.user_id === currentUser.id) {
+        currentUserProfile.unlocked_badges = unlocked;
+        renderBadgePanel();
+      }
+
+      statusEl.innerText = `완료 : ${targetEmail} 계정에 [${rawLabel}] 특수 배지가 부여되었습니다. (해당 계정 본인에게만 표시됩니다)`;
+    }
+
+    async function revokeSpecialBadge() {
+      if (!currentUser || currentUser.email !== ADMIN_EMAIL) return;
+      const targetEmail = document.getElementById("grant-target-email").value.trim().toLowerCase();
+      const rawLabel = document.getElementById("grant-badge-label").value.trim() || "테스트용 부여 배지";
+      const statusEl = document.getElementById("grant-status-msg");
+
+      if (!targetEmail) {
+        statusEl.innerText = "특수 배지를 회수할 대상 계정 이메일을 입력하세요.";
+        return;
+      }
+
+      const badgeCode = `custom:${rawLabel}`;
+      statusEl.innerText = `${targetEmail} 계정에서 [${rawLabel}] 배지 회수 중...`;
+
+      const { data: targetProfile, error: fetchErr } = await sb
+        .from("user_profiles")
+        .select("*")
+        .ilike("email", targetEmail)
+        .maybeSingle();
+
+      if (fetchErr || !targetProfile) {
+        statusEl.innerText = fetchErr ? "조회 오류 : " + fetchErr.message : "대상 계정 프로필을 찾을 수 없습니다.";
+        return;
+      }
+
+      const unlocked = (Array.isArray(targetProfile.unlocked_badges) ? targetProfile.unlocked_badges : [])
+        .filter(c => c !== badgeCode);
+      const isCurrentlyWearing = targetProfile.selected_badge === badgeCode;
+
+      const { error: upErr } = await sb
+        .from("user_profiles")
+        .update({
+          unlocked_badges: unlocked,
+          selected_badge: isCurrentlyWearing ? null : targetProfile.selected_badge,
+          show_badge: isCurrentlyWearing ? false : targetProfile.show_badge,
+          updated_at: new Date().toISOString()
+        })
+        .eq("user_id", targetProfile.user_id);
+
+      if (upErr) {
+        statusEl.innerText = "회수 오류 : " + upErr.message;
+        return;
+      }
+
+      if (targetProfile.user_id === currentUser.id) {
+        currentUserProfile.unlocked_badges = unlocked;
+        if (isCurrentlyWearing) {
+          currentUserProfile.selected_badge = null;
+          currentUserProfile.show_badge = false;
+        }
+        renderBadgePanel();
+      }
+
+      statusEl.innerText = `완료 : ${targetEmail} 계정에서 [${rawLabel}] 특수 배지가 회수되었습니다.`;
     }
 
     async function handleSignUp() {
@@ -2010,9 +2117,8 @@
 
       if (currentUserProfile) {
         const nextPosts = (currentUserProfile.post_count || 0) + 1;
-        const unlocked = [...(currentUserProfile.unlocked_badges || ["guest", "chronicle"])];
+        const unlocked = [...(currentUserProfile.unlocked_badges || ["guest", "chronicle"])].filter(c => c !== "scribe_5");
         if (nextPosts >= 1 && !unlocked.includes("scribe_1")) unlocked.push("scribe_1");
-        if (nextPosts >= 5 && !unlocked.includes("scribe_5")) unlocked.push("scribe_5");
 
         currentUserProfile.post_count = nextPosts;
         currentUserProfile.unlocked_badges = unlocked;
@@ -2045,79 +2151,17 @@
     }
 
     // =========================================================
-    // 6. FULL UNABRIDGED FALLBACK DATA FOR 05. REPORT SUB-TABS
+    // 6. DEFAULT FALLBACK DATA FOR 05. REPORT SUB-TABS
     // =========================================================
     const FALLBACK_MORNING_BRIEFS = [
       {
         id: 1,
         brief_date: "2026-11-26",
-        headline: "2026-11-26 (목) 07:00 모닝 브리핑 — 프로젝트 아키텍처 심층 진단, 한·미 증시·포트폴리오 분석 및 평택시 날씨",
-        dev_strategy: `[A. 3D 조형 엔진 진단 및 인체 모델(.glb) 도입 시 4단계 파이프라인]
-1. 어제 작업의 핵심 교훈 (왜 인체 ASCII가 어색했는가)
-• Torus Knot은 수학적으로 연속된 단일 튜브 곡면이기 때문에 3D 호 길이(Arc-length) 기반 균일 샘플링과 법선 안쪽 오클루전(insetDepth = 0.020)이 완벽하게 맞아떨어졌습니다.
-• 반면 인체(Écorché)는 곡률 변화가 극심한 다중 파츠(근육 다발·골격·관절 홈)가 겹쳐 있어, 단일 점묘(THREE.Points) ASCII 방식으로는 근육의 결(Striation)과 경계가 뭉개질 수밖에 없었습니다. 매듭 조형을 ASCII 대표 아트워크로 고정한 결정은 기술적으로 정확했습니다.
-
-2. 3D 인체 모델 구매 결정 시 바로 실행할 4단계 파이프라인
-• ① 이중 렌더링 아키텍처 분리: 기존 buildTorusKnotData의 ASCII 셰이더는 그대로 두고, 상단 MODEL 선택지에 ANATOMY (.GLB) 버튼을 추가하여 모델 타입에 따라 THREE.Points(ASCII)와 THREE.GLTFLoader(PBR Mesh)를 전환하도록 분기합니다.
-• ② 모노크롬 스튜디오 셰이딩: 사이트의 순수 블랙(#000000) 정체성을 해치지 않도록 메쉬 재질에 MeshStandardMaterial(어두운 무광 차콜/본 컬러 + 림 라이트 DirectionalLight 2점 배치)을 적용합니다.
-• ③ 해부학 인터랙션 (Raycaster + 부위별 메타데이터): 마우스 호버/클릭 시 raycaster.intersectObjects()로 선택된 근육 메쉬 이름(mesh.name)을 추출해 좌측/하단 정보 카드에 한글·영문·한자 해부학 명칭, 기시(Origin), 정지(Insertion), 작용(Action)을 띄웁니다.
-• ④ 카메라 프리셋 & 레이어 컨트롤: 전신(FULL), 상체(UPPER), 하지(LOWER)로 targetPan과 targetCamZ가 부드럽게 보간(Lerp)되는 뷰 프리셋 버튼과 표층근/심층근 투명도(opacity) 슬라이더를 추가합니다.
-
-[B. 웹사이트(01~05 탭) 기능별 문제점 해결 및 발전 아이디어]
-• 방명록(guestbook) 보안 강화: Supabase PostgreSQL RLS(Row Level Security) 정책으로 동일 계정의 60초 쿨다운을 DB 레벨에서 강제하고, UI 허니팟 필드 및 배지 선택·해제·기존 댓글 소급 반영 시스템을 결합했습니다.
-• 아카이브(02. ARCHIVE) 관리 고도화: 관리자 계정 로그인 시 각 게시물 카드 우측 상단에서 제목·본문·이미지 교체가 가능한 수정 모달과 DB·Storage 동시 삭제 기능을 제공합니다. 향후 게시물 누적 시 #EXHIBITION, #ANATOMY, #DEV, #STUDY 태그 필터링 및 라이트박스 상세 모달로 확장합니다.
-• 모바일·iPad 터치 제스처 보완: #anatomy-stage에 단일 터치 회전 및 두 손가락 핀치 줌 이벤트를 탑재했습니다.
-
-[C. '작업 일지' 구축 플랫폼 비교 및 실전 하이브리드 구조]
-• 수치·자산·자동화 상태(작업 일지 + 주식 잔고): busychronicler7800.com의 Supabase DB(work_logs, morning_briefings)를 단일 원본(Single Source of Truth)으로 삼아 웹사이트 관리자 탭(05. REPORT)에서 열람·관리합니다.
-• 물리치료학 전공 심화 노트·사진 아카이브: 기존에 사용 중인 Notion에 누적하고, 핵심 완료 마일스톤만 작업 일지에 요약 기록합니다.
-
-[D. 키움증권 보유 잔고 및 일일 분할 매수 내역 자동화 해결책]
-• 트랙 A — 키움 REST API + GitHub Actions 파이썬 연동 (매일 16:05 & 07:05 실행): OAuth2 접근 토큰을 자동 발급받아 국내 중개형 ISA 계좌(KODEX 미국S&P500, TIME 미국나스닥100액티브, KODEX 미국배당커버드콜)의 보유 수량, 매입단가, 평가손익, 예수금을 직접 조회해 Supabase에 적재합니다.
-• 트랙 B — 키움 체결 알림 이메일 자동 파싱 (해외 위탁종합 추적): 영웅문S#에서 매수 체결 알림 이메일 수신을 활성화해 두면, 파이썬 스크립트가 매일 새벽 kangsihoo0530@gmail.com의 신규 체결 내역을 정규표현식으로 파싱해 매일 분할 매수되는 QLD, JEPQ 및 GOOGL의 수량·평단가·적용 환율을 자동 가산·재계산합니다.
-• 트랙 C — Google Sheets 마스터 시트 병행: 시트 수식과 장기 원장 백업용으로 병행 활용합니다.`,
-
-        market_summary: `[1. 전체 시장 및 주요 지수 흐름 (11/25 전일 마감 기준)]
-• 미국 S&P 500: 7,182.78 (-0.25%) — 장중 낙폭 확대 후 저가 매수세 유입으로 강보합권 회복
-• 미국 나스닥 종합: 23,585.80 (-0.62%) — 장중 -4.6% 급락 후 낙폭 대부분 만회하며 하방 경직성 확인
-• 미국 다우존스 30: 50,182.95 (+0.33%) — 기술주 차익 실현 자금이 가치주·경기방어주로 순환매 유입
-• 미 국채 10년물 / VIX: 4.836% (-1.35%) / 27.08 (+12.94%) — 국채 금리는 4.8%대로 진정됐으나 VIX(공포지수)는 27선으로 급등
-• 한국 코스피 / 코스닥: 4,697.51 (-6.16%) / 650.64 (-2.29%) — 외국인 대규모 순매도(약 1.9조 원) 및 반도체 대형주 약세 여파로 급락, 투자자 예탁금은 82조 원 수준으로 축소
-• 원/달러 환율: 1,343.2원 (+0.8원) — 위험회피 심리 속에 1,340원대 초반에서 제한적 상승 마감
-
-[2. 특이사항 발생 주요 종목 체크]
-• 엔비디아 (NVDA, -3.91%): 장중 9% 넘게 급락했다가 저가 매수세로 낙폭을 절반 이상 줄였으나, S&P 글로벌 신용평가사의 신용등급 강등 검토 및 미 의회 청문회·SEC 조사 불확실성이 단기 변동성 요인으로 작용 중입니다.
-• 삼성전자 (-9.87%): 메모리 업황 둔화 우려와 외국인 수급 이탈이 집중되며 국내 지수 급락을 주도했습니다.
-
-[3. 보유 및 매수 고려 종목 심층 분석 (2026-11-26 임시 잔고 기준)]
-전체 합산: 총 매입원금 12,757,240원 / 총 평가금액 9,826,179원 (평가손익 -2,931,061원, 수익률 -22.98%)
-
-• 해외 위탁종합 계좌 (총 매입 8,924,970원 / 평가 6,929,834원 / -22.79%):
-  1) 알파벳 A (GOOGL | 8주 | 매입 $2,710.54 · 평단 $338.82 | 평가 $2,121.68 · 현재 ~$265.21~273.10 | -22.17%):
-     전일 정규장에서 AI 투자 심리 위축 속에 -2.13%($273.10) 하락 마감 후 시간외 소폭 반등했습니다. 52주 최고가($408.61) 대비 큰 폭으로 조정받은 구간이며 PER 14.3배 수준으로 밸류에이션 매력이 높아졌습니다. VIX가 27을 상회하는 고변동성 구간이므로 신규 추가 매수는 한 번에 진입하기보다 2~3회 분할 매수로 평단가를 낮추는 전략이 유효합니다.
-  2) QLD (ProShares Ultra QQQ | 27주 | 매입 $2,359.34 · 평단 $87.38 | 평가 $1,701.21 · 현재 $63.01 | -28.32% — 매일 분할 매수 중):
-     나스닥 100 일간 2배 레버리지 상품 특성상 장중 4%대 급락과 반등이 반복되는 장세에서는 음의 복리(변동성 끌림) 영향이 커집니다. 매일 일정 금액 분할 매수는 평단 하락에 유리하나, VIX 25 이상 구간에서는 매수 비중을 평시대로 유지해 현금 여력을 관리하는 것이 중요합니다.
-  3) JEPQ (26주 | 매입 $1,558.40 · 평단 $59.94 | 평가 $1,323.66 · 현재 $50.91 | -15.52% — 매일 분할 매수 중):
-     나스닥 100 커버드콜 ETF로, VIX가 27선으로 급등한 변동성 확대 구간에서는 옵션 프리미엄 수취 규모가 커져 월 분배금 방어력이 높아집니다. 포트폴리오 내 하방 완충 및 현금흐름 역할을 충실히 수행 중입니다.
-
-• 국내 중개형 ISA 계좌 (총 매입 3,832,270원 / 평가 2,896,345원 / -24.45%):
-  4) KODEX 미국S&P500 (39주 | 매입가 24,334원 | 현재가 21,570원 | -11.38%): 다우·가치주 순환매 덕분에 나스닥 대비 양호한 방어력을 유지 중입니다.
-  5) TIME 미국나스닥100액티브 (62주 | 매입가 46,311원 | 현재가 32,965원 | -28.84%): 액티브 비중이 높아 빅테크·AI 조정 폭을 크게 반영했으나, ISA 비과세·손익통산 혜택에 맞춰 기존 적립 리듬을 유지하는 것이 유리합니다.
-  6) KODEX 미국배당커버드콜 (1주 | 매입가 11,975원 | 현재가 11,285원 | -5.76%): 배당 방어형 자산으로 소량 보유 중입니다.`,
-
-        news_weather: `[지난 하루 주요 경제·IT 뉴스 및 특이사항]
-• AI 인프라 투자 비용·수익성 논란 재점화로 뉴욕증시 롤러코스터 장세: 젠슨 황 엔비디아 CEO 복귀 직후 급등했던 AI·반도체 섹터에서 대규모 차입 기반 AI 인프라 투자 부담과 수익화 속도에 대한 우려가 다시 부각되며 장중 큰 폭의 변동성이 나타났습니다.
-• S&P 글로벌 신용평가사가 엔비디아의 경영·지배구조 평가 악화를 이유로 신용등급 강등 검토에 착수했다는 소식과 미 의회 청문회·SEC 조사 등 불확실성이 겹치며 반도체 전반의 차익 실현 매물을 자극했습니다.
-• 25일 국내 증시는 외국인 대규모 순매도(약 1.9조 원)와 반도체 대형주 약세 여파로 코스피가 6% 넘게 급락하며 4,700선 아래로 밀려났고, 투자자 예탁금도 82조 원 수준으로 축소되며 변동성이 확대된 상태입니다.
-
-[경기도 평택시 오늘의 날씨 예보 (11월 26일 목요일)]
-• 기온 및 하늘 상태: 아침 기온 5°C(구름 많음)에서 오전 8시부터 맑아져 낮 최고기온은 15°C(오후 1시~3시)까지 오르겠습니다. 최저 5°C / 최고 15°C로 일교차가 10°C로 크게 벌어집니다.
-• 강수 및 바람: 오늘 낮 동안 강수 확률은 낮고 대체로 맑겠으며, 바람은 남서풍이 시속 약 4~11 mph(초속 2~5m) 수준으로 불겠습니다.
-• 주간 기상 특이점: 내일(27일, 금)까지는 낮 최고 17°C로 온화하지만, 토요일(28일)에는 비 예보(강수확률 80%)와 함께 낮 최고기온이 10°C, 일요일(29일)에는 9°C까지 떨어지며 급격히 추워질 전망이니 주말 외출 시 보온에 유의하시기 바랍니다.`,
-
-        exhibition_picks: `[주간 서울·수도권 추천 전시 (매주 월요일 07:00 정기 갱신)]
-• 매주 월요일 오전 7시 정기 스케줄에 맞춰 서울 및 수도권 중심의 무료 전시회와 주요 유료 기획 전시회(전시명, 장소, 기간, 관람 포인트)가 엄선되어 이곳에 자동 업데이트됩니다.`,
-
+        headline: "2026-11-26 (목) 07:00 모닝 브리핑 — 포트폴리오 기준 스냅샷 및 시스템 현황",
+        dev_strategy: `• Supabase DB(morning_briefings, daily_reviews, work_logs)에 새 리포트가 적재되면 날짜별로 자동 반영됩니다.`,
+        market_summary: `• 전체 합산: 총 매입원금 12,757,240원 / 총 평가금액 9,826,179원 (-22.98%)\n• 해외 위탁종합: GOOGL 8주(-22.17%), QLD 27주(-28.32%), JEPQ 26주(-15.52%)\n• 국내 중개형 ISA: KODEX 미국S&P500 39주(-11.38%), TIME 미국나스닥100액티브 62주(-28.84%), KODEX 미국배당커버드콜 1주(-5.76%)`,
+        news_weather: `• 경기도 평택시: 최저 5°C / 최고 15°C (맑음)`,
+        exhibition_picks: `• 매주 월요일 07:00 서울·수도권 추천 전시 목록이 갱신됩니다.`,
         portfolio_snapshot: {
           total_buy_krw: 12757240,
           total_eval_krw: 9826179,
@@ -2145,25 +2189,10 @@
       {
         id: 1,
         review_date: "2026-11-26",
-        headline: "3D 웹 아트 단독화, 항공권 알림 안정화 및 웹사이트 통합 리포트 허브 구축 완료",
-        achievements: `1. 3D 웹 아트(busychronicler7800.com) 정리 및 최적화
-• 곡률 대비 어색하게 렌더링되던 에코르셰(인체 모형) 코드와 UI를 완전히 제거하고, 3D 호 길이 균일 샘플링 및 오클루전 메쉬가 적용된 Torus Knot(매듭 조형) ASCII 아트 단독 구조로 깔끔하게 정돈했습니다.
-• iPad 및 모바일 터치 드래그 회전·핀치 줌 제스처를 추가했습니다.
-
-2. 항공권 알림 워크플로우 해결
-• 기존에 걸려 있던 항공권 자동 알림 관련 이슈를 매듭짓고 정상 가동 상태로 안정화했습니다.
-
-3. 정기 리포트 및 웹사이트 관리자 허브(05. REPORT) 구축
-• 매일 00:00(오늘의 정리), 매일 00:30(작업 일지), 매일 07:00(모닝 브리핑), 매주 월요일 07:00(서울·수도권 전시 추천) 정기 루틴을 정립했습니다.
-• 상단 네비게이션을 05. REPORT 단일 탭으로 통합하고 내부에서 모닝 브리핑 · 분석 리포트 · 작업 일지를 분기해 원본 전문을 열람할 수 있도록 구현했습니다.
-• 방명록 60초 쿨다운, 허니팟 봇 차단, 선택·해제 및 기존 댓글 소급 반영 배지 시스템, 아카이브 관리자 수정/삭제 모달을 완성했습니다.`,
-
-        insights: `• 선택과 집중의 효과: 억지로 한 엔진에 모든 3D 형태(기하학 매듭 + 다중 파츠 인체)를 끼워 맞추려던 방향을 과감히 접고, 기하학 조형을 먼저 완성도 있게 고정한 덕분에 코드 복잡도가 크게 줄고 결과물의 시각적 밀도가 살아났습니다.
-• 리포트 단일 원본(SSOT) 확보: 제미나이 대화창에 흩어지던 분석 리포트와 작업 일지를 웹사이트 내 관리자 전용 탭과 Supabase DB에 직접 누적하도록 설계하여 장기 추적성과 가독성을 확보했습니다.`,
-
-        next_priorities: `1. Supabase SQL Editor에서 방명록 UPDATE RLS 정책 및 신규 테이블(user_profiles, work_logs, daily_reviews, morning_briefings) 실행 확인
-2. 3D 인체(Écorché) 모델 구매 여부 최종 결정 (구매 확정 시 기존 ASCII 엔진과 분리된 GLTFLoader 기반 .glb 뷰어 및 해부학 Raycaster 인터랙션 구현)
-3. 2단계 자동화 파이프라인 구축: GitHub Actions + 키움 REST API / 체결 알림 메일 파서 + Gemini API를 연결해 매일 정해진 시각에 Supabase DB로 리포트와 잔고 스냅샷 자동 적재`
+        headline: "웹사이트 05. REPORT 게시판 UI 및 방명록 비공개 특수 배지 시스템 적용",
+        achievements: `• 방명록 배지 선택 해제, 기존 댓글 소급 반영 및 관리자 지정 비공개 특수 배지 기능을 적용했습니다.\n• 05. REPORT의 분석 리포트와 작업 일지를 게시판 목록형 UI 및 미확인 알림 점 구조로 개편했습니다.`,
+        insights: `• 제목 클릭형 아코디언 게시판과 미확인 표시를 통해 누적 리포트 열람 편의성을 높였습니다.`,
+        next_priorities: `1. Supabase SQL 정책 반영 확인\n2. 자동 리포트 파이프라인 연동`
       }
     ];
 
@@ -2171,44 +2200,12 @@
       {
         id: 1,
         log_date: "2026-11-26",
-        title: "웹 정비(Torus Knot 단독화 · 방명록 배지 소급 반영 · 05. REPORT 통합 허브) 및 정기 자동화 체계 구축",
+        title: "방명록 비공개 특수 배지 부여·소급 반영 및 05. REPORT 게시판형 UI 적용",
         status_type: "ACTIVE",
-        tools: ["Gemini 4 Hydrogen", "Three.js", "Supabase", "GitHub Actions", "Vercel", "Chart.js"],
-        completed_summary: `• 26. 11. 26 (목) 완료 작업 요약
-  1. 개인 웹사이트(busychronicler7800.com) 및 3D 조형 코드 정비: 기존 에코르셰(인체 모형) 데이터·메쉬 생성·용어 전환 UI 제거 후 순수 3D 매듭 조형(TORUS KNOT) ASCII 렌더링 구조로 단독 최적화, 모바일/iPad 터치·핀치 줌 지원 추가.
-  2. 상단 네비게이션 슬림화 및 05. REPORT 통합 허브 구축: 관리자 전용 메뉴를 05. REPORT 하나로 통합하고 내부에 [모닝 브리핑 / 분석 리포트 / 작업 일지] 3분할 서브 탭 및 원본 전문 뷰어 구현.
-  3. 방명록 보안 및 배지 고도화: DB RLS 기반 60초 쿨다운, 허니팟 봇 차단, 사용자 선택·해제(NONE) 배지 시스템 및 선택 변경 시 과거 작성 방명록 일괄 소급 반영 구현.
-  4. 아카이브 관리자 제어 기능: 게시물 제목·본문·이미지 교체 모달(EDIT) 및 DB·Storage 동시 삭제(DELETE) 구현.
-  5. 정기 리포트 루틴 및 키움증권 포트폴리오 기준 스냅샷 등록 완료.`,
-
-        active_pipelines: `1. 항공권 자동 트래킹 서비스
-• 구동 방식: GitHub Actions 스케줄러(.yml 매일 09:00, 15:00, 21:00 실행) 및 개인 웹사이트 연동 워크플로우.
-• 현재 상태: 주요 오류 해결 완료 후 정상 가동 중.
-
-2. 개인 웹사이트 및 3D 조형 아트워크 (busychronicler7800.com)
-• 구동 방식: Three.js WebGL 3D 호 길이 균일 샘플링 ASCII 엔진 + Supabase(인증·아카이브·방명록·관리자 리포트 DB) + Vercel 프록시 및 GitHub Pages 호스팅.
-• 현재 상태: TORUS KNOT ASCII 조형 1차 완성 및 고정 완료. 향후 3D 인체 에코르셰(.glb) 모델 구매 여부 결정 후 GLTFLoader 별도 뷰어 확장 예정.
-
-3. 키움증권 정기 투자 및 보유 현황 (2026-11-26 임시 기준)
-• 해외 위탁종합 계좌 (총 매입 8,924,970원 / 평가 6,929,834원 / -22.79%):
-  - GOOGL (알파벳 A): 8주 | 매입 $2,710.54 (평단 $338.82) | 평가 $2,121.68 (현재 ~$265.21) | -22.17% | 추가 분할 매수 고려 중
-  - QLD (ProShares Ultra QQQ): 27주 | 매입 $2,359.34 (평단 $87.38) | 평가 $1,701.21 (현재 $63.01) | -28.32% | 매일 분할 매수 진행 중
-  - JEPQ (JPMorgan Nasdaq Equity Premium Income): 26주 | 매입 $1,558.40 (평단 $59.94) | 평가 $1,323.66 (현재 $50.91) | -15.52% | 매일 분할 매수 진행 중
-• 국내 중개형 ISA 계좌 (총 매입 3,832,270원 / 평가 2,896,345원 / -24.45%):
-  - KODEX 미국S&P500: 39주 | 매입가 24,334원 | 현재가 21,570원 | -11.38% | 정기 적립식 모으기
-  - TIME 미국나스닥100액티브: 62주 | 매입가 46,311원 | 현재가 32,965원 | -28.84% | 정기 적립식 모으기
-  - KODEX 미국배당커버드콜: 1주 | 매입가 11,975원 | 현재가 11,285원 | -5.76% | 보유 중`,
-
-        problem_analysis: `[문제점 진단 및 향후 해결책]
-• 문제점 1: 키움증권 일일 분할 매수 체결 내역 및 계좌 평가금액이 현재 수동 캡처 기준값으로 입력되어 있음.
-• 해결책 1: 2단계 작업으로 GitHub Actions에 키움 REST API(국내 ISA 잔고 조회)와 영웅문S# 체결 알림 이메일 파서(해외 위탁 QLD·JEPQ·GOOGL 수량·평단 자동 합산)를 연동하여 매일 새벽 Supabase에 자동 적재.
-• 문제점 2: 휴가나 외부 일정으로 웹사이트 작업을 쉬는 날(비작업일)에도 기록의 연속성이 끊기지 않아야 함.
-• 해결책 2: 비작업일에는 상태 플래그를 REST로 자동 기록하되, 기존 시스템 상태 점검과 다음 작업일 우선순위 해결책은 매일 동일하게 생성하여 게시판에 누적.
-
-[학습 및 성취 아카이브]
-• 전공 및 학술 활동 (가천대학교 물리치료학과 2학년 / 군 휴학 중): 군 e러닝 학점 이수 과정(「기업과 경영의 역사」 중간 과제 완료, 취약계층 지원 경제학 에세이 작성) 및 향후 물리치료학 해부학·임상 공부 기록 누적 예정.
-• 자격증 및 직무 역량: ITQ(한국생산성본부) 시험 이수 완료, KIRD 온라인 안전교육 수료, 컴퓨터활용능력 2급 실기(iPad–홈 PC 원격 데스크톱 환경) 대비 학습 진행 중.
-• 구축 완료 인프라: Windows 11 홈 데스크톱(서후컴)–iPad Pro Moonlight 원격 스트리밍, DuckDNS, Tuya 게이트웨이 & Fingerbot 원격 부팅 시스템, Notion 연대기 아카이브.`
+        tools: ["Three.js", "Supabase", "Vercel", "Chart.js"],
+        completed_summary: `• 방명록 5회 작성 배지 제거, 배지 선택 해제 및 기존 댓글 일괄 반영, 관리자 지정 계정 전용 비공개 특수 배지 기능 구현.\n• 05. REPORT 분석 리포트·작업 일지 게시판 목록화 및 미확인 알림 점 적용.`,
+        active_pipelines: `• 항공권 자동 트래킹 정상 가동 중\n• busychronicler7800.com 프론트엔드 및 Supabase 연동 운영 중`,
+        problem_analysis: `• 리포트 자동 예약 대화방 분리 완료 후 2단계 자동 적재 파이프라인 연결 예정.`
       }
     ];
 
@@ -2272,19 +2269,19 @@
 
       document.getElementById("brief-sections-grid").innerHTML = `
         <div class="brief-card">
-          <h3>01. PROJECT STRATEGY & ARCHITECTURE (프로젝트 진단 · 작업 일지 · 키움 자동화 설계)</h3>
+          <h3>01. PROJECT STRATEGY & ARCHITECTURE</h3>
           <div class="brief-text">${escapeHtml(brief.dev_strategy || "")}</div>
         </div>
         <div class="brief-card">
-          <h3>02. MARKET & PORTFOLIO DEEP DIVE (한·미 증시 · 특이 종목 · 보유 종목 심층 분석)</h3>
+          <h3>02. MARKET & PORTFOLIO DEEP DIVE</h3>
           <div class="brief-text">${escapeHtml(brief.market_summary || "")}</div>
         </div>
         <div class="brief-card">
-          <h3>03. MACRO NEWS & PYEONGTAEK WEATHER (주요 뉴스 및 경기도 평택시 날씨 예보)</h3>
+          <h3>03. MACRO NEWS & PYEONGTAEK WEATHER</h3>
           <div class="brief-text">${escapeHtml(brief.news_weather || "")}</div>
         </div>
         <div class="brief-card">
-          <h3>04. WEEKLY EXHIBITION PICKS (서울·수도권 추천 전시)</h3>
+          <h3>04. WEEKLY EXHIBITION PICKS</h3>
           <div class="brief-text">${escapeHtml(brief.exhibition_picks || "")}</div>
         </div>
       `;
@@ -2377,7 +2374,7 @@
     }
 
     // =========================================================
-    // 8. SUB-PANEL 2: DAILY REVIEW (분석 리포트 게시판 형식)
+    // 8. SUB-PANEL 2: DAILY REVIEW
     // =========================================================
     function toggleDailyReviewComposer() {
       const box = document.getElementById("dailyreview-composer");
@@ -2499,7 +2496,7 @@
     }
 
     // =========================================================
-    // 9. SUB-PANEL 3: WORK LOG (작업 일지 게시판 형식)
+    // 9. SUB-PANEL 3: WORK LOG
     // =========================================================
     function toggleWorkLogComposer() {
       const box = document.getElementById("worklog-composer");
