@@ -1098,7 +1098,7 @@
         <div id="sub-dailyreview" class="report-subpanel">
           <div class="board-toolbar">
             <span style="font-size:0.78rem; color:var(--muted); letter-spacing:0.06em;">
-              00:00 DAILY REVIEW BOARD · 제목을 클릭하면 전체 리포트가 열립니다
+              02:00 DAILY REVIEW BOARD · 기준일: 작업 대상일(전날) · 제목을 클릭하면 전체 리포트가 열립니다
             </span>
             <div style="display:flex; gap:8px; flex-wrap:wrap;">
               <button class="btn-outline" onclick="markAllDailyReviewsRead()">MARK ALL READ</button>
@@ -1109,16 +1109,16 @@
           <div id="dailyreview-composer" style="display:none; border:1px solid var(--line); background:var(--bg); padding:18px; margin-bottom:20px;">
             <div class="form-row">
               <div class="form-group" style="margin:0;">
-                <label>DATE (YYYY-MM-DD)</label>
+                <label>WORK DATE (작업 대상일 YYYY-MM-DD)</label>
                 <input type="date" id="dr-date" />
               </div>
               <div class="form-group" style="margin:0;">
                 <label>HEADLINE</label>
-                <input type="text" id="dr-headline" placeholder="오늘의 정리 핵심 요약" />
+                <input type="text" id="dr-headline" placeholder="작업 대상일 핵심 요약 제목" />
               </div>
             </div>
             <div class="form-group">
-              <label>ACHIEVEMENTS (오늘 완료한 작업 및 성취)</label>
+              <label>ACHIEVEMENTS (완료한 작업 및 성취)</label>
               <textarea id="dr-achievements" rows="3"></textarea>
             </div>
             <div class="form-group">
@@ -1126,7 +1126,7 @@
               <textarea id="dr-insights" rows="3"></textarea>
             </div>
             <div class="form-group">
-              <label>NEXT PRIORITIES (내일 우선순위 과제)</label>
+              <label>NEXT PRIORITIES (다음 우선순위 과제)</label>
               <textarea id="dr-priorities" rows="3"></textarea>
             </div>
             <button class="btn" onclick="saveDailyReview()">SAVE DAILY REVIEW</button>
@@ -1142,7 +1142,7 @@
         <div id="sub-worklog" class="report-subpanel">
           <div class="board-toolbar">
             <span style="font-size:0.78rem; color:var(--muted); letter-spacing:0.06em;">
-              00:30 WORK LOG BOARD · 제목을 클릭하면 전체 일지가 열립니다
+              03:00 WORK LOG BOARD · 기준일: 작업 대상일(전날) · 제목을 클릭하면 전체 일지가 열립니다
             </span>
             <div style="display:flex; gap:8px; flex-wrap:wrap;">
               <button class="btn-outline" onclick="markAllWorkLogsRead()">MARK ALL READ</button>
@@ -1153,7 +1153,7 @@
           <div id="worklog-composer" style="display:none; border:1px solid var(--line); background:var(--bg); padding:18px; margin-bottom:20px;">
             <div class="form-row-3">
               <div class="form-group" style="margin:0;">
-                <label>DATE (YYYY-MM-DD)</label>
+                <label>WORK DATE (작업 대상일 YYYY-MM-DD)</label>
                 <input type="date" id="wl-date" />
               </div>
               <div class="form-group" style="margin:0;">
@@ -1296,6 +1296,10 @@
 
     function getTodayKST() {
       return new Date(Date.now() + 9 * 3600 * 1000).toISOString().slice(0, 10);
+    }
+
+    function getYesterdayKST() {
+      return new Date(Date.now() + 9 * 3600 * 1000 - 24 * 3600 * 1000).toISOString().slice(0, 10);
     }
 
     // =========================================================
@@ -2171,6 +2175,7 @@
 
     // =========================================================
     // 6. DEFAULT FALLBACK DATA FOR 05. REPORT SUB-TABS
+    //    (기준일: 작업 대상일 YYYY-MM-DD 고정)
     // =========================================================
     const FALLBACK_MORNING_BRIEFS = [
       {
@@ -2244,38 +2249,67 @@
 
     const FALLBACK_DAILY_REVIEWS = [
       {
-        id: 1,
+        id: 2,
         review_date: "2026-11-26",
-        headline: "3D 웹 아트 단독화, 항공권 알림 안정화 및 웹사이트 통합 리포트 허브 구축 완료",
-        achievements: `• 상단 네비게이션을 05. REPORT 단일 탭으로 통합하고 게시판 아코디언 및 미확인 알림 점을 구현했습니다.
-• 방명록 도배 우려 배지 제거, 배지 선택 해제·기존 댓글 소급 반영 및 관리자 지정 비공개 특수 배지 시스템을 추가했습니다.
-• 01. SCULPTURE를 Torus Knot ASCII 아트로 단독화하고 기존 Swiss Grotesque 타이포그래피와 03. BIO 2단 그리드 디자인을 유지했습니다.`,
-        insights: `• 게시판 목록형 UI와 미확인 알림 점 표시를 통해 누적 리포트 열람 편의성과 시인성을 높였습니다.
-• 코드 수정 시 기존 CSS·레이아웃 구조를 건드리지 않고 요청된 기능 블록만 정밀 수정하는 원칙을 확립했습니다.`,
+        headline: "11/26 작업분 분석 리포트: 05. REPORT 통합 허브 완성, 방명록 특수 배지 고도화 및 리포트 스케줄 기준 정립",
+        achievements: `• 01. SCULPTURE를 Torus Knot ASCII 아트로 단독화하고 기존 Swiss Grotesque 타이포그래피와 03. BIO 2단 그리드 디자인을 완전 복구했습니다.
+• 상단 네비게이션을 05. REPORT 단일 허브로 통합하고 게시판 아코디언, 미확인 알림 점, 원본 리포트 전체 출력 구조를 완성했습니다.
+• 방명록 도배 우려 배지를 제거하고 배지 선택 해제·기존 댓글 소급 반영 및 관리자 지정 비공개 특수 배지 시스템을 구축했습니다.
+• 리포트 날짜 혼선을 방지하기 위해 기록 기준일을 '작업 대상일(전날)'로 단일화하고, 정기 생성 시각을 오전 02:00(분석 리포트)·03:00(작업 일지)으로 분리했습니다.`,
+        insights: `• 제미나이 예약 작업의 발행 시각(자정 직후)과 실제 작업 대상일이 어긋나던 구조적 원인을 진단하고, DB 기준일(YYYY-MM-DD)을 작업 대상일로 고정하여 누적 관리 정확도를 높였습니다.
+• 코드 수정 시 기존 CSS·레이아웃을 건드리지 않고 요청 구간만 정밀 수정하는 원칙을 확립했습니다.`,
         next_priorities: `1. Supabase SQL 정책(user_profiles·guestbook·morning_briefings·daily_reviews·work_logs) 최종 반영 확인
-2. 2단계 자동화 파이프라인(GitHub Actions + 키움·Gemini API 연동 자동 적재) 구축`
+2. 2단계 자동화 파이프라인(GitHub Actions + 키움·Gemini API 연동 자동 DB 적재) 구축`
+      },
+      {
+        id: 1,
+        review_date: "2026-11-25",
+        headline: "11/25 작업분 분석 리포트: Torus Knot 3D 곡면 엔진 진단, 웹사이트 아키텍처 정비 및 항공권 트래킹 안정화",
+        achievements: `• 3D 호 길이(Arc-length) 기반 균일 샘플링과 법선 안쪽 오클루전(insetDepth = 0.020) 원리를 분석하고 인체 모델(.glb) 분리 파이프라인 설계안을 도출했습니다.
+• 아카이브 관리자 제어(EDIT/DELETE 모달 및 스토리지 연동)와 방명록 60초 쿨다운·허니팟 스팸 방어 구조를 설계했습니다.
+• 2027년 7월 상하이·튀르키예 다구간 항공권 자동 트래킹 및 정기 리포트 루틴을 정비했습니다.`,
+        insights: `• 단일 튜브 곡면(Torus Knot)과 다중 파츠 해부학 메쉬의 렌더링 특성을 분리함으로써 시각적 완성도와 유지보수성을 동시에 확보했습니다.
+• 개인 데이터를 Supabase 단일 허브로 통합하는 방향이 가장 안정적인 자동화 구조임을 확인했습니다.`,
+        next_priorities: `1. 웹사이트 05. REPORT 통합 허브 프론트엔드 구현 및 디자인 복구
+2. 키움증권 보유 포트폴리오 기준 스냅샷 등록`
       }
     ];
 
     const FALLBACK_WORK_LOGS = [
       {
-        id: 1,
+        id: 2,
         log_date: "2026-11-26",
-        title: "웹 정비(Torus Knot 단독화 · 방명록 비공개 특수 배지 · 05. REPORT 통합 허브) 및 정기 자동화 체계 구축",
+        title: "웹 정비(Torus Knot 단독화 · 방명록 비공개 특수 배지 · 05. REPORT 통합 허브) 및 리포트 기준 확립",
         status_type: "ACTIVE",
         tools: ["Gemini 4 Hydrogen", "Three.js", "Supabase", "GitHub Actions", "Vercel", "Chart.js"],
         completed_summary: `• 26. 11. 26 (목) 완료 작업 요약
   1. 개인 웹사이트(busychronicler7800.com) 및 3D 조형 코드 정비 (Torus Knot ASCII 아트 단독화 및 원본 디자인 복구)
-  2. 상단 네비게이션 슬림화 및 05. REPORT 통합 허브 구축 (모닝 브리핑 · 분석 리포트 · 작업 일지 게시판형 UI 및 미확인 알림 점)
+  2. 상단 네비게이션 슬림화 및 05. REPORT 통합 허브 구축 (모닝 브리핑 · 분석 리포트 · 작업 일지 게시판형 UI, 원본 전체 출력 및 미확인 알림 점)
   3. 방명록 보안 및 배지 고도화 (60초 쿨다운, 5회 작성 배지 제거, 선택 해제·소급 반영, 지정 계정 전용 비공개 특수 배지 부여)
-  4. 아카이브 관리자 제어 기능(EDIT/DELETE 모달 및 스토리지 연동) 구현
-  5. 정기 리포트 루틴 및 키움증권 포트폴리오 기준 스냅샷 등록 완료.`,
+  4. 리포트 날짜 기준 단일화(작업 대상일 기준) 및 정기 생성 시각 변경(02:00 분석 리포트 / 03:00 작업 일지).`,
         active_pipelines: `• 항공권 자동 트래킹 정상 가동 중
-• busychronicler7800.com 프론트엔드(Vercel) 및 Supabase DB 연동 운영 중`,
-        problem_analysis: `• 문제점 1: 키움증권 수동 캡처 기준 데이터 입력 문제
-  → 해결책 1: 2단계 작업으로 GitHub Actions 연동 자동 적재 파이프라인 구축 예정
-• 문제점 2: 비작업일 기록 연속성 유지
-  → 해결책 2: 상태 플래그 REST 기록 및 자동 문제점 분석 생성 루틴 적용`
+• busychronicler7800.com 프론트엔드(Vercel) 및 Supabase DB 연동 운영 중
+• 정기 리포트 스케줄: 02:00 분석 리포트 / 03:00 작업 일지 / 07:00 모닝 브리핑`,
+        problem_analysis: `• 문제점 1: 자정 직후 리포트 생성 시 발행일과 작업 대상일이 겹쳐 혼동 발생
+  → 해결책 1: 생성 시각을 02:00 / 03:00으로 분리하고 모든 DB 기준일을 작업 대상일(전날)로 단일화 완료
+• 문제점 2: 키움증권 잔고 및 리포트 데이터 수동 입력 구조
+  → 해결책 2: 다음 세션 2단계 작업으로 GitHub Actions 연동 자동 DB 적재 파이프라인 구축 예정`
+      },
+      {
+        id: 1,
+        log_date: "2026-11-25",
+        title: "3D 곡면 ASCII 샘플링 엔진 진단, 아카이브 관리자 제어 및 정기 자동화 파이프라인 설계",
+        status_type: "ACTIVE",
+        tools: ["Three.js", "Supabase", "GitHub Actions", "Vercel"],
+        completed_summary: `• 26. 11. 25 (수) 완료 작업 요약
+  1. Torus Knot 곡면 샘플링 및 법선 오클루전 셰이더 진단, 추후 인체(.glb) 뷰어 분리 파이프라인 설계
+  2. 02. ARCHIVE 관리자 전용 수정·삭제 모달 및 Supabase Storage 연동 구조 설계
+  3. 키움증권 보유 포트폴리오(해외 위탁종합 · 중개형 ISA) 기준 스냅샷 데이터 정리
+  4. 상하이·튀르키예 다구간 항공권 알림 트래킹 안정화.`,
+        active_pipelines: `• 항공권 자동 트래킹 가동 중
+• 키움증권 포트폴리오 기준 스냅샷(총 매입 1,275만원 / 평가 982만원) 기록 유지`,
+        problem_analysis: `• 문제점 1: 다중 파츠 인체 메쉬의 점묘 ASCII 경계 뭉개짐 현상
+  → 해결책 1: 01. SCULPTURE는 Torus Knot으로 단독 유지하고, 인체 모델은 추후 GLTFLoader 전용 뷰어로 분리`
       }
     ];
 
@@ -2451,7 +2485,7 @@
       const isHidden = box.style.display === "none";
       box.style.display = isHidden ? "block" : "none";
       if (isHidden && !document.getElementById("dr-date").value) {
-        document.getElementById("dr-date").value = getTodayKST();
+        document.getElementById("dr-date").value = getYesterdayKST();
       }
     }
 
@@ -2471,6 +2505,7 @@
       const listEl = document.getElementById("dailyreview-list");
       const readSet = getReadSet("bc_read_daily_reviews");
       const today = getTodayKST();
+      const yesterday = getYesterdayKST();
 
       if (!cachedDailyReviews || cachedDailyReviews.length === 0) {
         listEl.innerHTML = `<p style="font-size:0.84rem; color:var(--muted);">등록된 분석 리포트가 없습니다.</p>`;
@@ -2481,6 +2516,7 @@
         const key = getDailyReviewKey(r);
         const isUnread = !readSet.has(key);
         const isToday = r.review_date === today;
+        const isYesterday = r.review_date === yesterday;
         const isOpen = openDailyReviewIds.has(key);
 
         return `
@@ -2488,7 +2524,7 @@
             <div class="board-row-header" onclick="toggleDailyReviewItem('${escapeHtml(key)}')">
               <div class="board-row-left">
                 <span class="board-date-mono">${escapeHtml(r.review_date)}</span>
-                ${isToday ? `<span class="today-tag">오늘</span>` : ""}
+                ${isToday ? `<span class="today-tag">오늘</span>` : (isYesterday ? `<span class="today-tag">전일 작업</span>` : "")}
                 <span class="board-title-text">${escapeHtml(r.headline)}</span>
               </div>
               <div class="board-row-right">
@@ -2497,7 +2533,7 @@
             </div>
             <div class="board-row-body">
               <div class="log-detail-block">
-                <h3>1. ACHIEVEMENTS / 오늘 완료한 주요 작업</h3>
+                <h3>1. ACHIEVEMENTS / 완료한 주요 작업</h3>
                 <div class="log-detail-content">${escapeHtml(r.achievements || "기록 없음")}</div>
               </div>
               <div class="log-detail-block">
@@ -2546,7 +2582,7 @@
       const nextPriorities = document.getElementById("dr-priorities").value.trim();
       const msgEl = document.getElementById("dr-msg");
 
-      if (!reviewDate || !headline) { msgEl.innerText = "날짜와 제목을 입력하세요."; return; }
+      if (!reviewDate || !headline) { msgEl.innerText = "작업 대상일과 제목을 입력하세요."; return; }
       msgEl.innerText = "SAVING...";
 
       const { error } = await sb.from("daily_reviews").upsert({
@@ -2573,7 +2609,7 @@
       const isHidden = box.style.display === "none";
       box.style.display = isHidden ? "block" : "none";
       if (isHidden && !document.getElementById("wl-date").value) {
-        document.getElementById("wl-date").value = getTodayKST();
+        document.getElementById("wl-date").value = getYesterdayKST();
       }
     }
 
@@ -2596,6 +2632,7 @@
       const tFilter = document.getElementById("filter-wl-type").value;
       const readSet = getReadSet("bc_read_work_logs");
       const today = getTodayKST();
+      const yesterday = getYesterdayKST();
 
       const filtered = cachedWorkLogs.filter(item => {
         const [yy, mm] = (item.log_date || "").split("-");
@@ -2614,6 +2651,7 @@
         const key = getWorkLogKey(item);
         const isUnread = !readSet.has(key);
         const isToday = item.log_date === today;
+        const isYesterday = item.log_date === yesterday;
         const isOpen = openWorkLogIds.has(key);
         const tools = Array.isArray(item.tools) ? item.tools : [];
 
@@ -2622,7 +2660,7 @@
             <div class="board-row-header" onclick="toggleWorkLogItem('${escapeHtml(key)}')">
               <div class="board-row-left">
                 <span class="board-date-mono">${escapeHtml(item.log_date)}</span>
-                ${isToday ? `<span class="today-tag">오늘</span>` : ""}
+                ${isToday ? `<span class="today-tag">오늘</span>` : (isYesterday ? `<span class="today-tag">전일 작업</span>` : "")}
                 <span class="board-title-text">${escapeHtml(item.title)}</span>
               </div>
               <div class="board-row-right">
@@ -2687,7 +2725,7 @@
       const problemAnalysis = document.getElementById("wl-analysis").value.trim();
       const msgEl = document.getElementById("wl-msg");
 
-      if (!logDate || !title) { msgEl.innerText = "날짜와 1줄 제목을 입력하세요."; return; }
+      if (!logDate || !title) { msgEl.innerText = "작업 대상일과 1줄 제목을 입력하세요."; return; }
       msgEl.innerText = "SAVING...";
 
       const tools = toolsRaw.split(",").map(s => s.trim()).filter(Boolean);
