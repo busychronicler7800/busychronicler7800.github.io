@@ -35,6 +35,42 @@
       flex-direction: column;
     }
 
+    /* UNREAD BLINKING WHITE DOT */
+    @keyframes pulseWhiteDot {
+      0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+        box-shadow: 0 0 6px rgba(255, 255, 255, 0.95);
+      }
+      50% {
+        opacity: 0.15;
+        transform: scale(0.78);
+        box-shadow: none;
+      }
+    }
+
+    .unread-dot {
+      display: inline-block;
+      width: 7px;
+      height: 7px;
+      background-color: #ffffff;
+      border-radius: 50% !important;
+      animation: pulseWhiteDot 1.3s infinite ease-in-out;
+      flex-shrink: 0;
+      vertical-align: middle;
+    }
+
+    .today-tag {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: #ffffff;
+      border: 1px solid #ffffff;
+      padding: 0 5px;
+      letter-spacing: 0.03em;
+      flex-shrink: 0;
+    }
+
     /* HEADER & NAVIGATION */
     header {
       border-bottom: 1px solid var(--line);
@@ -78,6 +114,9 @@
       padding: 4px 0;
       border-bottom: 1px solid transparent;
       transition: color 0.15s, border-color 0.15s;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
     }
 
     .nav-btn:hover,
@@ -248,6 +287,9 @@
       padding: 7px 14px;
       cursor: pointer;
       transition: background 0.15s, color 0.15s, border-color 0.15s;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
     }
 
     .btn-outline:hover,
@@ -256,6 +298,12 @@
       background: var(--fg);
       color: var(--bg);
       font-weight: 700;
+    }
+
+    /* Invert unread dot on active white sub-tab button so it stays visible */
+    .btn-outline.active .unread-dot {
+      background-color: #000000;
+      box-shadow: 0 0 5px rgba(0, 0, 0, 0.8);
     }
 
     .btn-sm {
@@ -523,6 +571,16 @@
       opacity: 0.78;
     }
 
+    .gb-notice-box {
+      border: 1px solid #2e2e2e;
+      background: #000000;
+      color: #a8a8a8;
+      font-size: 0.76rem;
+      letter-spacing: 0.03em;
+      padding: 10px 14px;
+      margin-bottom: 16px;
+    }
+
     .user-badge-tag {
       display: inline-block;
       border: 1px solid #888888;
@@ -602,13 +660,22 @@
       display: block;
     }
 
+    .board-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
     .filter-bar {
       display: flex;
       gap: 12px;
       flex-wrap: wrap;
       align-items: flex-end;
-      margin-bottom: 20px;
-      padding-bottom: 16px;
+      margin-bottom: 18px;
+      padding-bottom: 14px;
       border-bottom: 1px solid var(--line);
     }
 
@@ -616,80 +683,90 @@
       min-width: 140px;
     }
 
-    .log-board-item {
+    /* COMPACT BOARD ROWS FOR DAILY REVIEW & WORK LOG */
+    .board-row-item {
       border: 1px solid var(--line);
       background: #000000;
-      margin-bottom: 12px;
+      margin-bottom: 10px;
+      transition: border-color 0.15s;
     }
 
-    .log-board-header {
-      padding: 14px 16px;
+    .board-row-item.unread {
+      border-color: #555555;
+    }
+
+    .board-row-item.open {
+      border-color: #ffffff;
+    }
+
+    .board-row-header {
+      padding: 14px 18px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      flex-wrap: wrap;
-      gap: 10px;
+      gap: 14px;
       cursor: pointer;
       transition: background 0.15s;
     }
 
-    .log-board-header:hover {
+    .board-row-header:hover {
       background: #111111;
     }
 
-    .log-title-line {
-      font-size: 0.88rem;
-      font-weight: 600;
+    .board-row-left {
       display: flex;
       align-items: center;
       flex-wrap: wrap;
-      gap: 8px;
+      gap: 10px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      min-width: 0;
     }
 
-    .log-date-mono {
+    .board-date-mono {
       font-family: var(--mono);
       color: #ffffff;
       font-weight: 700;
+      flex-shrink: 0;
     }
 
-    .status-pill {
-      font-family: var(--mono);
-      font-size: 0.64rem;
-      padding: 1px 6px;
-      border: 1px solid var(--line);
-      color: var(--muted);
+    .board-title-text {
+      color: #e8e8e8;
     }
 
-    .status-pill.active {
-      border-color: #ffffff;
-      color: #ffffff;
-    }
-
-    .tool-chips {
+    .board-row-right {
       display: flex;
-      gap: 5px;
-      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
     }
 
-    .tool-chip {
-      font-family: var(--mono);
-      font-size: 0.65rem;
-      color: #b3b3b3;
-      border: 1px solid #333333;
-      background: #0a0a0a;
-      padding: 2px 7px;
-    }
-
-    .log-board-body {
+    .board-row-body {
       display: none;
-      padding: 20px 18px;
+      padding: 22px 20px;
       border-top: 1px solid var(--line);
       background: #050505;
       font-size: 0.85rem;
     }
 
-    .log-board-item.open .log-board-body {
+    .board-row-item.open .board-row-body {
       display: block;
+    }
+
+    .tool-chips {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+
+    .tool-chip {
+      font-family: var(--mono);
+      font-size: 0.66rem;
+      color: #b3b3b3;
+      border: 1px solid #333333;
+      background: #0a0a0a;
+      padding: 2px 8px;
     }
 
     .log-detail-block {
@@ -703,7 +780,7 @@
     .log-detail-content {
       color: #dcdcdc;
       white-space: pre-line;
-      line-height: 1.72;
+      line-height: 1.74;
     }
 
     .kpi-grid {
@@ -815,7 +892,10 @@
       <button class="nav-btn" id="nav-guestbook" onclick="switchTab('guestbook')">04. GUESTBOOK</button>
 
       <span class="nav-divider admin-only" style="display:none;"></span>
-      <button class="nav-btn admin-only" id="nav-report" style="display:none;" onclick="switchTab('report')">05. REPORT</button>
+      <button class="nav-btn admin-only" id="nav-report" style="display:none;" onclick="switchTab('report')">
+        <span>05. REPORT</span>
+        <span class="unread-dot" id="nav-report-dot" style="display:none;" title="확인하지 않은 리포트가 있습니다"></span>
+      </button>
     </nav>
     <div class="auth-indicator" id="header-auth-status">GUEST MODE</div>
   </header>
@@ -997,13 +1077,17 @@
           <!-- Honeypot field for bot filtering -->
           <input type="text" id="gb-website-hp" class="hp-field" tabindex="-1" autocomplete="off" />
 
+          <div class="gb-notice-box">
+            ※ 과도한 언어나 욕설 등 비속어·비방성 방명록은 사전 통보 없이 삭제될 수 있습니다.
+          </div>
+
           <div class="form-group">
             <label>DISPLAY NAME (방명록 표시 이름)</label>
             <input type="text" id="gb-name" maxlength="30" placeholder="방명록에 표시할 이름을 입력하세요 (예: 강시후)" />
           </div>
           <div class="form-group">
             <label>LEAVE A MESSAGE (MAX 1,000 CHARS · 60S COOLDOWN)</label>
-            <textarea id="gb-input" rows="3" maxlength="1000" placeholder="로그인 후 방명록을 남길 수 있습니다."></textarea>
+            <textarea id="gb-input" rows="3" maxlength="1000" placeholder="로그인 후 방명록을 남길 수 있습니다. (과도한 언어나 욕설 등 비속어 방명록은 삭제될 수 있습니다.)"></textarea>
           </div>
           <button class="btn" id="btn-post-gb" onclick="postGuestbook()">POST MESSAGE</button>
           <div id="gb-status" style="margin-top:8px; font-size:0.8rem; color:var(--muted);"></div>
@@ -1020,11 +1104,19 @@
       <div class="box">
         <h2>05. COMMAND REPORT HUB (ADMIN ONLY)</h2>
 
-        <!-- 3 SUB-TABS -->
+        <!-- 3 SUB-TABS WITH UNREAD INDICATORS -->
         <div class="report-subnav">
-          <button class="btn-outline active" id="subnav-morningbrief" onclick="switchReportSubTab('morningbrief')">01. 모닝 브리핑 (MORNING BRIEF)</button>
-          <button class="btn-outline" id="subnav-dailyreview" onclick="switchReportSubTab('dailyreview')">02. 분석 리포트 (DAILY REVIEW)</button>
-          <button class="btn-outline" id="subnav-worklog" onclick="switchReportSubTab('worklog')">03. 작업 일지 (WORK LOG)</button>
+          <button class="btn-outline active" id="subnav-morningbrief" onclick="switchReportSubTab('morningbrief')">
+            <span>01. 모닝 브리핑 (MORNING BRIEF)</span>
+          </button>
+          <button class="btn-outline" id="subnav-dailyreview" onclick="switchReportSubTab('dailyreview')">
+            <span>02. 분석 리포트 (DAILY REVIEW)</span>
+            <span class="unread-dot" id="subdot-dailyreview" style="display:none;" title="확인하지 않은 분석 리포트가 있습니다"></span>
+          </button>
+          <button class="btn-outline" id="subnav-worklog" onclick="switchReportSubTab('worklog')">
+            <span>03. 작업 일지 (WORK LOG)</span>
+            <span class="unread-dot" id="subdot-worklog" style="display:none;" title="확인하지 않은 작업 일지가 있습니다"></span>
+          </button>
         </div>
 
         <!-- SUB-PANEL 1: MORNING BRIEF -->
@@ -1063,11 +1155,16 @@
           <div class="brief-stack" id="brief-sections-grid"></div>
         </div>
 
-        <!-- SUB-PANEL 2: DAILY REVIEW (분석 리포트 / 오늘의 정리) -->
+        <!-- SUB-PANEL 2: DAILY REVIEW (분석 리포트 게시판) -->
         <div id="sub-dailyreview" class="report-subpanel">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-            <span style="font-size:0.78rem; color:var(--muted); letter-spacing:0.08em;">00:00 DAILY REVIEW ARCHIVE (FULL REPORT)</span>
-            <button class="btn-outline" onclick="toggleDailyReviewComposer()">+ NEW REVIEW</button>
+          <div class="board-toolbar">
+            <span style="font-size:0.78rem; color:var(--muted); letter-spacing:0.08em;">
+              00:00 DAILY REVIEW BOARD · 제목을 클릭하면 전체 리포트가 열립니다
+            </span>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+              <button class="btn-outline" onclick="markAllDailyReviewsRead()">MARK ALL READ</button>
+              <button class="btn-outline" onclick="toggleDailyReviewComposer()">+ NEW REVIEW</button>
+            </div>
           </div>
 
           <div id="dailyreview-composer" style="display:none; border:1px solid var(--line); background:#000000; padding:18px; margin-bottom:20px;">
@@ -1102,11 +1199,16 @@
           </div>
         </div>
 
-        <!-- SUB-PANEL 3: WORK LOG (작업 일지) -->
+        <!-- SUB-PANEL 3: WORK LOG (작업 일지 게시판) -->
         <div id="sub-worklog" class="report-subpanel">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-            <span style="font-size:0.78rem; color:var(--muted); letter-spacing:0.08em;">00:30 WORK LOG BOARD (FULL ARCHIVE)</span>
-            <button class="btn-outline" onclick="toggleWorkLogComposer()">+ NEW / EDIT LOG</button>
+          <div class="board-toolbar">
+            <span style="font-size:0.78rem; color:var(--muted); letter-spacing:0.08em;">
+              00:30 WORK LOG BOARD · 제목을 클릭하면 전체 일지가 열립니다
+            </span>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+              <button class="btn-outline" onclick="markAllWorkLogsRead()">MARK ALL READ</button>
+              <button class="btn-outline" onclick="toggleWorkLogComposer()">+ NEW / EDIT LOG</button>
+            </div>
           </div>
 
           <div id="worklog-composer" style="display:none; border:1px solid var(--line); background:#000000; padding:18px; margin-bottom:20px;">
@@ -1236,8 +1338,11 @@
     let currentUserProfile = null;
     let currentReportSubTab = "morningbrief";
     let cachedArchives = [];
+    let cachedDailyReviews = [];
     let cachedWorkLogs = [];
     let cachedMorningBriefs = [];
+    let openDailyReviewIds = new Set();
+    let openWorkLogIds = new Set();
     let cooldownInterval = null;
     let chartInstances = {};
 
@@ -1253,6 +1358,52 @@
 
     function getTodayKST() {
       return new Date(Date.now() + 9 * 3600 * 1000).toISOString().slice(0, 10);
+    }
+
+    // =========================================================
+    // UNREAD TRACKING HELPERS (LOCAL STORAGE PERSISTED)
+    // =========================================================
+    function getReadSet(storageKey) {
+      try {
+        const raw = localStorage.getItem(storageKey);
+        const arr = raw ? JSON.parse(raw) : [];
+        return new Set(Array.isArray(arr) ? arr : []);
+      } catch (e) {
+        return new Set();
+      }
+    }
+
+    function saveReadSet(storageKey, setObj) {
+      try {
+        localStorage.setItem(storageKey, JSON.stringify([...setObj]));
+      } catch (e) {}
+    }
+
+    function getDailyReviewKey(row) {
+      return `${row.review_date}_${row.id || 0}`;
+    }
+
+    function getWorkLogKey(row) {
+      return `${row.log_date}_${row.id || 0}`;
+    }
+
+    function refreshUnreadIndicators() {
+      const readDR = getReadSet("bc_read_daily_reviews");
+      const readWL = getReadSet("bc_read_work_logs");
+
+      const drList = cachedDailyReviews.length ? cachedDailyReviews : FALLBACK_DAILY_REVIEWS;
+      const wlList = cachedWorkLogs.length ? cachedWorkLogs : FALLBACK_WORK_LOGS;
+
+      const hasUnreadDR = drList.some(r => !readDR.has(getDailyReviewKey(r)));
+      const hasUnreadWL = wlList.some(w => !readWL.has(getWorkLogKey(w)));
+
+      const subDotDR = document.getElementById("subdot-dailyreview");
+      const subDotWL = document.getElementById("subdot-worklog");
+      const navReportDot = document.getElementById("nav-report-dot");
+
+      if (subDotDR) subDotDR.style.display = hasUnreadDR ? "inline-block" : "none";
+      if (subDotWL) subDotWL.style.display = hasUnreadWL ? "inline-block" : "none";
+      if (navReportDot) navReportDot.style.display = (hasUnreadDR || hasUnreadWL) ? "inline-block" : "none";
     }
 
     // =========================================================
@@ -1319,7 +1470,7 @@
         userInfo.innerHTML = `SIGNED IN AS <strong>${escapeHtml(user.email)}</strong> ${isAdmin ? '<span class="badge-admin">ADMIN</span>' : ''}`;
         adminArchiveBox.style.display = isAdmin ? "block" : "none";
         badgePanel.style.display = "block";
-        adminNavEls.forEach(el => el.style.display = isAdmin ? "inline-block" : "none");
+        adminNavEls.forEach(el => el.style.display = isAdmin ? "inline-flex" : "none");
 
         const savedName = localStorage.getItem("gb_display_name_" + user.id);
         if (savedName && !document.getElementById("gb-name").value) {
@@ -1327,6 +1478,9 @@
         }
 
         await syncUserProfileAndBadges(user);
+        if (isAdmin) {
+          await preloadReportDataForUnreadBadges();
+        }
       } else {
         currentUserProfile = null;
         headerStatus.innerText = "GUEST MODE";
@@ -1336,6 +1490,16 @@
         badgePanel.style.display = "none";
         adminNavEls.forEach(el => el.style.display = "none");
       }
+    }
+
+    async function preloadReportDataForUnreadBadges() {
+      const [drRes, wlRes] = await Promise.all([
+        sb.from("daily_reviews").select("*").order("review_date", { ascending: false }),
+        sb.from("work_logs").select("*").order("log_date", { ascending: false })
+      ]);
+      cachedDailyReviews = (drRes.error || !drRes.data || drRes.data.length === 0) ? FALLBACK_DAILY_REVIEWS : drRes.data;
+      cachedWorkLogs = (wlRes.error || !wlRes.data || wlRes.data.length === 0) ? FALLBACK_WORK_LOGS : wlRes.data;
+      refreshUnreadIndicators();
     }
 
     async function syncUserProfileAndBadges(user) {
@@ -1797,7 +1961,6 @@
         const isOwner = currentUser && currentUser.id === row.user_id;
         const canDelete = isAdmin || isOwner;
 
-        // 현재 로그인한 본인 글은 현재 프로필 배지 설정과 즉시 동기화하여 렌더링
         let badgeText = row.badge_label ? row.badge_label.trim() : "";
         if (isOwner && currentUserProfile) {
           badgeText = getActiveBadgeLabelForPost() || "";
@@ -2076,10 +2239,12 @@
 
       cachedMorningBriefs = (error || !data || data.length === 0) ? FALLBACK_MORNING_BRIEFS : data;
 
+      const today = getTodayKST();
       const selectEl = document.getElementById("brief-date-select");
-      selectEl.innerHTML = cachedMorningBriefs.map(b =>
-        `<option value="${escapeHtml(b.brief_date)}">${escapeHtml(b.brief_date)}</option>`
-      ).join("");
+      selectEl.innerHTML = cachedMorningBriefs.map(b => {
+        const todaySuffix = b.brief_date === today ? " (오늘)" : "";
+        return `<option value="${escapeHtml(b.brief_date)}">${escapeHtml(b.brief_date)}${todaySuffix}</option>`;
+      }).join("");
 
       selectMorningBrief(cachedMorningBriefs[0].brief_date);
     }
@@ -2088,7 +2253,9 @@
       const brief = cachedMorningBriefs.find(b => b.brief_date === dateStr) || cachedMorningBriefs[0];
       if (!brief) return;
 
-      document.getElementById("brief-headline").innerText = brief.headline || "";
+      const isToday = brief.brief_date === getTodayKST();
+      document.getElementById("brief-headline").innerHTML =
+        `${isToday ? '<span class="today-tag" style="margin-right:8px;">(오늘)</span>' : ''}${escapeHtml(brief.headline || "")}`;
 
       const snap = brief.portfolio_snapshot || FALLBACK_MORNING_BRIEFS[0].portfolio_snapshot;
       const pnlKrw = (snap.total_eval_krw || 0) - (snap.total_buy_krw || 0);
@@ -2225,7 +2392,7 @@
     }
 
     // =========================================================
-    // 8. SUB-PANEL 2: DAILY REVIEW (분석 리포트 / 오늘의 정리)
+    // 8. SUB-PANEL 2: DAILY REVIEW (분석 리포트 게시판 형식)
     // =========================================================
     function toggleDailyReviewComposer() {
       const box = document.getElementById("dailyreview-composer");
@@ -2238,32 +2405,84 @@
 
     async function loadDailyReviews() {
       if (!currentUser || currentUser.email !== ADMIN_EMAIL) return;
-      const listEl = document.getElementById("dailyreview-list");
       const { data, error } = await sb
         .from("daily_reviews")
         .select("*")
         .order("review_date", { ascending: false });
 
-      const rows = (error || !data || data.length === 0) ? FALLBACK_DAILY_REVIEWS : data;
+      cachedDailyReviews = (error || !data || data.length === 0) ? FALLBACK_DAILY_REVIEWS : data;
+      renderDailyReviews();
+      refreshUnreadIndicators();
+    }
 
-      listEl.innerHTML = rows.map(r => `
-        <div class="brief-card" style="margin-bottom:20px;">
-          <div class="archive-meta" style="margin-bottom:6px;">${escapeHtml(r.review_date)} · 00:00 DAILY REVIEW</div>
-          <div style="font-size:0.98rem; font-weight:700; margin-bottom:16px;">${escapeHtml(r.headline)}</div>
-          <div class="log-detail-block">
-            <h3>ACHIEVEMENTS / 오늘 완료한 주요 작업</h3>
-            <div class="brief-text">${escapeHtml(r.achievements || "")}</div>
+    function renderDailyReviews() {
+      const listEl = document.getElementById("dailyreview-list");
+      const readSet = getReadSet("bc_read_daily_reviews");
+      const today = getTodayKST();
+
+      if (!cachedDailyReviews || cachedDailyReviews.length === 0) {
+        listEl.innerHTML = `<p style="font-size:0.84rem; color:var(--muted);">등록된 분석 리포트가 없습니다.</p>`;
+        return;
+      }
+
+      listEl.innerHTML = cachedDailyReviews.map(r => {
+        const key = getDailyReviewKey(r);
+        const isUnread = !readSet.has(key);
+        const isToday = r.review_date === today;
+        const isOpen = openDailyReviewIds.has(key);
+
+        return `
+          <div class="board-row-item ${isUnread ? "unread" : ""} ${isOpen ? "open" : ""}" id="dr-row-${escapeHtml(key)}">
+            <div class="board-row-header" onclick="toggleDailyReviewItem('${escapeHtml(key)}')">
+              <div class="board-row-left">
+                <span class="board-date-mono">${escapeHtml(r.review_date)}</span>
+                ${isToday ? `<span class="today-tag">(오늘)</span>` : ""}
+                <span class="board-title-text">${escapeHtml(r.headline)}</span>
+              </div>
+              <div class="board-row-right">
+                ${isUnread ? `<span class="unread-dot" title="미확인 리포트"></span>` : ""}
+              </div>
+            </div>
+            <div class="board-row-body">
+              <div class="log-detail-block">
+                <h3>1. ACHIEVEMENTS / 오늘 완료한 주요 작업</h3>
+                <div class="log-detail-content">${escapeHtml(r.achievements || "기록 없음")}</div>
+              </div>
+              <div class="log-detail-block">
+                <h3>2. INSIGHTS / 핵심 리뷰 및 인사이트</h3>
+                <div class="log-detail-content">${escapeHtml(r.insights || "기록 없음")}</div>
+              </div>
+              <div class="log-detail-block">
+                <h3>3. NEXT PRIORITIES / 다음 우선순위 과제</h3>
+                <div class="log-detail-content">${escapeHtml(r.next_priorities || "기록 없음")}</div>
+              </div>
+            </div>
           </div>
-          <div class="log-detail-block">
-            <h3>INSIGHTS / 핵심 리뷰 및 인사이트</h3>
-            <div class="brief-text">${escapeHtml(r.insights || "")}</div>
-          </div>
-          <div class="log-detail-block">
-            <h3>NEXT PRIORITIES / 다음 우선순위 과제</h3>
-            <div class="brief-text">${escapeHtml(r.next_priorities || "")}</div>
-          </div>
-        </div>
-      `).join("");
+        `;
+      }).join("");
+    }
+
+    function toggleDailyReviewItem(key) {
+      if (openDailyReviewIds.has(key)) {
+        openDailyReviewIds.delete(key);
+      } else {
+        openDailyReviewIds.add(key);
+        const readSet = getReadSet("bc_read_daily_reviews");
+        if (!readSet.has(key)) {
+          readSet.add(key);
+          saveReadSet("bc_read_daily_reviews", readSet);
+        }
+      }
+      renderDailyReviews();
+      refreshUnreadIndicators();
+    }
+
+    function markAllDailyReviewsRead() {
+      const readSet = getReadSet("bc_read_daily_reviews");
+      cachedDailyReviews.forEach(r => readSet.add(getDailyReviewKey(r)));
+      saveReadSet("bc_read_daily_reviews", readSet);
+      renderDailyReviews();
+      refreshUnreadIndicators();
     }
 
     async function saveDailyReview() {
@@ -2295,7 +2514,7 @@
     }
 
     // =========================================================
-    // 9. SUB-PANEL 3: WORK LOG (작업 일지 게시판)
+    // 9. SUB-PANEL 3: WORK LOG (작업 일지 게시판 형식)
     // =========================================================
     function toggleWorkLogComposer() {
       const box = document.getElementById("worklog-composer");
@@ -2313,12 +2532,9 @@
         .select("*")
         .order("log_date", { ascending: false });
 
-      if (error || !data || data.length === 0) {
-        cachedWorkLogs = FALLBACK_WORK_LOGS;
-      } else {
-        cachedWorkLogs = data;
-      }
+      cachedWorkLogs = (error || !data || data.length === 0) ? FALLBACK_WORK_LOGS : data;
       renderWorkLogs();
+      refreshUnreadIndicators();
     }
 
     function renderWorkLogs() {
@@ -2326,6 +2542,8 @@
       const yFilter = document.getElementById("filter-wl-year").value;
       const mFilter = document.getElementById("filter-wl-month").value;
       const tFilter = document.getElementById("filter-wl-type").value;
+      const readSet = getReadSet("bc_read_work_logs");
+      const today = getTodayKST();
 
       const filtered = cachedWorkLogs.filter(item => {
         const [yy, mm] = (item.log_date || "").split("-");
@@ -2340,23 +2558,31 @@
         return;
       }
 
-      listEl.innerHTML = filtered.map((item, idx) => {
+      listEl.innerHTML = filtered.map(item => {
+        const key = getWorkLogKey(item);
+        const isUnread = !readSet.has(key);
+        const isToday = item.log_date === today;
+        const isOpen = openWorkLogIds.has(key);
         const tools = Array.isArray(item.tools) ? item.tools : [];
-        const isRest = item.status_type === "REST";
+
         return `
-          <div class="log-board-item ${idx === 0 ? "open" : ""}" id="wl-item-${item.id}">
-            <div class="log-board-header" onclick="document.getElementById('wl-item-${item.id}').classList.toggle('open')">
-              <div class="log-title-line">
-                <span class="log-date-mono">${escapeHtml(item.log_date)}</span>
-                <span>:</span>
-                <span>${escapeHtml(item.title)}</span>
-                <span class="status-pill ${isRest ? "" : "active"}">${escapeHtml(item.status_type || "ACTIVE")}</span>
+          <div class="board-row-item ${isUnread ? "unread" : ""} ${isOpen ? "open" : ""}" id="wl-row-${escapeHtml(key)}">
+            <div class="board-row-header" onclick="toggleWorkLogItem('${escapeHtml(key)}')">
+              <div class="board-row-left">
+                <span class="board-date-mono">${escapeHtml(item.log_date)}</span>
+                ${isToday ? `<span class="today-tag">(오늘)</span>` : ""}
+                <span class="board-title-text">${escapeHtml(item.title)}</span>
               </div>
-              <div class="tool-chips">
-                ${tools.map(t => `<span class="tool-chip">${escapeHtml(t)}</span>`).join("")}
+              <div class="board-row-right">
+                ${isUnread ? `<span class="unread-dot" title="미확인 작업 일지"></span>` : ""}
               </div>
             </div>
-            <div class="log-board-body">
+            <div class="board-row-body">
+              ${tools.length ? `
+                <div class="tool-chips">
+                  ${tools.map(t => `<span class="tool-chip">${escapeHtml(t)}</span>`).join("")}
+                </div>
+              ` : ""}
               <div class="log-detail-block">
                 <h3>1. COMPLETED WORK / 일자별 작업 기록</h3>
                 <div class="log-detail-content">${escapeHtml(item.completed_summary || "기록 없음")}</div>
@@ -2373,6 +2599,29 @@
           </div>
         `;
       }).join("");
+    }
+
+    function toggleWorkLogItem(key) {
+      if (openWorkLogIds.has(key)) {
+        openWorkLogIds.delete(key);
+      } else {
+        openWorkLogIds.add(key);
+        const readSet = getReadSet("bc_read_work_logs");
+        if (!readSet.has(key)) {
+          readSet.add(key);
+          saveReadSet("bc_read_work_logs", readSet);
+        }
+      }
+      renderWorkLogs();
+      refreshUnreadIndicators();
+    }
+
+    function markAllWorkLogsRead() {
+      const readSet = getReadSet("bc_read_work_logs");
+      cachedWorkLogs.forEach(w => readSet.add(getWorkLogKey(w)));
+      saveReadSet("bc_read_work_logs", readSet);
+      renderWorkLogs();
+      refreshUnreadIndicators();
     }
 
     async function saveWorkLog() {
