@@ -2,6 +2,7 @@ import argparse
 import json
 import os
 import re
+import time
 import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta, timezone
 from urllib.parse import quote
@@ -99,7 +100,7 @@ def fetch_pyeongtaek_weather() -> dict:
         return {"desc": "조회 실패", "min_c": None, "max_c": None, "rain_pct": None}
 
 
-def fetch_google_news_rss(query: str, limit: int = 6) -> list:
+def fetch_google_news_rss(query: str, limit: int = 8) -> list:
     url = f"https://news.google.com/rss/search?q={quote(query)}&hl=ko&gl=KR&ceid=KR:ko"
     try:
         r = requests.get(url, timeout=15, headers={"User-Agent": "Mozilla/5.0"})
@@ -117,62 +118,106 @@ def fetch_google_news_rss(query: str, limit: int = 6) -> list:
         return []
 
 
-def fetch_github_commits(target_date_str: str) -> list:
-    start_kst = datetime.strptime(target_date_str, "%Y-%m-%d").replace(tzinfo=KST)
-    end_kst = start_kst + timedelta(days=1)
+def fetch_github_commits_window(target_dt: datetime, cutoff_hour: int) -> dict:
+    """
+    리포트 기준일(target_dt = D일)에 대해 자정(00:00)이 아닌 리포트 실행 시각 기준으로 수집한다.
+    - 수집 구간: D일 {cutoff_hour:02d}:00 KST ~ 실행 직전(최대 D+1일 {cutoff_hour:02d}:59 KST)
+    - spillover_prev: D일 {cutoff_hour:02d}:00 ~ 06:00 KST (직전 날 D-1→D 새벽 연장 작업 이월분)
+    - main_day:       D일 06:00 ~ 23:59 KST (당일 작업)
+    - late_night:     D+1일 00:00 ~ 실행 직전 (자정 이후 리포트 생성 직전까지 이어진 당일 심야 작업)
+    """
+    now_kst = datetime.now(KST)
+    window_start = target_dt.replace(hour=cutoff_hour, minute=0, second=0, microsecond=0)
+    spillover_end = target_dt.replace(hour=6, minute=0, second=0, microsecond=0)
+    midnight_next = (target_dt + timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
+    max_window_end = (target_dt + timedelta(days=1)).replace(hour=cutoff_hour, minute=59, second=59, microsecond=0)
+    window_end = min(now_kst, max_window_end)
+    if window_end < window_start:
+        window_end = now_kst
+
     headers = {"Accept": "application/vnd.github+json"}
     if GITHUB_TOKEN:
         headers["Authorization"] = f"Bearer {GITHUB_TOKEN}"
     params = {
-        "since": start_kst.astimezone(timezone.utc).isoformat(),
-        "until": end_kst.astimezone(timezone.utc).isoformat(),
+        "since": window_start.astimezone(timezone.utc).isoformat(),
+        "until": window_end.astimezone(timezone.utc).isoformat(),
         "per_page": 50,
     }
+
+    result = {
+        "window_label": f"{window_start.strftime('%Y-%m-%d %H:%M')} ~ {window_end.strftime('%Y-%m-%d %H:%M')} KST",
+        "spillover_prev": [],
+        "main_day": [],
+        "late_night": [],
+        "total_count": 0,
+    }
+
     try:
         r = requests.get(f"https://api.github.com/repos/{GITHUB_REPO}/commits", headers=headers, params=params, timeout=20)
         if r.status_code != 200:
-            return []
-        commits = []
+            return result
         for item in r.json():
             msg = item.get("commit", {}).get("message", "").splitlines()[0]
-            ts = item.get("commit", {}).get("author", {}).get("date", "")
-            commits.append(f"- {msg} ({ts[:16]})")
-        return commits
+            ts_raw = item.get("commit", {}).get("author", {}).get("date", "")
+            if not ts_raw:
+                continue
+            dt_kst = datetime.fromisoformat(ts_raw.replace("Z", "+00:00")).astimezone(KST)
+            entry = f"- [{dt_kst.strftime('%m/%d %H:%M')}] {msg}"
+            if window_start <= dt_kst < spillover_end:
+                result["spillover_prev"].append(entry)
+            elif spillover_end <= dt_kst < midnight_next:
+                result["main_day"].append(entry)
+            else:
+                result["late_night"].append(entry)
+            result["total_count"] += 1
+        return result
     except Exception as e:
         print(f"[WARN] github commits fetch failed: {e}")
-        return []
+        return result
+
+
+def build_generation_config(model_name: str) -> types.GenerateContentConfig:
+    kwargs = {"response_mime_type": "application/json"}
+    if model_name.startswith("gemini-4-"):
+        try:
+            kwargs["thinking_config"] = types.ThinkingConfig(thinking_level="MEDIUM")
+        except Exception:
+            pass
+    return types.GenerateContentConfig(**kwargs)
 
 
 def call_gemini_json(prompt: str) -> dict:
     client = genai.Client(api_key=GEMINI_API_KEY)
     candidates = []
-    for m in [GEMINI_MODEL, "gemini-3.8-flash", "gemini-3.5-flash-lite"]:
+    for m in [GEMINI_MODEL, "gemini-3.8-flash", "gemini-3.6-flash", "gemini-3.5-flash-lite"]:
         if m and m not in candidates:
             candidates.append(m)
 
     last_err = None
     for model_name in candidates:
-        try:
-            print(f"[INFO] Trying Gemini model: {model_name}")
-            resp = client.models.generate_content(
-                model=model_name,
-                contents=prompt,
-                config=types.GenerateContentConfig(
-                    response_mime_type="application/json",
-                ),
-            )
-            text = (resp.text or "").strip()
-            cleaned = re.sub(r"^```(?:json)?\s*", "", text)
-            cleaned = re.sub(r"\s*```$", "", cleaned)
-            start = cleaned.find("{")
-            end = cleaned.rfind("}")
-            if start == -1 or end == -1:
-                raise ValueError(f"Invalid JSON from {model_name}:\n{text[:400]}")
-            print(f"[OK] Gemini succeeded with model: {model_name}")
-            return json.loads(cleaned[start : end + 1])
-        except Exception as e:
-            print(f"[WARN] Model {model_name} failed: {e}")
-            last_err = e
+        max_attempts = 2 if model_name != "gemini-3.5-flash-lite" else 1
+        for attempt in range(1, max_attempts + 1):
+            try:
+                print(f"[INFO] Trying Gemini model: {model_name} (attempt {attempt}/{max_attempts})")
+                resp = client.models.generate_content(
+                    model=model_name,
+                    contents=prompt,
+                    config=build_generation_config(model_name),
+                )
+                text = (resp.text or "").strip()
+                cleaned = re.sub(r"^```(?:json)?\s*", "", text)
+                cleaned = re.sub(r"\s*```$", "", cleaned)
+                start = cleaned.find("{")
+                end = cleaned.rfind("}")
+                if start == -1 or end == -1:
+                    raise ValueError(f"Invalid JSON from {model_name}:\n{text[:400]}")
+                print(f"[OK] Gemini succeeded with model: {model_name}")
+                return json.loads(cleaned[start : end + 1])
+            except Exception as e:
+                print(f"[WARN] Model {model_name} attempt {attempt} failed: {e}")
+                last_err = e
+                if attempt < max_attempts:
+                    time.sleep(5)
 
     raise RuntimeError(f"All Gemini models failed. Last error: {last_err}")
 
@@ -214,7 +259,8 @@ def run_morning_brief():
         else:
             eval_krw = price * qty
 
-        ret_pct = ((eval_krw - buy_krw) / buy_krw * 100.0) if buy_krw > 0 else 0.0
+        pnl_krw = eval_krw - buy_krw
+        ret_pct = (pnl_krw / buy_krw * 100.0) if buy_krw > 0 else 0.0
         total_buy += buy_krw
         total_eval += eval_krw
         if row["account_type"] == "US":
@@ -235,12 +281,17 @@ def run_morning_brief():
             "quote_date": q["date"],
             "buy_krw": round(buy_krw),
             "eval_krw": round(eval_krw),
+            "pnl_krw": round(pnl_krw),
             "eval_man": round(eval_krw / 10000),
             "return_pct": round(ret_pct, 2),
         })
 
+    for h in holding_details:
+        h["weight_pct"] = round((h["eval_krw"] / total_eval * 100.0), 1) if total_eval > 0 else 0.0
+
     holding_details.sort(key=lambda x: x["eval_krw"], reverse=True)
-    total_ret = ((total_eval - total_buy) / total_buy * 100.0) if total_buy else 0.0
+    total_pnl = total_eval - total_buy
+    total_ret = (total_pnl / total_buy * 100.0) if total_buy else 0.0
     us_ret = ((us_eval - us_buy) / us_buy * 100.0) if us_buy else 0.0
     kr_ret = ((kr_eval - kr_buy) / kr_buy * 100.0) if kr_buy else 0.0
 
@@ -282,27 +333,27 @@ def run_morning_brief():
     }
 
     weather = fetch_pyeongtaek_weather()
-    econ_news = fetch_google_news_rss("미국 증시 코스피 금리 환율 when:1d", limit=6)
-    tech_news = fetch_google_news_rss("AI 반도체 엔비디아 구글 IT when:1d", limit=5)
-    exhibition_news = fetch_google_news_rss("서울 수도권 미술관 전시회 추천 when:7d", limit=6) if is_monday else []
+    econ_news = fetch_google_news_rss("미국 증시 코스피 금리 환율 경제 when:1d", limit=8)
+    tech_news = fetch_google_news_rss("AI 반도체 엔비디아 구글 빅테크 IT when:1d", limit=7)
+    exhibition_news = fetch_google_news_rss("서울 수도권 미술관 전시회 추천 when:7d", limit=8) if is_monday else []
 
     exhibition_rule = (
-        "오늘은 월요일이므로 아래 수집된 전시 뉴스 헤드라인을 참고해 이번 주 서울·수도권 볼만한 전시 3~4곳을 정리하라:\n"
+        "오늘은 월요일이므로 아래 수집된 전시 뉴스 헤드라인을 참고해 이번 주 서울·수도권 볼만한 전시 3~4곳을 전시명·장소·관람 포인트 중심으로 정리하라:\n"
         + ("\n".join(exhibition_news) if exhibition_news else "(수집된 전시 뉴스 없음 — 기존 안내 문구 유지)")
         if is_monday
         else f"오늘은 월요일이 아니므로 exhibition_picks에는 아래 기존 텍스트를 그대로 유지하라:\n{last_exhibition}"
     )
 
     prompt = f"""
-너는 개인 웹사이트 busychronicler7800.github.io(모노크롬 아카이브 & 05. REPORT 관리자 허브)의 수석 비서다.
+너는 개인 웹사이트 busychronicler7800.github.io(순수 모노크롬 아카이브 & 05. REPORT 관리자 허브)의 수석 애널리스트 겸 프로젝트 아키텍트다.
 오늘 날짜는 {today_str} ({weekday_ko}) 오전 07:00 KST다.
-아래 확정 수집 데이터를 바탕으로, 한국어로 밀도 높은 종합 모닝 브리핑을 작성하라. 없는 수치나 뉴스를 임의로 지어내지 마라.
+단순 요약이 아니라, 전문가 수준의 깊이와 구체적인 수치 근거를 갖춘 고밀도 모닝 브리핑을 한국어로 작성하라. 제공된 데이터에 없는 수치나 가짜 뉴스는 절대 지어내지 마라.
 
 [확정 거시 지수 데이터 (Yahoo Finance)]
 {json.dumps(macro, ensure_ascii=False, indent=2)}
 
-[확정 보유 종목 시세 및 평가 현황 (키움증권 API 미연동 — Supabase 기준 수량 × 최신 종가·환율 자동 산출)]
-- 총 매입원금: {round(total_buy):,}원 / 총 평가금액: {round(total_eval):,}원 ({total_ret:+.2f}%)
+[확정 포트폴리오 평가 현황 (키움증권 API 미연동 — Supabase 기준 수량 × 최신 종가·환율 자동 산출)]
+- 총 매입원금: {round(total_buy):,}원 / 총 평가금액: {round(total_eval):,}원 / 평가손익: {round(total_pnl):+,}원 ({total_ret:+.2f}%)
 - 해외 위탁종합: 평가 {round(us_eval):,}원 ({us_ret:+.2f}%)
 - 국내 중개형 ISA: 평가 {round(kr_eval):,}원 ({kr_ret:+.2f}%)
 {json.dumps(holding_details, ensure_ascii=False, indent=2)}
@@ -316,19 +367,21 @@ def run_morning_brief():
 [경기도 평택시 오늘 날씨 (Open-Meteo)]
 {json.dumps(weather, ensure_ascii=False)}
 
-[작성 규칙]
-1. 반드시 순수 JSON 객체 하나만 반환하라. 키는 정확히 다음 5개다:
+[출력 형식 및 분량 규칙]
+1. 반드시 순수 JSON 객체 하나만 반환하라. 키는 정확히 5개:
    "headline", "dev_strategy", "market_summary", "news_weather", "exhibition_picks"
-2. 마크다운 기호(**, ##) 대신 웹사이트 모노크롬 텍스트 박스 스타일([소제목], • 불릿, - 하위 항목)을 사용하라.
-3. headline 형식: "{today_str} ({weekday_ko}) 07:00 모닝 브리핑 — 핵심 테마 한 줄 요약"
-4. dev_strategy: busychronicler7800.github.io(커스텀 도메인 미보유) 운영 점검, 모듈화(index.html/styles.css/js/*) 유지, 키움증권 연동 대기 상태 및 다음 2단계-B2(키움 REST API·해외 체결 메일 파싱)/3단계(구글 타임라인 지도) 실행 아이디어를 [A.], [B.] 구조로 작성하라.
-5. market_summary:
-   - [1. 한·미 주요 지수 및 거시 흐름]: 위 확정 지수 8종(S&P500, 나스닥, 다우, 미 국채 10년물, VIX, 코스피, 코스닥, 원/달러)을 빠짐없이 수치·등락률과 함께 정리하고 헤드라인 기반 시장 배경 코멘트를 작성하라.
-   - [2. 보유 6종목별 현황 및 분석]: 해외 위탁(GOOGL, QLD, JEPQ)과 국내 ISA(TIME 나스닥100, KODEX S&P500, KODEX 배당커버드콜) 6종목 모두의 주수, 최신 종가·일간 등락률, 평가금액, 누적 수익률, 종목별 핵심 코멘트를 빠짐없이 작성하라.
-   - [3. 운용 전략]: 현재 변동성과 비중을 고려한 현실적 체크포인트를 제시하라.
-6. news_weather:
-   - [지난 24시간 주요 경제·IT 뉴스]: 위 실시간 RSS 헤드라인 중 핵심 3~4건을 묶어 요약.
-   - [경기도 평택시 오늘의 날씨 예보 ({today_str} {weekday_ko})]: 위 Open-Meteo 수치를 반영해 기온·일교차·강수확률·날씨 정리.
+2. 마크다운 기호(**, ##)를 절대 쓰지 말고, 웹사이트 모노크롬 텍스트 스타일([소제목], • 불릿, - 하위 항목, → 해석)을 사용하라.
+3. headline: "{today_str} ({weekday_ko}) 07:00 모닝 브리핑 — 핵심 시장·프로젝트 테마 한 줄 요약"
+4. dev_strategy (최소 8~12줄, 구체적 기술 실행안 중심):
+   - [A. 현재 운영 인프라 및 모듈 아키텍처 점검]: busychronicler7800.github.io 단독 운영 정합성, 5개 모듈(index.html/styles.css/js/*) 유지 및 Supabase DB 읽음 동기화 안정성 점검.
+   - [B. 다음 단계 파이프라인 실행안]: 키움증권 연동 대기(2단계 B-2: 국내 ISA REST API + 해외 위탁 체결 메일 파싱) 및 3단계(구글 타임라인 JSON 업로드 기반 Leaflet.js 모노크롬 이동거리 지도 탭) 설계 포인트를 구체적으로 제시.
+5. market_summary (가장 상세하게 작성, 최소 18~25줄):
+   - [1. 한·미 주요 지수 및 거시 환경]: 8개 확정 지표(S&P500, 나스닥, 다우, 미 국채 10년물, VIX, 코스피, 코스닥, 원/달러)를 빠짐없이 수치·등락률·기준일과 함께 정리하고, 수집된 뉴스 헤드라인과 연결한 시장 배경 코멘트 2~3문장 작성.
+   - [2. 보유 6종목별 정밀 분석 (키움 미연동 — 종가×환율 기준 자동 산출)]: 해외 위탁(GOOGL, QLD, JEPQ)과 국내 ISA(TIME 나스닥100, KODEX S&P500, KODEX 배당커버드콜) 6종목 모두 각각에 대해 보유 주수, 비중(%), 최신 종가(일간 등락률), 평가금액(평가손익·누적 수익률)을 적고, 바로 아래 `→` 기호로 해당 종목의 성격(빅테크/2배 레버리지/커버드콜/지수추종)에 맞는 구체적 흐름 분석을 1~2문장씩 작성.
+   - [3. 포트폴리오 리스크 및 운용 체크포인트]: 현재 레버리지·기술주 집중도와 환율·변동성(VIX)을 근거로 오늘 장 대응 원칙 2~3가지 제시.
+6. news_weather (최소 8~10줄):
+   - [지난 24시간 주요 경제·IT 뉴스]: 위 RSS 헤드라인 중 영향력이 큰 4건을 선정해 사건 요약과 시장·기술 시사점을 각각 2줄 이상 정리.
+   - [경기도 평택시 오늘의 날씨 예보 ({today_str} {weekday_ko})]: 최저·최고 기온, 일교차, 강수확률, 날씨 상태 및 옷차림 한 줄 팁.
 7. exhibition_picks: {exhibition_rule}
 """
 
@@ -351,29 +404,52 @@ def run_morning_brief():
 
 
 def run_daily_review():
-    target_dt = datetime.now(KST) - timedelta(days=1)
+    now_kst = datetime.now(KST)
+    target_dt = now_kst - timedelta(days=1)
+    prev_dt = target_dt - timedelta(days=1)
     target_str = target_dt.strftime("%Y-%m-%d")
+    prev_str = prev_dt.strftime("%Y-%m-%d")
     weekday_ko = WEEKDAYS_KO[target_dt.weekday()]
 
-    commits = fetch_github_commits(target_str)
+    commit_data = fetch_github_commits_window(target_dt, cutoff_hour=2)
     recent_reviews = sb_select("daily_reviews", {"select": "review_date,headline,next_priorities", "order": "review_date.desc", "limit": 2})
+
+    spillover_block = ""
+    if commit_data["spillover_prev"]:
+        spillover_block = (
+            f"직전 날({prev_str}) 분석 리포트 마감(02:00)을 넘겨 새벽에 이어진 커밋이 {len(commit_data['spillover_prev'])}건 감지되었다.\n"
+            f"따라서 achievements 맨 아래에 별도 항목으로 반드시 다음 문구를 그대로 포함해 추가 첨부하라:\n"
+            f"\"※ 이 날은 늦게까지 작업하여 다음 날 리포트에 반영했습니다. 실제 작업은 {prev_str}에서 {target_str}로 넘어가는 새벽에 작업한 내용들입니다.\"\n"
+            + "\n".join(commit_data["spillover_prev"])
+        )
+    else:
+        spillover_block = "(직전 날 리포트 발행 시각 이후 새벽 연장 커밋 없음)"
 
     prompt = f"""
 너는 busychronicler7800 개인 프로젝트의 일일 작업 분석가다.
 기준 날짜(작업 대상일)는 반드시 어제인 {target_str} ({weekday_ko})이다.
+수집 구간은 자정(00:00)이 아닌 직전 리포트 마감 이후부터 리포트 작성 직전까지({commit_data['window_label']})이다.
 
-[{target_str} GitHub 저장소 커밋 이력]
-{chr(10).join(commits) if commits else "(커밋 없음 — 비작업일 또는 오프라인 학습/점검일)"}
+[1. {target_str} 주간·야간 커밋 (06:00~23:59 KST)]
+{chr(10).join(commit_data['main_day']) if commit_data['main_day'] else "(해당 구간 커밋 없음)"}
+
+[2. {target_str} 심야 연장 커밋 (자정 이후 ~ 리포트 작성 직전, 모두 {target_str} 작업분에 포함)]
+{chr(10).join(commit_data['late_night']) if commit_data['late_night'] else "(심야 연장 커밋 없음)"}
+
+[3. 직전 날({prev_str}→{target_str}) 새벽 이월 커밋 처리 규칙]
+{spillover_block}
 
 [직전 분석 리포트 맥락]
 {json.dumps(recent_reviews, ensure_ascii=False, indent=2)}
 
 [작성 규칙]
-1. 반드시 순수 JSON 객체 하나만 반환하라. 키는 정확히 다음 4개다:
+1. 반드시 순수 JSON 객체 하나만 반환하라. 키는 정확히 4개:
    "headline", "achievements", "insights", "next_priorities"
-2. headline은 "{target_str} ({weekday_ko}) 작업 분석 리포트: 핵심 한 줄 요약" 형식으로 작성하라.
-3. 커밋이 없으면 억지로 작업을 지어내지 말고, 휴무·점검일 기준으로 시스템 안정성과 다음 단계 준비사항 중심으로 솔직하게 작성하라.
-4. 각 필드는 불릿(•) 또는 번호(1., 2.)를 사용한 한국어 평문으로 작성하라.
+2. 마크다운 기호(**, ##)를 쓰지 말고 • 불릿과 번호(1., 2.)를 사용한 고밀도 한국어 평문으로 작성하라.
+3. headline은 "{target_str} ({weekday_ko}) 작업 분석 리포트: 핵심 성과 한 줄 요약" 형식으로 작성하라.
+4. 커밋 총 건수가 0건이면 작업을 지어내지 말고, 휴무·점검일 기준으로 시스템 안정성과 다음 단계 준비사항 중심으로 작성하라.
+5. 심야 연장 커밋(섹션 2)이 있으면 자정 넘긴 새벽 작업까지 {target_str} 성과에 빠짐없이 통합 기록하라.
+6. 직전 날 새벽 이월 커밋(섹션 3)이 있으면 지정된 안내 문구와 함께 별도 항목으로 반드시 첨부하라.
 """
 
     result = call_gemini_json(prompt)
@@ -392,22 +468,42 @@ def run_daily_review():
 
 
 def run_work_log():
-    target_dt = datetime.now(KST) - timedelta(days=1)
+    now_kst = datetime.now(KST)
+    target_dt = now_kst - timedelta(days=1)
+    prev_dt = target_dt - timedelta(days=1)
     target_str = target_dt.strftime("%Y-%m-%d")
+    prev_str = prev_dt.strftime("%Y-%m-%d")
     weekday_ko = WEEKDAYS_KO[target_dt.weekday()]
 
-    commits = fetch_github_commits(target_str)
-    status_type = "ACTIVE" if commits else "REST"
+    commit_data = fetch_github_commits_window(target_dt, cutoff_hour=3)
+    status_type = "ACTIVE" if commit_data["total_count"] > 0 else "REST"
     recent_logs = sb_select("work_logs", {"select": "log_date,title,active_pipelines", "order": "log_date.desc", "limit": 2})
     latest_brief = sb_select("morning_briefings", {"select": "brief_date,portfolio_snapshot", "order": "brief_date.desc", "limit": 1})
+
+    spillover_block = ""
+    if commit_data["spillover_prev"]:
+        spillover_block = (
+            f"직전 날({prev_str}) 작업 일지 마감(03:00)을 넘겨 새벽에 이어진 커밋이 {len(commit_data['spillover_prev'])}건 감지되었다.\n"
+            f"따라서 completed_summary 맨 아래에 별도 항목으로 반드시 다음 문구를 그대로 포함해 추가 첨부하라:\n"
+            f"\"※ 이 날은 늦게까지 작업하여 다음 날 작업 일지에 반영했습니다. 실제 작업은 {prev_str}에서 {target_str}로 넘어가는 새벽에 작업한 내용들입니다.\"\n"
+            + "\n".join(commit_data["spillover_prev"])
+        )
+    else:
+        spillover_block = "(직전 날 작업 일지 발행 시각 이후 새벽 연장 커밋 없음)"
 
     prompt = f"""
 너는 busychronicler7800의 일일 작업 일지 기록관이다.
 기준 날짜(작업 대상일)는 반드시 어제인 {target_str} ({weekday_ko})이다.
-상태 타입은 "{status_type}"이다.
+상태 타입은 "{status_type}"이며, 커밋 수집 구간은 {commit_data['window_label']}이다.
 
-[{target_str} GitHub 커밋 이력]
-{chr(10).join(commits) if commits else "(커밋 없음 — REST 비작업일/점검일)"}
+[1. {target_str} 주간·야간 커밋 (06:00~23:59 KST)]
+{chr(10).join(commit_data['main_day']) if commit_data['main_day'] else "(해당 구간 커밋 없음)"}
+
+[2. {target_str} 심야 연장 커밋 (자정 이후 ~ 작업 일지 작성 직전, 모두 {target_str} 작업분에 포함)]
+{chr(10).join(commit_data['late_night']) if commit_data['late_night'] else "(심야 연장 커밋 없음)"}
+
+[3. 직전 날({prev_str}→{target_str}) 새벽 이월 커밋 처리 규칙]
+{spillover_block}
 
 [직전 작업 일지]
 {json.dumps(recent_logs, ensure_ascii=False, indent=2)}
@@ -416,12 +512,13 @@ def run_work_log():
 {json.dumps(latest_brief, ensure_ascii=False, indent=2)}
 
 [작성 규칙]
-1. 반드시 순수 JSON 객체 하나만 반환하라. 키는 정확히 다음 5개다:
+1. 반드시 순수 JSON 객체 하나만 반환하라. 키는 정확히 5개:
    "title", "tools", "completed_summary", "active_pipelines", "problem_analysis"
-2. title은 1줄 핵심 제목(날짜 제외), tools는 문자열 배열(예: ["GitHub Actions", "Supabase", "Gemini API"])로 반환하라.
-3. completed_summary는 "{target_str} ({weekday_ko}) 완료 작업 요약"으로 시작하되 커밋이 없으면 휴무일 점검 내용으로 솔직하게 작성하라.
-4. active_pipelines는 현재 가동 중인 파이프라인(busychronicler7800.github.io, Supabase, GitHub Actions 자동 리포트, 항공권 트래커)과 포트폴리오 최근 평가 현황(키움증권 미연동 표기 포함)을 정리하라.
-5. problem_analysis는 문제점 진단·해결책 및 물리치료학 전공/개발 학습 포인트를 기록하라.
+2. 마크다운 기호(**, ##)를 쓰지 말고 • 불릿과 번호(1., 2.)로 정리하라.
+3. title은 1줄 핵심 제목(날짜 제외), tools는 문자열 배열(예: ["GitHub Actions", "Supabase", "Gemini API"])로 반환하라.
+4. completed_summary는 "• {target_str} ({weekday_ko}) 완료 작업 요약"으로 시작하고, 심야 연장 커밋까지 빠짐없이 포함하라. 커밋이 0건이면 휴무일 점검 내용으로 솔직하게 작성하라. 직전 날 새벽 이월 커밋이 있으면 지정 문구와 함께 반드시 별도 첨부하라.
+5. active_pipelines는 가동 중인 파이프라인(busychronicler7800.github.io, Supabase, GitHub Actions 자동 리포트, 항공권 트래커)과 최근 포트폴리오 평가 현황(키움증권 미연동 표기 포함)을 정리하라.
+6. problem_analysis는 문제점 진단·해결책 및 물리치료학 전공/개발 학습 아카이브 포인트를 기록하라.
 """
 
     result = call_gemini_json(prompt)
