@@ -21,6 +21,26 @@ function getReadSet(profileColumn) {
   return new Set(normalized);
 }
 
+async function refreshReadStateFromDB() {
+  if (!currentUser) return;
+  const { data, error } = await sb
+    .from("user_profiles")
+    .select("read_daily_reviews, read_work_logs")
+    .eq("user_id", currentUser.id)
+    .maybeSingle();
+
+  if (error) {
+    console.error("Read status fetch error:", error.message);
+    return;
+  }
+
+  if (data && currentUserProfile) {
+    currentUserProfile.read_daily_reviews = Array.isArray(data.read_daily_reviews) ? data.read_daily_reviews : [];
+    currentUserProfile.read_work_logs = Array.isArray(data.read_work_logs) ? data.read_work_logs : [];
+  }
+  refreshUnreadIndicators();
+}
+
 async function saveReadSet(profileColumn, setObj) {
   const arr = [...setObj].sort();
   if (currentUserProfile) {
@@ -28,16 +48,25 @@ async function saveReadSet(profileColumn, setObj) {
   }
   if (!currentUser) return;
 
-  const { error } = await sb
+  const { data, error } = await sb
     .from("user_profiles")
     .update({
       [profileColumn]: arr,
       updated_at: new Date().toISOString()
     })
-    .eq("user_id", currentUser.id);
+    .eq("user_id", currentUser.id)
+    .select("read_daily_reviews, read_work_logs")
+    .single();
 
   if (error) {
     console.error("Read status sync error:", error.message);
+    alert("읽음 상태 DB 동기화 실패 : " + error.message);
+    return;
+  }
+
+  if (data && currentUserProfile) {
+    currentUserProfile.read_daily_reviews = Array.isArray(data.read_daily_reviews) ? data.read_daily_reviews : [];
+    currentUserProfile.read_work_logs = Array.isArray(data.read_work_logs) ? data.read_work_logs : [];
   }
 }
 
@@ -86,6 +115,7 @@ function refreshUnreadIndicators() {
 }
 
 async function preloadReportDataForUnreadBadges() {
+  await refreshReadStateFromDB();
   const [drRes, wlRes] = await Promise.all([
     sb.from("daily_reviews").select("*").order("review_date", { ascending: false }),
     sb.from("work_logs").select("*").order("log_date", { ascending: false })
@@ -94,6 +124,17 @@ async function preloadReportDataForUnreadBadges() {
   cachedWorkLogs = (wlRes.error || !wlRes.data || wlRes.data.length === 0) ? FALLBACK_WORK_LOGS : wlRes.data;
   refreshUnreadIndicators();
 }
+
+document.addEventListener("visibilitychange", async () => {
+  if (!document.hidden && currentUser && currentUser.email === ADMIN_EMAIL) {
+    await refreshReadStateFromDB();
+    const reportSec = document.getElementById("sec-report");
+    if (reportSec && reportSec.classList.contains("active")) {
+      if (currentReportSubTab === "dailyreview") renderDailyReviews();
+      if (currentReportSubTab === "worklog") renderWorkLogs();
+    }
+  }
+});
 
 // =========================================================
 // DEFAULT FALLBACK DATA FOR 05. REPORT SUB-TABS
@@ -301,6 +342,7 @@ async function saveMorningBrief() {
 
 async function loadMorningBriefs() {
   if (!currentUser || currentUser.email !== ADMIN_EMAIL) return;
+  await refreshReadStateFromDB();
   const { data, error } = await sb
     .from("morning_briefings")
     .select("*")
@@ -474,6 +516,7 @@ function toggleDailyReviewComposer() {
 
 async function loadDailyReviews() {
   if (!currentUser || currentUser.email !== ADMIN_EMAIL) return;
+  await refreshReadStateFromDB();
   const { data, error } = await sb
     .from("daily_reviews")
     .select("*")
@@ -616,6 +659,7 @@ function toggleWorkLogComposer() {
 
 async function loadWorkLogs() {
   if (!currentUser || currentUser.email !== ADMIN_EMAIL) return;
+  await refreshReadStateFromDB();
   const { data, error } = await sb
     .from("work_logs")
     .select("*")
