@@ -58,6 +58,14 @@ METNO_SYMBOL_KO = {
     "sleet": "진눈깨비",
 }
 
+ROADMAP_CONTEXT = """[프로젝트 현재 기반 및 예정 로드맵]
+- 완료 기반: busychronicler7800.github.io(커스텀 도메인 미보유) 5개 모듈 분리(index.html, styles.css, js/sculpture.js, js/app.js, js/report.js), PC·모바일 간 Supabase DB 계정 단위 읽음 동기화(날짜 단일 키 YYYY-MM-DD)·점멸 알림 점, GitHub Actions + Gemini 4 Hydrogen 무료 자동 적재 파이프라인(생성 모델 표시·3중 날씨 폴백·심야 작업 이월 반영).
+- 다음 세션(주말) 예정 작업 및 준비사항:
+  1) 3단계 구글 타임라인 지도 탭 신설: 스마트폰에서 구글 지도 타임라인 JSON 파일 내보내기 준비 → 웹사이트 일괄 업로드 파서 및 관리자 전용 Leaflet.js 모노크롬 이동거리 지도 탭 구축.
+  2) 2단계 B-2 키움증권 잔고 자동화: 현재 키움증권 미연동(연동 대기) 상태. 국내 중개형 ISA REST API 키(APP_KEY, SECRET_KEY) 발급·연동 + 해외 위탁 체결 메일(Gmail 앱 비밀번호) 파싱으로 portfolio_holdings 자동 갱신.
+- 궁극적 목표 (모든 리포트에서 지속 발전 방향 제시):
+  동일한 리포트 1본을 [리포트 자동 제작 → 웹사이트 자동 게시(가독성 고도화) → 아이폰/아이패드 앱 푸시 알림(클릭 시 바로 리포트 열람)]으로 단일 통합하는 파이프라인 구축 (iOS/iPadOS 홈 화면 PWA 웹 푸시 vs Discord/Telegram/ntfy 푸시 비교 및 가독성 개선안 포함)."""
+
 
 def sb_select(table: str, params: dict) -> list:
     r = requests.get(f"{SUPABASE_URL}/rest/v1/{table}", headers=SB_HEADERS, params=params, timeout=20)
@@ -450,6 +458,8 @@ def run_morning_brief():
 오늘 날짜는 {today_str} ({weekday_ko}) 오전 07:00 KST다.
 단순 요약이 아니라, 전문가 수준의 깊이와 구체적인 수치 근거를 갖춘 고밀도 모닝 브리핑을 한국어로 작성하라. 제공된 데이터에 없는 수치나 가짜 뉴스는 절대 지어내지 마라.
 
+{ROADMAP_CONTEXT}
+
 [확정 거시 지수 데이터 (Yahoo Finance)]
 {json.dumps(macro, ensure_ascii=False, indent=2)}
 
@@ -473,9 +483,9 @@ def run_morning_brief():
    "headline", "dev_strategy", "market_summary", "news_weather", "exhibition_picks"
 2. 마크다운 기호(**, ##)를 절대 쓰지 말고, 웹사이트 모노크롬 텍스트 스타일([소제목], • 불릿, - 하위 항목, → 해석)을 사용하라.
 3. headline: "{today_str} ({weekday_ko}) 07:00 모닝 브리핑 — 핵심 시장·프로젝트 테마 한 줄 요약"
-4. dev_strategy (최소 8~12줄, 구체적 기술 실행안 중심):
-   - [A. 현재 운영 인프라 및 모듈 아키텍처 점검]: busychronicler7800.github.io 단독 운영 정합성, 5개 모듈(index.html/styles.css/js/*) 유지 및 Supabase DB 읽음 동기화 안정성 점검.
-   - [B. 다음 단계 파이프라인 실행안]: 키움증권 연동 대기(2단계 B-2: 국내 ISA REST API + 해외 위탁 체결 메일 파싱) 및 3단계(구글 타임라인 JSON 업로드 기반 Leaflet.js 모노크롬 이동거리 지도 탭) 설계 포인트를 구체적으로 제시.
+4. dev_strategy (최소 12~16줄, 구체적 기술 실행안 중심):
+   - [A. 현재 운영 인프라 및 다음 세션(주말) 실행 계획·준비사항]: 3단계(구글 타임라인 JSON 내보내기 및 모노크롬 이동거리 지도 탭)와 2단계 B-2(키움증권 REST API·해외 체결 메일 파싱 — 현재 미연동 대기 상태)의 진행 순서와 사전 준비 체크리스트 정리.
+   - [B. 궁극적 목표 로드맵 (단일 리포트 → 웹 게시 → 아이폰/아이패드 푸시)]: 동일한 리포트 1본을 웹사이트에 고가독성으로 게시하고 iOS/iPadOS(홈 화면 PWA 웹 푸시 vs Discord/ntfy 등)로 즉시 알림 받아 열람하는 구체적 아키텍처 및 UI 가독성 개선 아이디어 제시.
 5. market_summary (가장 상세하게 작성, 최소 18~25줄):
    - [1. 한·미 주요 지수 및 거시 환경]: 8개 확정 지표(S&P500, 나스닥, 다우, 미 국채 10년물, VIX, 코스피, 코스닥, 원/달러)를 빠짐없이 수치·등락률·기준일과 함께 정리하고, 수집된 뉴스 헤드라인과 연결한 시장 배경 코멘트 2~3문장 작성.
    - [2. 보유 6종목별 정밀 분석 (키움 미연동 — 종가×환율 기준 자동 산출)]: 해외 위탁(GOOGL, QLD, JEPQ)과 국내 ISA(TIME 나스닥100, KODEX S&P500, KODEX 배당커버드콜) 6종목 모두 각각에 대해 보유 주수, 비중(%), 최신 종가(일간 등락률), 평가금액(평가손익·누적 수익률)을 적고, 바로 아래 `→` 기호로 해당 종목의 성격(빅테크/2배 레버리지/커버드콜/지수추종)에 맞는 구체적 흐름 분석을 1~2문장씩 작성.
@@ -532,6 +542,8 @@ def run_daily_review():
 기준 날짜(작업 대상일)는 반드시 어제인 {target_str} ({weekday_ko})이다.
 수집 구간은 자정(00:00)이 아닌 직전 리포트 마감 이후부터 리포트 작성 직전까지({commit_data['window_label']})이다.
 
+{ROADMAP_CONTEXT}
+
 [1. {target_str} 주간·야간 커밋 (06:00~23:59 KST)]
 {chr(10).join(commit_data['main_day']) if commit_data['main_day'] else "(해당 구간 커밋 없음)"}
 
@@ -552,6 +564,7 @@ def run_daily_review():
 4. 커밋 총 건수가 0건이면 작업을 지어내지 말고, 휴무·점검일 기준으로 시스템 안정성과 다음 단계 준비사항 중심으로 작성하라.
 5. 심야 연장 커밋(섹션 2)이 있으면 자정 넘긴 새벽 작업까지 {target_str} 성과에 빠짐없이 통합 기록하라.
 6. 직전 날 새벽 이월 커밋(섹션 3)이 있으면 지정된 안내 문구와 함께 별도 항목으로 반드시 첨부하라.
+7. next_priorities에는 위 로드맵의 다음 세션 예정 작업(3단계 구글 타임라인 JSON 지도, 2단계 B-2 키움증권 연동), 사전 준비 체크리스트, 그리고 궁극적 목표(단일 리포트 → 웹 게시·가독성 개선 → 아이폰/아이패드 푸시 알림) 실행 단계를 구체적으로 반영하라.
 """
 
     result, used_model = call_gemini_json(prompt)
@@ -599,6 +612,8 @@ def run_work_log():
 기준 날짜(작업 대상일)는 반드시 어제인 {target_str} ({weekday_ko})이다.
 상태 타입은 "{status_type}"이며, 커밋 수집 구간은 {commit_data['window_label']}이다.
 
+{ROADMAP_CONTEXT}
+
 [1. {target_str} 주간·야간 커밋 (06:00~23:59 KST)]
 {chr(10).join(commit_data['main_day']) if commit_data['main_day'] else "(해당 구간 커밋 없음)"}
 
@@ -621,7 +636,7 @@ def run_work_log():
 3. title은 1줄 핵심 제목(날짜 제외), tools는 문자열 배열(예: ["GitHub Actions", "Supabase", "Gemini API"])로 반환하라.
 4. completed_summary는 "• {target_str} ({weekday_ko}) 완료 작업 요약"으로 시작하고, 심야 연장 커밋까지 빠짐없이 포함하라. 커밋이 0건이면 휴무일 점검 내용으로 솔직하게 작성하라. 직전 날 새벽 이월 커밋이 있으면 지정 문구와 함께 반드시 별도 첨부하라.
 5. active_pipelines는 가동 중인 파이프라인(busychronicler7800.github.io, Supabase, GitHub Actions 자동 리포트, 항공권 트래커)과 최근 포트폴리오 평가 현황(키움증권 미연동 표기 포함)을 정리하라.
-6. problem_analysis는 문제점 진단·해결책 및 물리치료학 전공/개발 학습 아카이브 포인트를 기록하라.
+6. problem_analysis는 문제점 진단·해결책, 물리치료학 전공/개발 학습 포인트, 그리고 궁극적 목표(단일 리포트 → 웹 게시 → 아이폰/아이패드 푸시 알림) 및 다음 단계 준비 포인트를 기록하라.
 """
 
     result, used_model = call_gemini_json(prompt)
