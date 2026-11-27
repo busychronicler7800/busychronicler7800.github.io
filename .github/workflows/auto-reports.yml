@@ -1,0 +1,56 @@
+name: Auto Reports Pipeline
+
+on:
+  schedule:
+    - cron: '0 17 * * *'   # 02:00 KST — 일일 작업 분석 리포트
+    - cron: '0 18 * * *'   # 03:00 KST — 일일 작업 일지
+    - cron: '30 21 * * *'  # 06:30 KST — 모닝 브리핑 (미국장 마감 직후 수집)
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: '실행할 리포트 종류 선택'
+        required: true
+        default: 'morning'
+        type: choice
+        options:
+          - morning
+          - review
+          - worklog
+
+permissions:
+  contents: read
+
+jobs:
+  generate-report:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install --upgrade google-genai yfinance requests
+
+      - name: Run Auto Report Script
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_MODEL: 'gemini-4-hydrogen'
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            MODE="${{ inputs.mode }}"
+          elif [ "${{ github.event.schedule }}" = "0 17 * * *" ]; then
+            MODE="review"
+          elif [ "${{ github.event.schedule }}" = "0 18 * * *" ]; then
+            MODE="worklog"
+          else
+            MODE="morning"
+          fi
+          echo "Running mode: $MODE"
+          python scripts/auto_report.py --mode "$MODE"
