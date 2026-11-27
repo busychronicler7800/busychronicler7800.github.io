@@ -11,17 +11,24 @@ from google.genai import types
 
 KST = timezone(timedelta(hours=9))
 SUPABASE_URL = os.environ["SUPABASE_URL"].rstrip("/")
-SUPABASE_KEY = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
-GEMINI_API_KEY = os.environ["GEMINI_API_KEY"]
+SUPABASE_KEY = os.environ["SUPABASE_SERVICE_ROLE_KEY"].strip()
+GEMINI_API_KEY = os.environ["GEMINI_API_KEY"].strip()
 GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-4-hydrogen")
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN", "")
 GITHUB_REPO = os.environ.get("GITHUB_REPOSITORY", "busychronicler7800/busychronicler7800.github.io")
 
+if SUPABASE_KEY.startswith("sb_publishable_"):
+    raise RuntimeError(
+        "SUPABASE_SERVICE_ROLE_KEY에 공개용 키(sb_publishable_...)가 들어가 있습니다. "
+        "Supabase Project Settings > API Keys의 Secret key(sb_secret_... 또는 service_role JWT)로 교체해 주세요."
+    )
+
 SB_HEADERS = {
     "apikey": SUPABASE_KEY,
-    "Authorization": f"Bearer {SUPABASE_KEY}",
     "Content-Type": "application/json",
 }
+if SUPABASE_KEY.startswith("eyJ"):
+    SB_HEADERS["Authorization"] = f"Bearer {SUPABASE_KEY}"
 
 WEEKDAYS_KO = ["월", "화", "수", "목", "금", "토", "일"]
 
@@ -35,7 +42,8 @@ WMO_WEATHER_KO = {
 
 def sb_select(table: str, params: dict) -> list:
     r = requests.get(f"{SUPABASE_URL}/rest/v1/{table}", headers=SB_HEADERS, params=params, timeout=20)
-    r.raise_for_status()
+    if not r.ok:
+        raise RuntimeError(f"Supabase SELECT failed [{table}] ({r.status_code}): {r.text}")
     return r.json()
 
 
@@ -48,7 +56,8 @@ def sb_upsert(table: str, conflict_col: str, payload: dict) -> None:
         json=payload,
         timeout=20,
     )
-    r.raise_for_status()
+    if not r.ok:
+        raise RuntimeError(f"Supabase UPSERT failed [{table}] ({r.status_code}): {r.text}")
 
 
 def fetch_quote(symbol: str) -> dict:
@@ -143,7 +152,6 @@ def run_morning_brief():
     weekday_ko = WEEKDAYS_KO[now_kst.weekday()]
     is_monday = now_kst.weekday() == 0
 
-    # 1. 거시 지수 및 환율 수집
     macro_tickers = {
         "S&P 500": "^GSPC",
         "NASDAQ": "^IXIC",
@@ -157,7 +165,6 @@ def run_morning_brief():
     macro = {name: fetch_quote(sym) for name, sym in macro_tickers.items()}
     usdkrw = macro["USD/KRW"]["price"] or 1350.0
 
-    # 2. Supabase 보유 종목 + 최신 종가 기반 포트폴리오 계산
     holdings_rows = sb_select("portfolio_holdings", {"select": "*"})
     total_buy, total_eval = 0.0, 0.0
     us_buy, us_eval = 0.0, 0.0
@@ -206,7 +213,6 @@ def run_morning_brief():
     us_ret = ((us_eval - us_buy) / us_buy * 100.0) if us_buy else 0.0
     kr_ret = ((kr_eval - kr_buy) / kr_buy * 100.0) if kr_buy else 0.0
 
-    # 3. 기존 브리핑에서 추이(history) 및 직전 전시 추천 불러오기
     prev_briefs = sb_select(
         "morning_briefings",
         {"select": "brief_date,portfolio_snapshot,exhibition_picks", "order": "brief_date.asc", "limit": 30},
@@ -246,7 +252,6 @@ def run_morning_brief():
 
     weather = fetch_pyeongtaek_weather()
 
-    # 4. Gemini로 고밀도 모닝 브리핑 생성
     exhibition_rule = (
         "오늘은 월요일이므로 Google 검색을 통해 이번 주 서울·수도권의 볼만한 무료·유료 전시회 3~4곳을 전시명, 장소, 기간, 관람 포인트 형식으로 작성하라."
         if is_monday
