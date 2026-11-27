@@ -324,7 +324,8 @@ async function saveMorningBrief() {
     market_summary: marketSummary,
     news_weather: newsWeather,
     exhibition_picks: exhibitionPicks,
-    portfolio_snapshot: snapshotObj
+    portfolio_snapshot: snapshotObj,
+    generated_model: "MANUAL"
   }, { onConflict: "brief_date" });
 
   if (error) {
@@ -365,8 +366,11 @@ function selectMorningBrief(dateStr) {
   if (!brief) return;
 
   const isToday = brief.brief_date === getTodayKST();
+  const modelTag = brief.generated_model
+    ? `<span class="tool-chip" style="margin-left:8px; font-weight:400; vertical-align:middle;">MODEL : ${escapeHtml(brief.generated_model.toUpperCase())}</span>`
+    : "";
   document.getElementById("brief-headline").innerHTML =
-    `${isToday ? '<span class="today-tag" style="margin-right:8px;">오늘</span>' : ''}${escapeHtml(brief.headline || "")}`;
+    `${isToday ? '<span class="today-tag" style="margin-right:8px;">오늘</span>' : ''}${escapeHtml(brief.headline || "")}${modelTag}`;
 
   const snap = brief.portfolio_snapshot || FALLBACK_MORNING_BRIEFS[0].portfolio_snapshot;
   const pnlKrw = (snap.total_eval_krw || 0) - (snap.total_buy_krw || 0);
@@ -554,6 +558,7 @@ function renderDailyReviews() {
             <span class="board-title-text">${escapeHtml(r.headline)}</span>
           </div>
           <div class="board-row-right">
+            ${r.generated_model ? `<span class="tool-chip">${escapeHtml(r.generated_model.toUpperCase())}</span>` : ""}
             ${isUnread ? `<span class="unread-dot" title="미확인 리포트"></span>` : ""}
           </div>
         </div>
@@ -634,7 +639,8 @@ async function saveDailyReview() {
     headline,
     achievements,
     insights,
-    next_priorities: nextPriorities
+    next_priorities: nextPriorities,
+    generated_model: "MANUAL"
   }, { onConflict: "review_date" });
 
   if (error) {
@@ -709,6 +715,7 @@ function renderWorkLogs() {
             <span class="board-title-text">${escapeHtml(item.title)}</span>
           </div>
           <div class="board-row-right">
+            ${item.generated_model ? `<span class="tool-chip">${escapeHtml(item.generated_model.toUpperCase())}</span>` : ""}
             ${isUnread ? `<span class="unread-dot" title="미확인 작업 일지"></span>` : ""}
           </div>
         </div>
@@ -799,7 +806,8 @@ async function saveWorkLog() {
     tools,
     completed_summary: completedSummary,
     active_pipelines: activePipelines,
-    problem_analysis: problemAnalysis
+    problem_analysis: problemAnalysis,
+    generated_model: "MANUAL"
   }, { onConflict: "log_date" });
 
   if (error) {
