@@ -42,6 +42,22 @@ WMO_WEATHER_KO = {
     80: "약한 소나기", 81: "소나기", 82: "강한 소나기", 95: "뇌우",
 }
 
+METNO_SYMBOL_KO = {
+    "clearsky": "맑음",
+    "fair": "대체로 맑음",
+    "partlycloudy": "구름 조금",
+    "cloudy": "흐림",
+    "fog": "안개",
+    "lightrain": "약한 비",
+    "rain": "비",
+    "heavyrain": "강한 비",
+    "lightrainshowers": "약한 소나기",
+    "rainshowers": "소나기",
+    "lightsnow": "약한 눈",
+    "snow": "눈",
+    "sleet": "진눈깨비",
+}
+
 
 def sb_select(table: str, params: dict) -> list:
     r = requests.get(f"{SUPABASE_URL}/rest/v1/{table}", headers=SB_HEADERS, params=params, timeout=20)
@@ -80,24 +96,116 @@ def fetch_quote(symbol: str) -> dict:
 
 
 def fetch_pyeongtaek_weather() -> dict:
-    url = (
-        "https://api.open-meteo.com/v1/forecast"
-        "?latitude=36.9921&longitude=127.1129"
-        "&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max"
-        "&timezone=Asia%2FSeoul&forecast_days=1"
-    )
+    today_str = datetime.now(KST).strftime("%Y-%m-%d")
+
+    # 1순위: Open-Meteo (2회 시도)
+    for attempt in range(1, 3):
+        try:
+            r = requests.get(
+                "https://api.open-meteo.com/v1/forecast",
+                params={
+                    "latitude": 36.9921,
+                    "longitude": 127.1129,
+                    "daily": "weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max",
+                    "timezone": "Asia/Seoul",
+                    "forecast_days": 1,
+                },
+                headers={"User-Agent": "busychronicler7800.github.io/1.0"},
+                timeout=15,
+            )
+            r.raise_for_status()
+            daily = r.json().get("daily", {})
+            min_c = daily.get("temperature_2m_min", [None])[0]
+            max_c = daily.get("temperature_2m_max", [None])[0]
+            if min_c is not None and max_c is not None:
+                code = int(daily.get("weather_code", [0])[0])
+                rain_pct = daily.get("precipitation_probability_max", [0])[0]
+                print(f"[OK] Weather fetched from Open-Meteo: {min_c}C ~ {max_c}C")
+                return {
+                    "source": "Open-Meteo",
+                    "desc": WMO_WEATHER_KO.get(code, f"날씨코드 {code}"),
+                    "min_c": round(float(min_c), 1),
+                    "max_c": round(float(max_c), 1),
+                    "diurnal_range_c": round(float(max_c) - float(min_c), 1),
+                    "rain_pct": rain_pct,
+                }
+        except Exception as e:
+            print(f"[WARN] Open-Meteo attempt {attempt} failed: {e}")
+            if attempt == 1:
+                time.sleep(2)
+
+    # 2순위: 노르웨이 기상청 MET Norway (클라우드 IP 차단 없음)
     try:
-        data = requests.get(url, timeout=15).json().get("daily", {})
-        code = int(data.get("weather_code", [0])[0])
+        r = requests.get(
+            "https://api.met.no/weatherapi/locationforecast/2.0/compact",
+            params={"lat": 36.9921, "lon": 127.1129},
+            headers={"User-Agent": "busychronicler7800.github.io/1.0 (https://busychronicler7800.github.io)"},
+            timeout=15,
+        )
+        r.raise_for_status()
+        series = r.json().get("properties", {}).get("timeseries", [])
+        temps = []
+        max_precip_mm = 0.0
+        symbol_code = ""
+        for entry in series[:30]:
+            ts = entry.get("time", "")
+            dt_kst = datetime.fromisoformat(ts.replace("Z", "+00:00")).astimezone(KST)
+            if dt_kst.strftime("%Y-%m-%d") != today_str and len(temps) >= 6:
+                continue
+            inst = entry.get("data", {}).get("instant", {}).get("details", {})
+            if "air_temperature" in inst:
+                temps.append(float(inst["air_temperature"]))
+            next_block = entry.get("data", {}).get("next_6_hours") or entry.get("data", {}).get("next_1_hours") or {}
+            precip = next_block.get("details", {}).get("precipitation_amount")
+            if precip is not None:
+                max_precip_mm = max(max_precip_mm, float(precip))
+            if not symbol_code:
+                symbol_code = next_block.get("summary", {}).get("symbol_code", "")
+        if temps:
+            min_c, max_c = round(min(temps), 1), round(max(temps), 1)
+            base_sym = symbol_code.split("_")[0]
+            desc = METNO_SYMBOL_KO.get(base_sym, "구름 조금")
+            rain_pct = 70 if max_precip_mm >= 1.0 else (30 if max_precip_mm > 0 else 10)
+            print(f"[OK] Weather fetched from MET Norway: {min_c}C ~ {max_c}C")
+            return {
+                "source": "MET Norway",
+                "desc": desc,
+                "min_c": min_c,
+                "max_c": max_c,
+                "diurnal_range_c": round(max_c - min_c, 1),
+                "rain_pct": rain_pct,
+            }
+    except Exception as e:
+        print(f"[WARN] MET Norway failed: {e}")
+
+    # 3순위: wttr.in
+    try:
+        r = requests.get(
+            "https://wttr.in/Pyeongtaek",
+            params={"format": "j1"},
+            headers={"User-Agent": "curl/8.0"},
+            timeout=15,
+        )
+        r.raise_for_status()
+        day = r.json().get("weather", [{}])[0]
+        min_c = float(day["mintempC"])
+        max_c = float(day["maxtempC"])
+        hourly = day.get("hourly", [])
+        rain_pct = max([int(h.get("chanceofrain", 0)) for h in hourly], default=0)
+        desc_en = (hourly[4].get("weatherDesc", [{}])[0].get("value", "") if len(hourly) > 4 else "")
+        print(f"[OK] Weather fetched from wttr.in: {min_c}C ~ {max_c}C")
         return {
-            "desc": WMO_WEATHER_KO.get(code, f"날씨코드 {code}"),
-            "min_c": data.get("temperature_2m_min", [None])[0],
-            "max_c": data.get("temperature_2m_max", [None])[0],
-            "rain_pct": data.get("precipitation_probability_max", [None])[0],
+            "source": "wttr.in",
+            "desc": desc_en or "예보 수신 완료",
+            "min_c": round(min_c, 1),
+            "max_c": round(max_c, 1),
+            "diurnal_range_c": round(max_c - min_c, 1),
+            "rain_pct": rain_pct,
         }
     except Exception as e:
-        print(f"[WARN] weather fetch failed: {e}")
-        return {"desc": "조회 실패", "min_c": None, "max_c": None, "rain_pct": None}
+        print(f"[WARN] wttr.in failed: {e}")
+
+    return {"source": "NONE", "desc": "조회 실패", "min_c": None, "max_c": None, "diurnal_range_c": None, "rain_pct": None}
 
 
 def fetch_google_news_rss(query: str, limit: int = 8) -> list:
@@ -119,13 +227,6 @@ def fetch_google_news_rss(query: str, limit: int = 8) -> list:
 
 
 def fetch_github_commits_window(target_dt: datetime, cutoff_hour: int) -> dict:
-    """
-    리포트 기준일(target_dt = D일)에 대해 자정(00:00)이 아닌 리포트 실행 시각 기준으로 수집한다.
-    - 수집 구간: D일 {cutoff_hour:02d}:00 KST ~ 실행 직전(최대 D+1일 {cutoff_hour:02d}:59 KST)
-    - spillover_prev: D일 {cutoff_hour:02d}:00 ~ 06:00 KST (직전 날 D-1→D 새벽 연장 작업 이월분)
-    - main_day:       D일 06:00 ~ 23:59 KST (당일 작업)
-    - late_night:     D+1일 00:00 ~ 실행 직전 (자정 이후 리포트 생성 직전까지 이어진 당일 심야 작업)
-    """
     now_kst = datetime.now(KST)
     window_start = target_dt.replace(hour=cutoff_hour, minute=0, second=0, microsecond=0)
     spillover_end = target_dt.replace(hour=6, minute=0, second=0, microsecond=0)
@@ -186,7 +287,7 @@ def build_generation_config(model_name: str) -> types.GenerateContentConfig:
     return types.GenerateContentConfig(**kwargs)
 
 
-def call_gemini_json(prompt: str) -> dict:
+def call_gemini_json(prompt: str) -> tuple:
     client = genai.Client(api_key=GEMINI_API_KEY)
     candidates = []
     for m in [GEMINI_MODEL, "gemini-3.8-flash", "gemini-3.6-flash", "gemini-3.5-flash-lite"]:
@@ -212,7 +313,7 @@ def call_gemini_json(prompt: str) -> dict:
                 if start == -1 or end == -1:
                     raise ValueError(f"Invalid JSON from {model_name}:\n{text[:400]}")
                 print(f"[OK] Gemini succeeded with model: {model_name}")
-                return json.loads(cleaned[start : end + 1])
+                return json.loads(cleaned[start : end + 1]), model_name
             except Exception as e:
                 print(f"[WARN] Model {model_name} attempt {attempt} failed: {e}")
                 last_err = e
@@ -364,7 +465,7 @@ def run_morning_brief():
 [지난 24시간 실시간 AI·IT 헤드라인 (Google News RSS)]
 {chr(10).join(tech_news) if tech_news else "(수집된 IT 뉴스 없음)"}
 
-[경기도 평택시 오늘 날씨 (Open-Meteo)]
+[경기도 평택시 오늘 날씨]
 {json.dumps(weather, ensure_ascii=False)}
 
 [출력 형식 및 분량 규칙]
@@ -381,11 +482,11 @@ def run_morning_brief():
    - [3. 포트폴리오 리스크 및 운용 체크포인트]: 현재 레버리지·기술주 집중도와 환율·변동성(VIX)을 근거로 오늘 장 대응 원칙 2~3가지 제시.
 6. news_weather (최소 8~10줄):
    - [지난 24시간 주요 경제·IT 뉴스]: 위 RSS 헤드라인 중 영향력이 큰 4건을 선정해 사건 요약과 시장·기술 시사점을 각각 2줄 이상 정리.
-   - [경기도 평택시 오늘의 날씨 예보 ({today_str} {weekday_ko})]: 최저·최고 기온, 일교차, 강수확률, 날씨 상태 및 옷차림 한 줄 팁.
+   - [경기도 평택시 오늘의 날씨 예보 ({today_str} {weekday_ko})]: 위 날씨 JSON 수치를 반영해 최저·최고 기온, 일교차, 강수확률, 날씨 상태 및 옷차림 한 줄 팁.
 7. exhibition_picks: {exhibition_rule}
 """
 
-    result = call_gemini_json(prompt)
+    result, used_model = call_gemini_json(prompt)
 
     sb_upsert(
         "morning_briefings",
@@ -398,9 +499,10 @@ def run_morning_brief():
             "news_weather": result.get("news_weather", ""),
             "exhibition_picks": result.get("exhibition_picks", last_exhibition),
             "portfolio_snapshot": portfolio_snapshot,
+            "generated_model": used_model,
         },
     )
-    print(f"[OK] morning_briefings upserted for {today_str}")
+    print(f"[OK] morning_briefings upserted for {today_str} (model={used_model})")
 
 
 def run_daily_review():
@@ -452,7 +554,7 @@ def run_daily_review():
 6. 직전 날 새벽 이월 커밋(섹션 3)이 있으면 지정된 안내 문구와 함께 별도 항목으로 반드시 첨부하라.
 """
 
-    result = call_gemini_json(prompt)
+    result, used_model = call_gemini_json(prompt)
     sb_upsert(
         "daily_reviews",
         "review_date",
@@ -462,9 +564,10 @@ def run_daily_review():
             "achievements": result.get("achievements", ""),
             "insights": result.get("insights", ""),
             "next_priorities": result.get("next_priorities", ""),
+            "generated_model": used_model,
         },
     )
-    print(f"[OK] daily_reviews upserted for {target_str}")
+    print(f"[OK] daily_reviews upserted for {target_str} (model={used_model})")
 
 
 def run_work_log():
@@ -521,7 +624,7 @@ def run_work_log():
 6. problem_analysis는 문제점 진단·해결책 및 물리치료학 전공/개발 학습 아카이브 포인트를 기록하라.
 """
 
-    result = call_gemini_json(prompt)
+    result, used_model = call_gemini_json(prompt)
     tools = result.get("tools", ["GitHub Actions", "Supabase", "Gemini API"])
     if not isinstance(tools, list):
         tools = ["GitHub Actions", "Supabase"]
@@ -537,9 +640,10 @@ def run_work_log():
             "completed_summary": result.get("completed_summary", ""),
             "active_pipelines": result.get("active_pipelines", ""),
             "problem_analysis": result.get("problem_analysis", ""),
+            "generated_model": used_model,
         },
     )
-    print(f"[OK] work_logs upserted for {target_str}")
+    print(f"[OK] work_logs upserted for {target_str} (model={used_model})")
 
 
 if __name__ == "__main__":
