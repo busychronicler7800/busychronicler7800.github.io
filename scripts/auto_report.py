@@ -2,7 +2,9 @@ import argparse
 import json
 import os
 import re
+import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta, timezone
+from urllib.parse import quote
 
 import requests
 import yfinance as yf
@@ -97,6 +99,24 @@ def fetch_pyeongtaek_weather() -> dict:
         return {"desc": "조회 실패", "min_c": None, "max_c": None, "rain_pct": None}
 
 
+def fetch_google_news_rss(query: str, limit: int = 6) -> list:
+    url = f"https://news.google.com/rss/search?q={quote(query)}&hl=ko&gl=KR&ceid=KR:ko"
+    try:
+        r = requests.get(url, timeout=15, headers={"User-Agent": "Mozilla/5.0"})
+        r.raise_for_status()
+        root = ET.fromstring(r.content)
+        items = []
+        for item in root.findall(".//item")[:limit]:
+            title = (item.findtext("title") or "").strip()
+            pub_date = (item.findtext("pubDate") or "").strip()
+            if title:
+                items.append(f"- {title} ({pub_date[:16]})")
+        return items
+    except Exception as e:
+        print(f"[WARN] RSS fetch failed for '{query}': {e}")
+        return []
+
+
 def fetch_github_commits(target_date_str: str) -> list:
     start_kst = datetime.strptime(target_date_str, "%Y-%m-%d").replace(tzinfo=KST)
     end_kst = start_kst + timedelta(days=1)
@@ -123,27 +143,38 @@ def fetch_github_commits(target_date_str: str) -> list:
         return []
 
 
-def call_gemini_json(prompt: str, use_search: bool = False) -> dict:
+def call_gemini_json(prompt: str) -> dict:
     client = genai.Client(api_key=GEMINI_API_KEY)
-    config_kwargs = {"temperature": 0.4}
-    if use_search:
-        config_kwargs["tools"] = [types.Tool(google_search=types.GoogleSearch())]
-    else:
-        config_kwargs["response_mime_type"] = "application/json"
+    candidates = []
+    for m in [GEMINI_MODEL, "gemini-3.8-flash", "gemini-3.5-flash-lite"]:
+        if m and m not in candidates:
+            candidates.append(m)
 
-    resp = client.models.generate_content(
-        model=GEMINI_MODEL,
-        contents=prompt,
-        config=types.GenerateContentConfig(**config_kwargs),
-    )
-    text = (resp.text or "").strip()
-    cleaned = re.sub(r"^```(?:json)?\s*", "", text)
-    cleaned = re.sub(r"\s*```$", "", cleaned)
-    start = cleaned.find("{")
-    end = cleaned.rfind("}")
-    if start == -1 or end == -1:
-        raise ValueError(f"Gemini did not return valid JSON:\n{text[:500]}")
-    return json.loads(cleaned[start : end + 1])
+    last_err = None
+    for model_name in candidates:
+        try:
+            print(f"[INFO] Trying Gemini model: {model_name}")
+            resp = client.models.generate_content(
+                model=model_name,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    response_mime_type="application/json",
+                ),
+            )
+            text = (resp.text or "").strip()
+            cleaned = re.sub(r"^```(?:json)?\s*", "", text)
+            cleaned = re.sub(r"\s*```$", "", cleaned)
+            start = cleaned.find("{")
+            end = cleaned.rfind("}")
+            if start == -1 or end == -1:
+                raise ValueError(f"Invalid JSON from {model_name}:\n{text[:400]}")
+            print(f"[OK] Gemini succeeded with model: {model_name}")
+            return json.loads(cleaned[start : end + 1])
+        except Exception as e:
+            print(f"[WARN] Model {model_name} failed: {e}")
+            last_err = e
+
+    raise RuntimeError(f"All Gemini models failed. Last error: {last_err}")
 
 
 def run_morning_brief():
@@ -251,9 +282,13 @@ def run_morning_brief():
     }
 
     weather = fetch_pyeongtaek_weather()
+    econ_news = fetch_google_news_rss("미국 증시 코스피 금리 환율 when:1d", limit=6)
+    tech_news = fetch_google_news_rss("AI 반도체 엔비디아 구글 IT when:1d", limit=5)
+    exhibition_news = fetch_google_news_rss("서울 수도권 미술관 전시회 추천 when:7d", limit=6) if is_monday else []
 
     exhibition_rule = (
-        "오늘은 월요일이므로 Google 검색을 통해 이번 주 서울·수도권의 볼만한 무료·유료 전시회 3~4곳을 전시명, 장소, 기간, 관람 포인트 형식으로 작성하라."
+        "오늘은 월요일이므로 아래 수집된 전시 뉴스 헤드라인을 참고해 이번 주 서울·수도권 볼만한 전시 3~4곳을 정리하라:\n"
+        + ("\n".join(exhibition_news) if exhibition_news else "(수집된 전시 뉴스 없음 — 기존 안내 문구 유지)")
         if is_monday
         else f"오늘은 월요일이 아니므로 exhibition_picks에는 아래 기존 텍스트를 그대로 유지하라:\n{last_exhibition}"
     )
@@ -261,7 +296,7 @@ def run_morning_brief():
     prompt = f"""
 너는 개인 웹사이트 busychronicler7800.github.io(모노크롬 아카이브 & 05. REPORT 관리자 허브)의 수석 비서다.
 오늘 날짜는 {today_str} ({weekday_ko}) 오전 07:00 KST다.
-아래 확정 수집 데이터와 Google 검색(지난 24시간 주요 경제·IT 뉴스 및 증시 이슈)을 바탕으로, 한국어로 밀도 높은 종합 모닝 브리핑을 작성하라.
+아래 확정 수집 데이터를 바탕으로, 한국어로 밀도 높은 종합 모닝 브리핑을 작성하라. 없는 수치나 뉴스를 임의로 지어내지 마라.
 
 [확정 거시 지수 데이터 (Yahoo Finance)]
 {json.dumps(macro, ensure_ascii=False, indent=2)}
@@ -271,6 +306,12 @@ def run_morning_brief():
 - 해외 위탁종합: 평가 {round(us_eval):,}원 ({us_ret:+.2f}%)
 - 국내 중개형 ISA: 평가 {round(kr_eval):,}원 ({kr_ret:+.2f}%)
 {json.dumps(holding_details, ensure_ascii=False, indent=2)}
+
+[지난 24시간 실시간 경제·증시 헤드라인 (Google News RSS)]
+{chr(10).join(econ_news) if econ_news else "(수집된 경제 뉴스 없음)"}
+
+[지난 24시간 실시간 AI·IT 헤드라인 (Google News RSS)]
+{chr(10).join(tech_news) if tech_news else "(수집된 IT 뉴스 없음)"}
 
 [경기도 평택시 오늘 날씨 (Open-Meteo)]
 {json.dumps(weather, ensure_ascii=False)}
@@ -282,16 +323,16 @@ def run_morning_brief():
 3. headline 형식: "{today_str} ({weekday_ko}) 07:00 모닝 브리핑 — 핵심 테마 한 줄 요약"
 4. dev_strategy: busychronicler7800.github.io(커스텀 도메인 미보유) 운영 점검, 모듈화(index.html/styles.css/js/*) 유지, 키움증권 연동 대기 상태 및 다음 2단계-B2(키움 REST API·해외 체결 메일 파싱)/3단계(구글 타임라인 지도) 실행 아이디어를 [A.], [B.] 구조로 작성하라.
 5. market_summary:
-   - [1. 한·미 주요 지수 및 거시 흐름]: 위 확정 지수 8종(S&P500, 나스닥, 다우, 미 국채 10년물, VIX, 코스피, 코스닥, 원/달러)을 빠짐없이 수치·등락률과 함께 정리하고 시장 배경 코멘트를 작성하라.
+   - [1. 한·미 주요 지수 및 거시 흐름]: 위 확정 지수 8종(S&P500, 나스닥, 다우, 미 국채 10년물, VIX, 코스피, 코스닥, 원/달러)을 빠짐없이 수치·등락률과 함께 정리하고 헤드라인 기반 시장 배경 코멘트를 작성하라.
    - [2. 보유 6종목별 현황 및 분석]: 해외 위탁(GOOGL, QLD, JEPQ)과 국내 ISA(TIME 나스닥100, KODEX S&P500, KODEX 배당커버드콜) 6종목 모두의 주수, 최신 종가·일간 등락률, 평가금액, 누적 수익률, 종목별 핵심 코멘트를 빠짐없이 작성하라.
    - [3. 운용 전략]: 현재 변동성과 비중을 고려한 현실적 체크포인트를 제시하라.
 6. news_weather:
-   - [지난 24시간 주요 경제·IT 뉴스]: Google 검색 기반 최신 뉴스 3~4건 핵심 요약.
+   - [지난 24시간 주요 경제·IT 뉴스]: 위 실시간 RSS 헤드라인 중 핵심 3~4건을 묶어 요약.
    - [경기도 평택시 오늘의 날씨 예보 ({today_str} {weekday_ko})]: 위 Open-Meteo 수치를 반영해 기온·일교차·강수확률·날씨 정리.
 7. exhibition_picks: {exhibition_rule}
 """
 
-    result = call_gemini_json(prompt, use_search=True)
+    result = call_gemini_json(prompt)
 
     sb_upsert(
         "morning_briefings",
@@ -335,7 +376,7 @@ def run_daily_review():
 4. 각 필드는 불릿(•) 또는 번호(1., 2.)를 사용한 한국어 평문으로 작성하라.
 """
 
-    result = call_gemini_json(prompt, use_search=False)
+    result = call_gemini_json(prompt)
     sb_upsert(
         "daily_reviews",
         "review_date",
@@ -383,7 +424,7 @@ def run_work_log():
 5. problem_analysis는 문제점 진단·해결책 및 물리치료학 전공/개발 학습 포인트를 기록하라.
 """
 
-    result = call_gemini_json(prompt, use_search=False)
+    result = call_gemini_json(prompt)
     tools = result.get("tools", ["GitHub Actions", "Supabase", "Gemini API"])
     if not isinstance(tools, list):
         tools = ["GitHub Actions", "Supabase"]
