@@ -38,6 +38,38 @@ function escapeHtml(str) {
 }
 
 // =========================================================
+// SITE VISITOR COUNTER (TODAY / TOTAL IN FOOTER)
+// =========================================================
+async function trackAndRenderSiteVisits() {
+  const counterEl = document.getElementById("footer-visit-counter");
+  if (!counterEl) return;
+
+  const today = getTodayKST();
+  const storageKey = "bc7800_last_visit_kst";
+  const alreadyCountedToday = localStorage.getItem(storageKey) === today;
+
+  try {
+    const rpcName = alreadyCountedToday ? "get_site_visits" : "increment_site_visit";
+    const { data, error } = await sb.rpc(rpcName);
+    if (error) {
+      console.error("Visit counter error:", error.message);
+      return;
+    }
+    const row = Array.isArray(data) ? data[0] : data;
+    if (row) {
+      if (!alreadyCountedToday) {
+        localStorage.setItem(storageKey, today);
+      }
+      const todayCnt = Number(row.today_count || 0).toLocaleString("ko-KR");
+      const totalCnt = Number(row.total_count || 0).toLocaleString("ko-KR");
+      counterEl.innerText = `TODAY ${todayCnt} · TOTAL ${totalCnt}`;
+    }
+  } catch (e) {
+    console.error("Visit counter exception:", e);
+  }
+}
+
+// =========================================================
 // 2. NAVIGATION & REPORT SUB-TABS
 // =========================================================
 function switchTab(tabName) {
@@ -61,7 +93,11 @@ function switchReportSubTab(subName) {
   currentReportSubTab = subName;
 
   document.querySelectorAll(".report-subpanel").forEach(el => el.classList.remove("active"));
-  document.querySelectorAll(".report-subnav .btn-outline").forEach(btn => btn.classList.remove("active"));
+  document.querySelectorAll(".report-subnav .btn-outline").forEach(btn => {
+    if (btn.id !== "btn-toggle-report-config") {
+      btn.classList.remove("active");
+    }
+  });
 
   document.getElementById("sub-" + subName).classList.add("active");
   document.getElementById("subnav-" + subName).classList.add("active");
@@ -93,6 +129,7 @@ async function updateAuthUI(user) {
   const badgePanel = document.getElementById("badge-panel");
   const adminGrantBox = document.getElementById("admin-badge-grant-box");
   const adminNavEls = document.querySelectorAll(".admin-only");
+  const reportConfigPanel = document.getElementById("report-config-panel");
 
   if (user) {
     const isAdmin = user.email === ADMIN_EMAIL;
@@ -124,6 +161,7 @@ async function updateAuthUI(user) {
     adminArchiveBox.style.display = "none";
     badgePanel.style.display = "none";
     adminGrantBox.style.display = "none";
+    if (reportConfigPanel) reportConfigPanel.style.display = "none";
     adminNavEls.forEach(el => el.style.display = "none");
     if (typeof resetReportViewState === "function") {
       resetReportViewState();
@@ -327,6 +365,19 @@ function handleBadgeChipClick(badgeCode) {
   }
 }
 
+async function syncMyGuestbookBadgeDB(newLabel) {
+  const { error: rpcErr } = await sb.rpc("sync_my_guestbook_badge", {
+    p_badge_label: newLabel || null
+  });
+  if (!rpcErr) return { error: null };
+
+  const { error: fallbackErr } = await sb
+    .from("guestbook")
+    .update({ badge_label: newLabel || null })
+    .eq("user_id", currentUser.id);
+  return { error: fallbackErr };
+}
+
 async function selectUserBadge(badgeCode) {
   if (!currentUser || !currentUserProfile) return;
   const msgEl = document.getElementById("badge-sync-msg");
@@ -335,22 +386,19 @@ async function selectUserBadge(badgeCode) {
   renderBadgePanel();
 
   const newLabel = resolveBadgeLabelByCode(badgeCode);
-  msgEl.innerText = `배지 [${newLabel}] 적용 및 기존 방명록 동기화 중...`;
+  msgEl.innerText = `배지 [${newLabel}] 적용 및 전체 방명록 동기화 중...`;
 
-  await sb
+  const { error: profErr } = await sb
     .from("user_profiles")
     .update({ selected_badge: badgeCode, show_badge: true, updated_at: new Date().toISOString() })
     .eq("user_id", currentUser.id);
 
-  const { error: gbErr } = await sb
-    .from("guestbook")
-    .update({ badge_label: newLabel })
-    .eq("user_id", currentUser.id);
+  const { error: gbErr } = await syncMyGuestbookBadgeDB(newLabel);
 
-  if (gbErr) {
-    msgEl.innerText = "프로필 저장 완료 (기존 댓글 반영을 위해 Supabase UPDATE RLS 정책을 확인해 주세요).";
+  if (profErr || gbErr) {
+    msgEl.innerText = "동기화 오류 : " + (gbErr?.message || profErr?.message);
   } else {
-    msgEl.innerText = `기존에 작성한 모든 방명록 댓글에 [${newLabel}] 배지가 반영되었습니다.`;
+    msgEl.innerText = `완료 : 모든 방명록 댓글에 [${newLabel}] 배지가 반영되었습니다 (로그아웃 상태 및 전체 방문자에게 즉시 표시).`;
   }
   await loadGuestbook();
 }
@@ -362,22 +410,19 @@ async function clearUserBadge() {
   currentUserProfile.show_badge = false;
   renderBadgePanel();
 
-  msgEl.innerText = "배지 선택 해제 및 기존 방명록 동기화 중...";
+  msgEl.innerText = "배지 선택 해제 및 전체 방명록 동기화 중...";
 
-  await sb
+  const { error: profErr } = await sb
     .from("user_profiles")
     .update({ selected_badge: null, show_badge: false, updated_at: new Date().toISOString() })
     .eq("user_id", currentUser.id);
 
-  const { error: gbErr } = await sb
-    .from("guestbook")
-    .update({ badge_label: null })
-    .eq("user_id", currentUser.id);
+  const { error: gbErr } = await syncMyGuestbookBadgeDB(null);
 
-  if (gbErr) {
-    msgEl.innerText = "배지가 해제되었습니다 (기존 댓글 반영을 위해 Supabase UPDATE RLS 정책을 확인해 주세요).";
+  if (profErr || gbErr) {
+    msgEl.innerText = "동기화 오류 : " + (gbErr?.message || profErr?.message);
   } else {
-    msgEl.innerText = "배지가 해제되었으며 기존에 작성한 모든 방명록 댓글에서도 제거되었습니다.";
+    msgEl.innerText = "완료 : 배지가 해제되었으며 기존 모든 방명록 댓글에서도 제거되었습니다.";
   }
   await loadGuestbook();
 }
@@ -441,7 +486,7 @@ async function grantSpecialBadge() {
     renderBadgePanel();
   }
 
-  statusEl.innerText = `완료 : ${targetEmail} 계정에 [${rawLabel}] 특수 배지가 부여되었습니다. (해당 계정 본인에게만 표시됩니다)`;
+  statusEl.innerText = `완료 : ${targetEmail} 계정에 [${rawLabel}] 특수 배지가 부여되었습니다. (선택창은 해당 계정 본인만, 착용 시 댓글은 모두에게 표시됩니다)`;
 }
 
 async function revokeSpecialBadge() {
@@ -488,6 +533,13 @@ async function revokeSpecialBadge() {
     return;
   }
 
+  if (isCurrentlyWearing) {
+    await sb
+      .from("guestbook")
+      .update({ badge_label: null })
+      .eq("user_id", targetProfile.user_id);
+  }
+
   if (targetProfile.user_id === currentUser.id) {
     currentUserProfile.unlocked_badges = unlocked;
     if (isCurrentlyWearing) {
@@ -497,6 +549,7 @@ async function revokeSpecialBadge() {
     renderBadgePanel();
   }
 
+  await loadGuestbook();
   statusEl.innerText = `완료 : ${targetEmail} 계정에서 [${rawLabel}] 특수 배지가 회수되었습니다.`;
 }
 
@@ -705,7 +758,7 @@ async function deleteArchive(id) {
 }
 
 // =========================================================
-// 5. GUESTBOOK (COOLDOWN + HONEYPOT + RETROACTIVE BADGES)
+// 5. GUESTBOOK (COOLDOWN + HONEYPOT + DB-SYNCED BADGES)
 // =========================================================
 function startCooldownTimer(secondsRemaining) {
   const btn = document.getElementById("btn-post-gb");
@@ -769,10 +822,7 @@ async function loadGuestbook() {
     const isOwner = currentUser && currentUser.id === row.user_id;
     const canDelete = isAdmin || isOwner;
 
-    let badgeText = row.badge_label ? row.badge_label.trim() : "";
-    if (isOwner && currentUserProfile) {
-      badgeText = getActiveBadgeLabelForPost() || "";
-    }
+    const badgeText = row.badge_label ? row.badge_label.trim() : "";
     const isArch = badgeText === "ARCHITECT";
 
     return `
@@ -871,6 +921,7 @@ async function deleteGuestbook(id) {
 // =========================================================
 window.addEventListener("DOMContentLoaded", async () => {
   initAnatomyEngine();
+  trackAndRenderSiteVisits();
   const { data } = await sb.auth.getSession();
   await updateAuthUI(data?.session?.user || null);
   loadArchives();
