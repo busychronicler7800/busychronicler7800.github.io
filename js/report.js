@@ -1,5 +1,5 @@
 // =========================================================
-// 05. REPORT HUB — DB READ SYNC + MORNING BRIEF / REVIEW / WORK LOG
+// 05. REPORT HUB — DB READ SYNC + REALTIME CONFIG + REPORTS
 // =========================================================
 let cachedDailyReviews = [];
 let cachedWorkLogs = [];
@@ -7,6 +7,76 @@ let cachedMorningBriefs = [];
 let openDailyReviewIds = new Set();
 let openWorkLogIds = new Set();
 let chartInstances = {};
+
+// =========================================================
+// REALTIME AI REPORT CONFIG (SUPABASE report_config)
+// =========================================================
+async function toggleReportConfigPanel() {
+  if (!currentUser || currentUser.email !== ADMIN_EMAIL) return;
+  const panel = document.getElementById("report-config-panel");
+  const btn = document.getElementById("btn-toggle-report-config");
+  if (!panel) return;
+
+  const isOpening = panel.style.display === "none";
+  panel.style.display = isOpening ? "block" : "none";
+  if (btn) btn.classList.toggle("active", isOpening);
+
+  if (isOpening) {
+    await loadReportConfig();
+  }
+}
+
+async function loadReportConfig() {
+  if (!currentUser || currentUser.email !== ADMIN_EMAIL) return;
+  const msgEl = document.getElementById("rc-msg");
+  const updatedEl = document.getElementById("rc-updated-at");
+  if (msgEl) msgEl.innerText = "LOADING CONFIG...";
+
+  const { data, error } = await sb
+    .from("report_config")
+    .select("*")
+    .eq("id", 1)
+    .maybeSingle();
+
+  if (error) {
+    if (msgEl) msgEl.innerText = "LOAD ERROR : " + error.message;
+    return;
+  }
+
+  if (data) {
+    document.getElementById("rc-roadmap").value = data.roadmap_context || "";
+    document.getElementById("rc-extra").value = data.extra_instructions || "";
+    if (updatedEl && data.updated_at) {
+      updatedEl.innerText = "LAST UPDATED : " + new Date(data.updated_at).toLocaleString("ko-KR");
+    }
+  }
+  if (msgEl) msgEl.innerText = "";
+}
+
+async function saveReportConfig() {
+  if (!currentUser || currentUser.email !== ADMIN_EMAIL) return;
+  const roadmapContext = document.getElementById("rc-roadmap").value.trim();
+  const extraInstructions = document.getElementById("rc-extra").value.trim();
+  const msgEl = document.getElementById("rc-msg");
+  const updatedEl = document.getElementById("rc-updated-at");
+
+  if (msgEl) msgEl.innerText = "SAVING...";
+  const nowIso = new Date().toISOString();
+
+  const { error } = await sb.from("report_config").upsert({
+    id: 1,
+    roadmap_context: roadmapContext,
+    extra_instructions: extraInstructions,
+    updated_at: nowIso
+  }, { onConflict: "id" });
+
+  if (error) {
+    if (msgEl) msgEl.innerText = "SAVE ERROR : " + error.message;
+  } else {
+    if (msgEl) msgEl.innerText = "SAVED. 다음 자동 리포트부터 즉시 반영됩니다.";
+    if (updatedEl) updatedEl.innerText = "LAST UPDATED : " + new Date(nowIso).toLocaleString("ko-KR");
+  }
+}
 
 // =========================================================
 // ACCOUNT-LEVEL UNREAD TRACKING (SUPABASE DB + YYYY-MM-DD KEY)
@@ -138,7 +208,6 @@ document.addEventListener("visibilitychange", async () => {
 
 // =========================================================
 // DEFAULT FALLBACK DATA FOR 05. REPORT SUB-TABS
-// (기준일: 작업 대상일 YYYY-MM-DD 고정)
 // =========================================================
 const FALLBACK_MORNING_BRIEFS = [
   {
@@ -146,47 +215,13 @@ const FALLBACK_MORNING_BRIEFS = [
     brief_date: "2026-11-26",
     headline: "2026-11-26 (목) 07:00 모닝 브리핑 — 포트폴리오 기준 스냅샷 및 시스템 현황",
     dev_strategy: `[A. 3D 조형 엔진 진단 및 인체 모델(.glb) 도입 시 4단계 파이프라인]
-1. 어제 작업의 핵심 교훈 (왜 인체 ASCII가 어색했는가)
-• Torus Knot은 수학적으로 연속된 단일 튜브 곡면이기 때문에 3D 호 길이(Arc-length) 기반 균일 샘플링과 법선 안쪽 오클루전(insetDepth = 0.020)이 완벽하게 맞아떨어졌습니다.
-• 반면 인체(Écorché)는 곡률 변화가 극심한 다중 파츠(근육 다발·골격·관절 홈)가 겹쳐 있어, 단일 점묘(THREE.Points) ASCII 방식으로는 근육의 결(Striation)과 경계가 뭉개질 수밖에 없었습니다.
-• 01. SCULPTURE는 Torus Knot ASCII 아트로 단독 유지하고, 추후 인체 모델(.glb) 구매 시에는 GLTFLoader 기반 별도 3D 뷰어 파이프라인으로 분리 설계합니다.
-
-[B. 웹사이트 기능별 문제점 해결 및 발전 아이디어]
-• 방명록 보안 및 배지 고도화: Supabase RLS 정책으로 60초 쿨다운 강제, 허니팟 스팸 필터 적용, 배지 선택 해제·소급 반영 및 관리자 지정 비공개 특수 배지 구현.
-• 아카이브 관리 고도화: 관리자 전용 모달(EDIT/DELETE) 및 스토리지 이미지 연동 구현.
-• 05. REPORT 통합 허브: 모닝 브리핑·분석 리포트·작업 일지 단일 허브 통합 및 미확인 알림 점 구현.
-
-[C. 플랫폼 비교 및 자동화 해결책]
-• 최우선 허브: Supabase DB(morning_briefings, daily_reviews, work_logs) 통합 및 GitHub Actions 자동 적재.
-• 보조 기록: Notion(학습 아카이브 및 상세 메모), Google Sheets(키움증권 종목별 매입·평가 수치 관리) 하이브리드 운영.`,
-    market_summary: `[1. 전체 시장 및 주요 지수 흐름 (11/25 전일 마감 기준)]
-• 미국 S&P 500: 7,182.78 (-0.25%)
-• 미국 나스닥 종합: 23,585.80 (-0.62%)
-• 미국 다우존스 30: 50,182.95 (+0.33%)
-• 미 국채 10년물 / VIX: 4.836% (-1.35%) / 27.08 (+12.94%)
-• 한국 코스피 / 코스닥: 4,697.51 (-6.16%) / 650.64 (-2.29%)
-• 원/달러 환율: 1,343.2원 (+0.8원)
-• 시장 코멘트: 엔비디아 신용등급 강등 여파와 VIX 급등, 국내 증시 급락세 속에서 거시적 변동성이 확대되고 있습니다.
-
-[2. 보유 종목 현황 (2026-11-26 임시 잔고 기준)]
-• 전체 합산: 총 매입원금 12,757,240원 / 총 평가금액 9,826,179원 (-22.98%, 평가손익 -2,931,061원)
-• 해외 위탁종합 (평가 6,929,834원 / -22.79%):
-  - GOOGL: 8주 보유 / 평가금액 약 286만원 (-22.17%)
-  - QLD: 27주 보유 / 평가금액 약 229만원 (-28.32%)
-  - JEPQ: 26주 보유 / 평가금액 약 178만원 (-15.52%)
-• 국내 중개형 ISA (평가 2,896,345원 / -24.45%):
-  - TIME 미국나스닥100액티브: 62주 보유 / 평가금액 약 204만원 (-28.84%)
-  - KODEX 미국S&P500: 39주 보유 / 평가금액 약 84만원 (-11.38%)
-  - KODEX 미국배당커버드콜: 1주 보유 / 평가금액 약 1만원 (-5.76%)
-• 운용 전략: 지수 추종 및 레버리지·커버드콜 비중을 점검하며 급락 구간 무리한 추격 매수를 자제하고 계획된 분할 매수 리듬을 유지합니다.`,
-    news_weather: `[거시경제 일정 및 주요 이슈]
-• 한국은행 금융통화위원회 기준금리 결정 및 경제전망 발표 (10:00 KST) 주시.
-• 미국 금융시장은 추수감사절(Thanksgiving) 연휴로 휴장.
-
-[경기도 평택시 오늘의 날씨 예보 (11월 26일 목요일)]
-• 기온: 최저 5°C / 최고 15°C (일교차 10°C), 낮 동안 맑음.`,
+• 01. SCULPTURE는 Torus Knot ASCII 아트로 단독 유지하고, 추후 인체 모델(.glb) 구매 시 GLTFLoader 기반 별도 뷰어로 분리 설계합니다.`,
+    market_summary: `[2026-11-26 임시 잔고 기준]
+• 총 매입원금 12,757,240원 / 총 평가금액 9,826,179원 (-22.98%)`,
+    news_weather: `[경기도 평택시 오늘의 날씨 예보]
+• 기온: 최저 5°C / 최고 15°C`,
     exhibition_picks: `[주간 서울·수도권 추천 전시 (매주 월요일 07:00 정기 갱신)]
-• 매주 월요일 오전 7시 정기 스케줄에 맞춰 서울 및 수도권 주요 미술관·갤러리 전시 정보가 업데이트됩니다.`,
+• 매주 월요일 오전 7시 정기 스케줄에 맞춰 업데이트됩니다.`,
     portfolio_snapshot: {
       total_buy_krw: 12757240,
       total_eval_krw: 9826179,
@@ -195,9 +230,7 @@ const FALLBACK_MORNING_BRIEFS = [
       us_return_pct: -22.79,
       kr_eval_krw: 2896345,
       kr_return_pct: -24.45,
-      history: [
-        { date: "11-26", buy: 1276, eval: 983 }
-      ],
+      history: [{ date: "11-26", buy: 1276, eval: 983 }],
       holdings: [
         { ticker: "GOOGL", eval_man: 286, return_pct: -22.17 },
         { ticker: "QLD", eval_man: 229, return_pct: -28.32 },
@@ -215,26 +248,9 @@ const FALLBACK_DAILY_REVIEWS = [
     id: 2,
     review_date: "2026-11-26",
     headline: "11/26 작업분 분석 리포트: 05. REPORT 통합 허브 완성, 방명록 특수 배지 고도화 및 리포트 스케줄 기준 정립",
-    achievements: `• 01. SCULPTURE를 Torus Knot ASCII 아트로 단독화하고 기존 Swiss Grotesque 타이포그래피와 03. BIO 2단 그리드 디자인을 완전 복구했습니다.
-• 상단 네비게이션을 05. REPORT 단일 허브로 통합하고 게시판 아코디언, 미확인 알림 점, 원본 리포트 전체 출력 구조를 완성했습니다.
-• 방명록 도배 우려 배지를 제거하고 배지 선택 해제·기존 댓글 소급 반영 및 관리자 지정 비공개 특수 배지 시스템을 구축했습니다.
-• 리포트 날짜 혼선을 방지하기 위해 기록 기준일을 '작업 대상일(전날)'로 단일화하고, 정기 생성 시각을 오전 02:00(분석 리포트)·03:00(작업 일지)으로 분리했습니다.`,
-    insights: `• 제미나이 예약 작업의 발행 시각(자정 직후)과 실제 작업 대상일이 어긋나던 구조적 원인을 진단하고, DB 기준일(YYYY-MM-DD)을 작업 대상일로 고정하여 누적 관리 정확도를 높였습니다.
-• 코드 수정 시 기존 CSS·레이아웃을 건드리지 않고 요청 구간만 정밀 수정하는 원칙을 확립했습니다.`,
-    next_priorities: `1. Supabase SQL 정책(user_profiles·guestbook·morning_briefings·daily_reviews·work_logs) 최종 반영 확인
-2. 2단계 자동화 파이프라인(GitHub Actions + 키움·Gemini API 연동 자동 DB 적재) 구축`
-  },
-  {
-    id: 1,
-    review_date: "2026-11-25",
-    headline: "11/25 작업분 분석 리포트: Torus Knot 3D 곡면 엔진 진단, 웹사이트 아키텍처 정비 및 항공권 트래킹 안정화",
-    achievements: `• 3D 호 길이(Arc-length) 기반 균일 샘플링과 법선 안쪽 오클루전(insetDepth = 0.020) 원리를 분석하고 인체 모델(.glb) 분리 파이프라인 설계안을 도출했습니다.
-• 아카이브 관리자 제어(EDIT/DELETE 모달 및 스토리지 연동)와 방명록 60초 쿨다운·허니팟 스팸 방어 구조를 설계했습니다.
-• 2027년 7월 상하이·튀르키예 다구간 항공권 자동 트래킹 및 정기 리포트 루틴을 정비했습니다.`,
-    insights: `• 단일 튜브 곡면(Torus Knot)과 다중 파츠 해부학 메쉬의 렌더링 특성을 분리함으로써 시각적 완성도와 유지보수성을 동시에 확보했습니다.
-• 개인 데이터를 Supabase 단일 허브로 통합하는 방향이 가장 안정적인 자동화 구조임을 확인했습니다.`,
-    next_priorities: `1. 웹사이트 05. REPORT 통합 허브 프론트엔드 구현 및 디자인 복구
-2. 키움증권 보유 포트폴리오 기준 스냅샷 등록`
+    achievements: "• 05. REPORT 통합 허브 및 방명록 배지 고도화 완료",
+    insights: "• 작업 대상일(YYYY-MM-DD) 단일 기준 확립",
+    next_priorities: "1. 자동화 파이프라인 구축"
   }
 ];
 
@@ -244,35 +260,10 @@ const FALLBACK_WORK_LOGS = [
     log_date: "2026-11-26",
     title: "웹 정비(Torus Knot 단독화 · 방명록 비공개 특수 배지 · 05. REPORT 통합 허브) 및 리포트 기준 확립",
     status_type: "ACTIVE",
-    tools: ["Gemini 4 Hydrogen", "Three.js", "Supabase", "GitHub Actions", "Vercel", "Chart.js"],
-    completed_summary: `• 26. 11. 26 (목) 완료 작업 요약
-  1. 개인 웹사이트(busychronicler7800.com) 및 3D 조형 코드 정비 (Torus Knot ASCII 아트 단독화 및 원본 디자인 복구)
-  2. 상단 네비게이션 슬림화 및 05. REPORT 통합 허브 구축 (모닝 브리핑 · 분석 리포트 · 작업 일지 게시판형 UI, 원본 전체 출력 및 미확인 알림 점)
-  3. 방명록 보안 및 배지 고도화 (60초 쿨다운, 5회 작성 배지 제거, 선택 해제·소급 반영, 지정 계정 전용 비공개 특수 배지 부여)
-  4. 리포트 날짜 기준 단일화(작업 대상일 기준) 및 정기 생성 시각 변경(02:00 분석 리포트 / 03:00 작업 일지).`,
-    active_pipelines: `• 항공권 자동 트래킹 정상 가동 중
-• busychronicler7800.com 프론트엔드(Vercel) 및 Supabase DB 연동 운영 중
-• 정기 리포트 스케줄: 02:00 분석 리포트 / 03:00 작업 일지 / 07:00 모닝 브리핑`,
-    problem_analysis: `• 문제점 1: 자정 직후 리포트 생성 시 발행일과 작업 대상일이 겹쳐 혼동 발생
-  → 해결책 1: 생성 시각을 02:00 / 03:00으로 분리하고 모든 DB 기준일을 작업 대상일(전날)로 단일화 완료
-• 문제점 2: 키움증권 잔고 및 리포트 데이터 수동 입력 구조
-  → 해결책 2: 다음 세션 2단계 작업으로 GitHub Actions 연동 자동 DB 적재 파이프라인 구축 예정`
-  },
-  {
-    id: 1,
-    log_date: "2026-11-25",
-    title: "3D 곡면 ASCII 샘플링 엔진 진단, 아카이브 관리자 제어 및 정기 자동화 파이프라인 설계",
-    status_type: "ACTIVE",
-    tools: ["Three.js", "Supabase", "GitHub Actions", "Vercel"],
-    completed_summary: `• 26. 11. 25 (수) 완료 작업 요약
-  1. Torus Knot 곡면 샘플링 및 법선 오클루전 셰이더 진단, 추후 인체(.glb) 뷰어 분리 파이프라인 설계
-  2. 02. ARCHIVE 관리자 전용 수정·삭제 모달 및 Supabase Storage 연동 구조 설계
-  3. 키움증권 보유 포트폴리오(해외 위탁종합 · 중개형 ISA) 기준 스냅샷 데이터 정리
-  4. 상하이·튀르키예 다구간 항공권 알림 트래킹 안정화.`,
-    active_pipelines: `• 항공권 자동 트래킹 가동 중
-• 키움증권 포트폴리오 기준 스냅샷(총 매입 1,275만원 / 평가 982만원) 기록 유지`,
-    problem_analysis: `• 문제점 1: 다중 파츠 인체 메쉬의 점묘 ASCII 경계 뭉개짐 현상
-  → 해결책 1: 01. SCULPTURE는 Torus Knot으로 단독 유지하고, 인체 모델은 추후 GLTFLoader 전용 뷰어로 분리`
+    tools: ["Gemini 4 Hydrogen", "Three.js", "Supabase", "GitHub Actions", "Chart.js"],
+    completed_summary: "• 26. 11. 26 (목) 완료 작업 요약",
+    active_pipelines: "• 정기 리포트 자동화 파이프라인 가동 중",
+    problem_analysis: "• DB 기반 자동화 연동 진행 중"
   }
 ];
 
